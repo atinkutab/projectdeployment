@@ -515,7 +515,7 @@ Note: Your investment earnings will be automatically deposited into your account
             const randomTelegramId = Math.floor(Math.random() * 1000000000) + 100000000;
 
             try {
-                const res = await apiFetch('/register', {
+                const res = await apiFetch('/api/register', {
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ telegram_id: randomTelegramId, telegram_username: username, phone_number: phone, password: pass1, inviter_code: invite || "" })
                 });
@@ -546,7 +546,7 @@ Note: Your investment earnings will be automatically deposited into your account
             if (!phone || !pass) return showToast("Please enter both phone number and password.", 'error');
 
             try {
-                const res = await apiFetch('/login', {
+                const res = await apiFetch('/api/login', {
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ phone_number: phone, password: pass })
                 });
@@ -692,11 +692,14 @@ Note: Your investment earnings will be automatically deposited into your account
             currentProductAmount = amount;
             const loader1 = document.getElementById("loader-1"); const loader2 = document.getElementById("loader-2");
             loader1.classList.remove("hidden");
-                loader1.classList.add("hidden"); loader2.classList.remove("hidden");
+            setTimeout(() => {
+                loader1.classList.add("hidden"); 
+                loader2.classList.remove("hidden");
                 setTimeout(() => {
                     loader2.classList.add("hidden");
                     document.getElementById("bank-warning-modal").classList.remove("hidden");
                 }, 1800);
+            }, 1800);
         }
 
         function acceptBankWarning() {
@@ -747,7 +750,7 @@ Note: Your investment earnings will be automatically deposited into your account
             const txId = document.getElementById("tx-id").value;
             if (!txId.trim()) { return showToast("Please enter a Transaction ID or Receipt Number.", 'error'); }
             try {
-                const res = await apiFetch('/paynow-webhook', {
+                const res = await apiFetch('/api/paynow-webhook', {
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ reference: txId, status: "Paid", amount: currentProductAmount, telegram_id: parseInt(userState.telegram_id), payment_method: currentPaymentMethod })
                 });

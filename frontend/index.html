@@ -14,41 +14,6 @@
     <!-- Favicon to prevent 404 -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>" />
     
-    <!-- Telegram WebApp SDK -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script>
-        (function safeInitTelegramWebApp() {
-          const tg = window.Telegram?.WebApp;
-          if (!tg) return;
-
-          try { tg.ready(); } catch (e) {}
-          try { tg.expand(); } catch (e) {}
-
-          const supportsV61 = (typeof tg.isVersionAtLeast === "function") ? tg.isVersionAtLeast("6.1") : false;
-
-          if (supportsV61) {
-            try { if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor('#0f172a'); } catch (e) {}
-            try { if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor('#0f172a'); } catch (e) {}
-          } else {
-            document.documentElement.style.setProperty('--tg-header-bg', '#0f172a');
-            document.documentElement.style.setProperty('--tg-bg', '#0f172a');
-            document.body.style.backgroundColor = '#0f172a';
-          }
-
-          window.safeTG = {
-            showBackButton: () => {
-              if (supportsV61 && tg.BackButton && typeof tg.BackButton.show === 'function') tg.BackButton.show();
-            },
-            hideBackButton: () => {
-              if (supportsV61 && tg.BackButton && typeof tg.BackButton.hide === 'function') tg.BackButton.hide();
-            },
-            hapticSuccess: () => {
-              if (supportsV61 && tg.HapticFeedback && typeof tg.HapticFeedback.notificationOccurred === 'function') tg.HapticFeedback.notificationOccurred('success');
-            },
-            isModern: supportsV61
-          };
-        })();
-    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -62,7 +27,7 @@
         .toast { background: var(--card-bg); color: var(--text); padding: 16px 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid var(--border); border-left: 5px solid var(--primary); font-size: 14px; font-weight: 500; text-align: center; animation: slideDown 0.3s ease; opacity: 1; transition: opacity 0.3s ease, transform 0.3s ease; }
         .toast.success { border-left-color: var(--success); }
         .toast.error { border-left-color: var(--danger); }
-        .toast.hide { opacity: 0; transform: translateY(-20px); }
+.toast.hide { opacity: 0; transform: translateY(-20px); }
         @keyframes slideDown { from { transform: translateY(-100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         #auth-view { padding: 2rem 1.5rem; display: flex; flex-direction: column; justify-content: center; min-height: 100vh; background: var(--bg); animation: fadeIn 0.5s ease; }
         .logo { text-align: center; font-size: 2.5rem; font-weight: 900; background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem; letter-spacing: -1px; }
@@ -97,8 +62,7 @@
         .product-price { font-size: 1.4rem; font-weight: 800; white-space: nowrap; align-self: center; }
         .product-body { padding: 1.5rem; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
-        .stat-item { display: flex; flex-direction: column; }
-        .stat-item .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 500; }
+        .stat-item { display: flex; flex-direction: column; }.stat-item .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 500; }
         .stat-item .stat-value { font-size: 1.15rem; font-weight: 700; color: var(--text); }
         .stat-item .stat-value.highlight { color: var(--success); }
         
@@ -148,8 +112,7 @@
         .method-btn.active { background: var(--primary); color: #fff; }
         .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; background: var(--card-bg); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
         .invoice-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
-        .invoice-table tr:last-child td { border-bottom: none; }
-        .inv-label { color: var(--text-muted); width: 40%; font-weight: 500; }
+        .invoice-table tr:last-child td { border-bottom: none; } .inv-label { color: var(--text-muted); width: 40%; font-weight: 500; }
         .inv-val { font-weight: 700; text-align: right; display: flex; justify-content: flex-end; align-items: center; gap: 8px; color: var(--text); }
         .btn-copy-inline { background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; color: var(--text-muted); transition: transform 0.1s; }
         .btn-copy-inline:active { transform: scale(0.95); }
@@ -197,8 +160,7 @@
         .lb-item { display: flex; align-items: center; background: var(--card-bg); margin: 0.75rem 1.5rem; padding: 1.25rem; border-radius: 8px; border: 1px solid var(--border); transition: transform 0.2s; }
         .lb-item:active { transform: scale(0.98); }
         .lb-rank { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--bg); border-radius: 50%; font-weight: 800; margin-right: 1.25rem; color: var(--text); }
-        .lb-rank.gold { background: #fef08a; color: #854d0e; }
-        .lb-rank.silver { background: #e2e8f0; color: #475569; }
+        .lb-rank.gold { background: #fef08a; color: #854d0e; }.lb-rank.silver { background: #e2e8f0; color: #475569; }
         .lb-rank.bronze { background: #fed7aa; color: #9a3412; }
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto; background: var(--card-bg); display: flex; justify-content: space-around; border-top: 1px solid var(--border); padding: 0.75rem 0; padding-bottom: env(safe-area-inset-bottom, 0); z-index: 100; }
         .nav-item { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--text-muted); font-size: 0.7rem; font-weight: 600; cursor: pointer; padding: 0.5rem; flex: 1; transition: color 0.2s; font-family: 'Inter', sans-serif; }
@@ -252,8 +214,7 @@
             background: linear-gradient(270deg, #3b82f6, #8b5cf6, #3b82f6);
             background-size: 200% 200%;
             color: #fff;
-            font-weight: 700;
-            text-align: center;
+            font-weight: 700;text-align: center;
             animation: gradient-shift 3s ease infinite;
         }
         @keyframes gradient-shift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
@@ -317,8 +278,7 @@
                 <div class="payment-method-toggle">
                     <button id="btn-cbe" class="method-btn active" onclick="selectPaymentMethod('CBE')">Bank Transfer (CBE)</button>
                     <button id="btn-telebirr" class="method-btn" onclick="selectPaymentMethod('Telebirr')">Telebirr</button>
-                </div>
-                <table class="invoice-table">
+                </div> class="invoice-table">
                     <tr><td class="inv-label">Account Name</td><td class="inv-val" id="inv-acc-name">Platform Admin</td></tr>
                     <tr><td class="inv-label">Bank Name</td><td class="inv-val" id="inv-bank-name">Commercial Bank of Ethiopia</td></tr>
                     <tr><td class="inv-label" id="acc-num-label">Account Number</td><td class="inv-val"><span id="inv-acc-num">1000123456789</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-acc-num').innerText)">Copy</button></td></tr>
@@ -360,8 +320,7 @@
                         <div class="stat-mini"><div class="stat-mini-val">0</div><div class="stat-mini-lbl">Valid users</div></div>
                         <div class="stat-mini"><div class="stat-mini-val">0 ETB</div><div class="stat-mini-lbl">Invited income</div></div>
                     </div>
-                </div>
-            </div>
+                </div> </div>
             <div class="menu-list">
                 <div class="menu-item" onclick="openInfoModal('account')"><span>Account details</span><span class="menu-arrow">›</span></div>
                 <div class="menu-item" onclick="openInfoModal('rules')"><span>Platform rules</span><span class="menu-arrow">›</span></div>
@@ -448,8 +407,7 @@ Note: Your investment earnings will be automatically deposited into your account
                 if (item && item.msg) return item.msg;
             }
             if (err.message) return err.message;
-            return fallback;
-        }
+            return fallback;}
 
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
@@ -460,9 +418,7 @@ Note: Your investment earnings will be automatically deposited into your account
             setTimeout(() => { toast.classList.add('hide'); setTimeout(() => toast.remove(), 300); }, 4000);
         }
 
-        const tg = window.Telegram?.WebApp;
-        const IS_LOCAL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const API_URL = IS_LOCAL ? 'http://127.0.0.1:8000' : 'https://projectdeployment-1-yuwq.onrender.com';
+        const API_URL = 'https://projectdeployment-1-yuwq.onrender.com';
         const APP_BASE_URL = window.location.origin;
 
         async function apiFetch(path, options = {}) {
@@ -477,54 +433,6 @@ Note: Your investment earnings will be automatically deposited into your account
             total_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, has_checked_in: false, transactions: []
         };
 
-        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            const u = tg.initDataUnsafe.user;
-            userState.telegram_id = u.id ? u.id.toString() : userState.telegram_id;
-            userState.telegram_username = u.username ? `@${u.username}` : (u.first_name || userState.telegram_username);
-            const suUser = document.getElementById("su-username");
-            if (suUser) suUser.value = userState.telegram_username;
-        }
-
-        if (window.safeTG && window.safeTG.isModern && tg.BackButton) {
-            tg.BackButton.onClick(() => {
-                const modals = ['login-promo-modal', 'bank-warning-modal', 'confirm-transfer-modal', 'withdraw-modal', 'info-modal', 'history-modal', 'logout-modal'];
-                let closed = false;
-                for (let id of modals) {
-                    let el = document.getElementById(id);
-                    if (!el.classList.contains('hidden')) {
-                        if (id === 'withdraw-modal') closeWithdrawModal();
-                        else if (id === 'confirm-transfer-modal') closeConfirmModal();
-                        else if (id === 'info-modal') closeInfoModal();
-                        else if (id === 'history-modal') closeHistoryModal();
-                        else if (id === 'bank-warning-modal') acceptBankWarning();
-                        else if (id === 'logout-modal') closeLogoutModal();
-                        else el.classList.add('hidden');
-                        closed = true; break;
-                    }
-                }
-                if (!closed && !document.getElementById('dep-step-2').classList.contains('hidden')) {
-                    clearInterval(countdownInterval);
-                    document.getElementById("dep-step-1").classList.remove("hidden");
-                    document.getElementById("dep-step-2").classList.add("hidden");
-                    closed = true;
-                }
-                if (!closed && !document.getElementById('view-home').classList.contains('hidden')) { } 
-                else if (!closed) { switchTab('home'); closed = true; }
-                if (!closed && tg.close) { tg.close(); }
-                syncTgBackButton();
-            });
-        }
-
-        function syncTgBackButton() {
-            if (!window.safeTG) return;
-            let showBack = false;
-            const modals = ['login-promo-modal', 'bank-warning-modal', 'confirm-transfer-modal', 'withdraw-modal', 'info-modal', 'history-modal', 'logout-modal'];
-            for (let id of modals) { if (!document.getElementById(id).classList.contains('hidden')) showBack = true; }
-            if (!document.getElementById('dep-step-2').classList.contains('hidden')) showBack = true;
-            if (!document.getElementById('view-home').classList.contains('hidden') && document.getElementById('dashboard-view').classList.contains('hidden')) showBack = false;
-            if (showBack) window.safeTG.showBackButton(); else window.safeTG.hideBackButton();
-        }
-
         function initWebSocket(userId) {
             if (socket) {
                 try { socket.close(); } catch(e) {}
@@ -535,9 +443,7 @@ Note: Your investment earnings will be automatically deposited into your account
                 reconnectTimer = null;
             }
 
-            const ws_protocol = window.location.protocol === "https:" ? "wss" : "ws";
-            const ws_host = IS_LOCAL ? "127.0.0.1:8000" : "projectdeployment-1-yuwq.onrender.com";
-            const ws_url = `${ws_protocol}://${ws_host}/ws/${userId}`;
+            const ws_url = `wss://projectdeployment-1-yuwq.onrender.com/ws/${userId}`;
 
             console.log("Attempting WebSocket connection to:", ws_url);
             socket = new WebSocket(ws_url);
@@ -562,8 +468,7 @@ Note: Your investment earnings will be automatically deposited into your account
                         showToast(`✅ Withdrawal Approved! ${data.amount} ETB has been sent to your account.`, 'success');
                         const tx = userState.transactions.find(t => t.type === 'Withdrawal' && t.status === 'Pending' && t.amount === data.amount);
                         if (tx) tx.status = 'Approved';
-                    } else if (data.type === "withdrawal_rejected") {
-                        userState.total_balance += data.amount; updateBalances();
+                    } else if (data.type === "withdrawal_rejected") { userState.total_balance += data.amount; updateBalances();
                         showToast(`❌ Withdrawal Rejected! ${data.amount} ETB has been refunded to your balance.`, 'error');
                         const tx = userState.transactions.find(t => t.type === 'Withdrawal' && t.status === 'Pending' && t.amount === data.amount);
                         if (tx) tx.status = 'Rejected';
@@ -593,7 +498,6 @@ Note: Your investment earnings will be automatically deposited into your account
         function toggleAuth(view) {
             document.getElementById("signup-form").classList.toggle("hidden", view !== 'signup');
             document.getElementById("signin-form").classList.toggle("hidden", view !== 'signin');
-            syncTgBackButton();
         }
 
         async function handleSignUp() {
@@ -633,7 +537,7 @@ Note: Your investment earnings will be automatically deposited into your account
                         toggleAuth('signin');
                     } else { showToast(errorMsg, 'error'); }
                 }
-            } catch (error) { console.error("API Error:", error); showToast("Network error. Is the backend running?", 'error'); }
+            } catch (error) { console.error("API Error:", error); showToast("Network error. Please check your connection.", 'error'); }
         }
 
         async function handleSignIn() {
@@ -678,18 +582,16 @@ Note: Your investment earnings will be automatically deposited into your account
             initApp();
             document.getElementById("login-promo-modal").classList.remove("hidden");
             initWebSocket(userState.telegram_id);
-            syncTgBackButton();
         }
 
-        function closePromoModal() { document.getElementById("login-promo-modal").classList.add("hidden"); syncTgBackButton(); }
-        function handleLogout() { document.getElementById("logout-modal").classList.remove("hidden"); syncTgBackButton(); }
-        function closeLogoutModal() { document.getElementById("logout-modal").classList.add("hidden"); syncTgBackButton(); }
+        function closePromoModal() { document.getElementById("login-promo-modal").classList.add("hidden"); }
+        function handleLogout() { document.getElementById("logout-modal").classList.remove("hidden"); }
+        function closeLogoutModal() { document.getElementById("logout-modal").classList.add("hidden"); }
         function confirmLogout() {
             if (socket) socket.close();
             closeLogoutModal();
             document.getElementById("dashboard-view").classList.add("hidden");
             document.getElementById("auth-view").classList.remove("hidden");
-            syncTgBackButton();
         }
 
         function initApp() { 
@@ -707,7 +609,6 @@ Note: Your investment earnings will be automatically deposited into your account
             document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("active"));
             document.querySelector(`.nav-item[data-view="${viewName}"]`).classList.add("active");
             if (viewName !== 'deposit') { clearInterval(countdownInterval); document.getElementById("dep-step-1").classList.remove("hidden"); document.getElementById("dep-step-2").classList.add("hidden"); }
-            syncTgBackButton();
         }
 
         const products = [
@@ -721,7 +622,6 @@ Note: Your investment earnings will be automatically deposited into your account
             { name: "Luxury Resort", desc: "High-end hospitality and tourism property.", img: "images/luxury_resort.png", price: 50000, daily: 17000, days: 60, total: 1020000 },
             { name: "Global Index Fund", desc: "The ultimate asset—a diversified stake in global megacorporations.", img: "images/index_fund.png", price: 100000, daily: 36000, days: 60, total: 2160000 },
         ];
-
         function renderProducts() {
             const container = document.getElementById("product-list");
             container.innerHTML = "";
@@ -775,7 +675,7 @@ Note: Your investment earnings will be automatically deposited into your account
                     const err = await res.json().catch(() => ({}));
                     showToast(extractErrorMessage(err, "Purchase failed."), 'error');
                 }
-            } catch (error) { console.error("API Error:", error); showToast("Network error. Is the backend running?", 'error'); }
+            } catch (error) { console.error("API Error:", error); showToast("Network error. Please check your connection.", 'error'); }
         }
 
         function selectQuickAmount(amount, btnElement) {
@@ -792,14 +692,11 @@ Note: Your investment earnings will be automatically deposited into your account
             currentProductAmount = amount;
             const loader1 = document.getElementById("loader-1"); const loader2 = document.getElementById("loader-2");
             loader1.classList.remove("hidden");
-            setTimeout(() => {
                 loader1.classList.add("hidden"); loader2.classList.remove("hidden");
                 setTimeout(() => {
                     loader2.classList.add("hidden");
                     document.getElementById("bank-warning-modal").classList.remove("hidden");
-                    syncTgBackButton();
                 }, 1800);
-            }, 1800);
         }
 
         function acceptBankWarning() {
@@ -814,7 +711,6 @@ Note: Your investment earnings will be automatically deposited into your account
             document.getElementById("dep-step-1").classList.add("hidden");
             document.getElementById("dep-step-2").classList.remove("hidden");
             startTimer();
-            syncTgBackButton();
         }
 
         function selectPaymentMethod(method) {
@@ -844,8 +740,8 @@ Note: Your investment earnings will be automatically deposited into your account
             }, 1000);
         }
 
-        function openConfirmModal() { document.getElementById("confirm-transfer-modal").classList.remove("hidden"); syncTgBackButton(); }
-        function closeConfirmModal() { document.getElementById("confirm-transfer-modal").classList.add("hidden"); syncTgBackButton(); }
+        function openConfirmModal() { document.getElementById("confirm-transfer-modal").classList.remove("hidden"); }
+        function closeConfirmModal() { document.getElementById("confirm-transfer-modal").classList.add("hidden"); }
 
         async function submitPayment() {
             const txId = document.getElementById("tx-id").value;
@@ -865,7 +761,7 @@ Note: Your investment earnings will be automatically deposited into your account
                     const err = await res.json().catch(() => ({}));
                     showToast(extractErrorMessage(err, "Submission failed."), 'error');
                 }
-            } catch (error) { console.error("API Error:", error); showToast("Network error. Is the backend running?", 'error'); }
+            } catch (error) { console.error("API Error:", error); showToast("Network error. Please check your connection.", 'error'); }
         }
 
         function selectWdMethod(method) {
@@ -908,10 +804,9 @@ Note: Your investment earnings will be automatically deposited into your account
                     </div>`;
             }
             document.getElementById("withdraw-modal").classList.remove("hidden");
-            syncTgBackButton();
         }
 
-        function closeWithdrawModal() { document.getElementById("withdraw-modal").classList.add("hidden"); syncTgBackButton(); }
+        function closeWithdrawModal() { document.getElementById("withdraw-modal").classList.add("hidden"); }
 
         function saveWithdrawalAccount() {
             const name = document.getElementById("wd-name").value.trim();
@@ -939,7 +834,7 @@ Note: Your investment earnings will be automatically deposited into your account
                     const err = await res.json().catch(() => ({}));
                     showToast(extractErrorMessage(err, "Withdrawal failed."), 'error');
                 }
-            } catch (error) { console.error("API Error:", error); showToast("Network error. Is the backend running?", 'error'); }
+            } catch (error) { console.error("API Error:", error); showToast("Network error. Please check your connection.", 'error'); }
         }
 
         function openInfoModal(type) {
@@ -968,10 +863,9 @@ Note: Your investment earnings will be automatically deposited into your account
             }
             body.innerHTML = content;
             document.getElementById('info-modal').classList.remove("hidden");
-            syncTgBackButton();
         }
 
-        function closeInfoModal() { document.getElementById('info-modal').classList.add("hidden"); syncTgBackButton(); }
+        function closeInfoModal() { document.getElementById('info-modal').classList.add("hidden"); }
 
         function openHistoryModal() {
             const body = document.getElementById('history-modal-body');
@@ -999,10 +893,9 @@ Note: Your investment earnings will be automatically deposited into your account
                 </div>
                 <button class="btn-primary" onclick="closeHistoryModal()">Close</button>`;
             document.getElementById('history-modal').classList.remove("hidden");
-            syncTgBackButton();
         }
 
-        function closeHistoryModal() { document.getElementById('history-modal').classList.add("hidden"); syncTgBackButton(); }
+        function closeHistoryModal() { document.getElementById('history-modal').classList.add("hidden"); }
 
         function updateBalances() {
             document.getElementById("bal-total").innerText = userState.total_balance.toFixed(2);
@@ -1013,7 +906,6 @@ Note: Your investment earnings will be automatically deposited into your account
         function copyText(text) {
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(text).then(() => {
-                    if (window.safeTG) window.safeTG.hapticSuccess();
                     showToast("Copied: " + text, 'success');
                 }).catch(() => fallbackCopy(text));
             } else { fallbackCopy(text); }
@@ -1028,7 +920,6 @@ Note: Your investment earnings will be automatically deposited into your account
             textArea.select();
             try {
                 document.execCommand('copy');
-                if (window.safeTG) window.safeTG.hapticSuccess();
                 showToast("Copied: " + text, 'success');
             } catch (err) { showToast("Failed to copy text.", 'error'); }
             document.body.removeChild(textArea);

@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- Cache Control to force Vercel and Telegram to load the latest version -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <title>AssetCore</title>
+    
+    <!-- Favicon to prevent 404 -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>" />
+    
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        (function safeInitTelegramWebApp() {
+          const tg = window.Telegram?.WebApp;
+          if (!tg) return;
+
+          try { tg.ready(); } catch (e) {}
+          try { tg.expand(); } catch (e) {}
+
+          const supportsV61 = (typeof tg.isVersionAtLeast === "function") ? tg.isVersionAtLeast("6.1") : false;
+
+          if (supportsV61) {
+            try { if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor('#0f172a'); } catch (e) {}
+            try { if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor('#0f172a'); } catch (e) {}
+          } else {
+            document.documentElement.style.setProperty('--tg-header-bg', '#0f172a');
+            document.documentElement.style.setProperty('--tg-bg', '#0f172a');
+            document.body.style.backgroundColor = '#0f172a';
+          }
+
+          window.safeTG = {
+            showBackButton: () => {
+              if (supportsV61 && tg.BackButton && typeof tg.BackButton.show === 'function') tg.BackButton.show();
+            },
+            hideBackButton: () => {
+              if (supportsV61 && tg.BackButton && typeof tg.BackButton.hide === 'function') tg.BackButton.hide();
+            },
+            hapticSuccess: () => {
+              if (supportsV61 && tg.HapticFeedback && typeof tg.HapticFeedback.notificationOccurred === 'function') tg.HapticFeedback.notificationOccurred('success');
+            },
+            isModern: supportsV61
+          };
+        })();
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --text-muted: #94a3b8; --primary: #3b82f6; --success: #10b981; --danger: #ef4444; --border: #334155;
+            --tg-bg: #0f172a; --tg-text: #f1f5f9; --tg-hint: #94a3b8; --tg-link: #3b82f6; --tg-button: #3b82f6; --tg-button-text: #ffffff; --tg-secondary-bg: #1e293b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; overflow-x: hidden; transition: background-color 0.3s ease, color 0.3s ease; padding-top: env(safe-area-inset-top); }
+        .hidden { display: none !important; }
+        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: var(--card-bg); color: var(--text); padding: 16px 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid var(--border); border-left: 5px solid var(--primary); font-size: 14px; font-weight: 500; text-align: center; animation: slideDown 0.3s ease; opacity: 1; transition: opacity 0.3s ease, transform 0.3s ease; }
+        .toast.success { border-left-color: var(--success); }
+        .toast.error { border-left-color: var(--danger); }
+        .toast.hide { opacity: 0; transform: translateY(-20px); }
+        @keyframes slideDown { from { transform: translateY(-100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        #auth-view { padding: 2rem 1.5rem; display: flex; flex-direction: column; justify-content: center; min-height: 100vh; background: var(--bg); animation: fadeIn 0.5s ease; }
+        .logo { text-align: center; font-size: 2.5rem; font-weight: 900; background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem; letter-spacing: -1px; }
+        .welcome-text { text-align: center; color: var(--text-muted); margin-bottom: 2.5rem; font-size: 1.1rem; font-weight: 500; }
+        .form-group { margin-bottom: 1.25rem; animation: slideUp 0.4s ease; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text); }
+        .input-field { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; }
+        .input-field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+        .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary:disabled { background: #475569; color: #cbd5e1; cursor: not-allowed; }
+        .toggle-text { text-align: center; margin-top: 1.5rem; color: var(--text-muted); font-weight: 500; }
+        .toggle-text span { color: var(--primary); font-weight: 700; cursor: pointer; }
+        .captcha-box { background: var(--bg); background-size: 20px 20px; border: 1px solid var(--border); text-align: center; font-size: 1.5rem; font-weight: 800; letter-spacing: 0.5rem; padding: 12px; border-radius: 8px; user-select: none; margin-bottom: 0.5rem; font-style: italic; color: var(--text); }
+        #dashboard-view { padding-bottom: calc(90px + env(safe-area-inset-bottom)); animation: fadeIn 0.4s ease; }
+        .view-header { background: var(--card-bg); padding: 1.5rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
+        .view-title { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
+        .top-nav-bar { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; background: var(--card-bg); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+        .nav-left-group { display: flex; align-items: center; gap: 0.75rem; }
+        .nav-back-btn { font-size: 1.5rem; background: none; border: none; color: var(--text); cursor: pointer; line-height: 1; padding: 0.5rem; transition: transform 0.2s; }
+        .nav-back-btn:active { transform: scale(1.2); }
+        .nav-title { font-size: 1.2rem; font-weight: 700; color: var(--text); }
+        .nav-info-btn { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: #fff; border: none; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; font-style: italic; cursor: pointer; line-height: 1; transition: transform 0.2s; }
+        .nav-info-btn:active { transform: scale(0.9); }
+        .product-card { background: var(--card-bg); margin: 1.5rem 1.5rem; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; transition: transform 0.3s ease; animation: slideUp 0.4s ease; }
+        .product-card:active { transform: translateY(-2px); }
+        .product-img { width: 100%; height: 200px; object-fit: cover; display: block; background-color: var(--bg); }
+        .product-header { background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%); color: #fff; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+        .product-title-desc { display: flex; flex-direction: column; margin-right: 1rem; flex: 1; }
+        .product-title { font-size: 1.1rem; font-weight: 700; line-height: 1.2; }
+        .product-desc { font-size: 0.85rem; font-weight: 400; color: rgba(255, 255, 255, 0.8); line-height: 1.4; margin-top: 6px; }
+        .product-price { font-size: 1.4rem; font-weight: 800; white-space: nowrap; align-self: center; }
+        .product-body { padding: 1.5rem; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+        .stat-item { display: flex; flex-direction: column; }
+        .stat-item .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 500; }
+        .stat-item .stat-value { font-size: 1.15rem; font-weight: 700; color: var(--text); }
+        .stat-item .stat-value.highlight { color: var(--success); }
+        
+        .btn-buy { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; }
+        .btn-buy:active { transform: scale(0.98); }
+        
+        .btn-coming-soon {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.4);
+            animation: pulse-glow 2s infinite;
+            cursor: not-allowed;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+        }
+        
+        .dep-step { padding: 1.5rem; }
+        .section-title { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; color: var(--text); }
+        .quick-amounts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+        .btn-quick-amt { padding: 12px 0; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; color: var(--text); font-family: 'Inter', sans-serif; }
+        .btn-quick-amt.active { border-color: var(--primary); color: var(--primary); background: rgba(59, 130, 246, 0.1); }
+        .input-prefix-group { display: flex; align-items: center; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0 16px; margin-bottom: 1.5rem; }
+        .input-prefix { font-weight: 700; margin-right: 0.75rem; color: var(--text-muted); }
+        .input-prefix-group input { border: none; padding: 12px 0; flex: 1; font-size: 1rem; background: transparent; color: var(--text); font-family: 'Inter', sans-serif; }
+        .input-prefix-group input:focus { outline: none; }
+        .btn-black { display: block; width: 100%; margin: 1.5rem 0 0.5rem; background: var(--text); color: var(--bg); border: none; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 1.1rem; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; }
+        .btn-black:active { transform: scale(0.98); }
+        .btn-upload-voucher { display: block; width: 100%; margin: 0.5rem 0 0.5rem; background: transparent; color: var(--text-muted); border: 1px solid var(--border); padding: 12px; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; font-family: 'Inter', sans-serif; }
+        .payment-notes { margin-top: 2rem; background: var(--card-bg); padding: 1.25rem; border-radius: 8px; border: 1px solid var(--border); }
+        .payment-notes p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0.5rem; }
+        .invoice-header { text-align: center; margin: 1.5rem 0; }
+        .invoice-amt { font-size: 3.5rem; font-weight: 900; color: var(--text); letter-spacing: -1px; }
+        .timer-box { text-align: center; background: rgba(239, 68, 68, 0.1); color: var(--danger); padding: 0.85rem; margin: 0 0 1.5rem 0; border-radius: 8px; font-weight: 700; font-size: 1rem; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .payment-method-toggle { display: flex; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 1.5rem; overflow: hidden; padding: 4px; gap: 4px; }
+        .method-btn { flex: 1; padding: 12px; background: transparent; border: none; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all 0.2s; border-radius: 6px; font-family: 'Inter', sans-serif; }
+        .method-btn.active { background: var(--primary); color: #fff; }
+        .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; background: var(--card-bg); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+        .invoice-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+        .invoice-table tr:last-child td { border-bottom: none; }
+        .inv-label { color: var(--text-muted); width: 40%; font-weight: 500; }
+        .inv-val { font-weight: 700; text-align: right; display: flex; justify-content: flex-end; align-items: center; gap: 8px; color: var(--text); }
+        .btn-copy-inline { background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; color: var(--text-muted); transition: transform 0.1s; }
+        .btn-copy-inline:active { transform: scale(0.95); }
+        .warning-notes { background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2); color: #fbbf24; padding: 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 1.5rem; }
+        .balance-container { background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%); color: #fff; padding: 2.5rem 1.5rem 2rem; border-bottom-left-radius: 2.5rem; border-bottom-right-radius: 2.5rem; margin-bottom: 1.5rem; position: relative; overflow: hidden; }
+        .balance-container::before { content: ''; position: absolute; top: -50%; right: -20%; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%; }
+        .balance-container::after { content: ''; position: absolute; bottom: -30%; left: -10%; width: 150px; height: 150px; background: rgba(255,255,255,0.05); border-radius: 50%; }
+        .bal-main-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; position: relative; z-index: 1; }
+        .bal-info { flex: 1; }
+        .bal-label { opacity: 0.8; font-size: 0.9rem; font-weight: 500; }
+        .bal-amount { font-size: 3rem; font-weight: 900; margin-bottom: 0.5rem; letter-spacing: -1px; }
+        .bal-user-info { font-size: 0.85rem; opacity: 0.9; display: flex; gap: 10px; font-weight: 500; }
+        .btn-withdraw-header { background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; align-self: flex-start; transition: transform 0.1s; font-family: 'Inter', sans-serif; }
+        .btn-withdraw-header:active { transform: scale(0.95); }
+        .sub-bals { display: flex; justify-content: space-between; position: relative; z-index: 1; }
+        .sub-bal-item { text-align: left; }
+        .sub-bal-item:last-child { text-align: right; }
+        .mine-assets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem; }
+        .mine-asset-card { background: var(--card-bg); padding: 1.5rem 1rem; border-radius: 12px; border: 1px solid var(--border); text-align: center; }
+        .mine-asset-label { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 500; }
+        .mine-asset-value { font-size: 1.5rem; font-weight: 800; color: var(--text); }
+        .no-shop-text { text-align: center; color: var(--text-muted); margin: 0 1.5rem 1.5rem; font-weight: 600; font-size: 0.9rem; }
+        .action-card { background: var(--card-bg); margin: 0 1.5rem 1.5rem; padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border); }
+        .referral-box { background: var(--bg); border: 1px dashed var(--success); padding: 1.25rem; border-radius: 8px; margin-top: 1rem; }
+        .ref-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .ref-row:last-child { margin-bottom: 0; }
+        .ref-label { font-size: 0.9rem; color: var(--text-muted); font-weight: 500; }
+        .ref-val-group { display: flex; align-items: center; gap: 10px; }
+        .ref-val { font-weight: 700; font-size: 1rem; color: var(--text); }
+        .btn-copy-sm { background: var(--danger); color: #fff; border: none; padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: transform 0.1s; }
+        .btn-copy-sm:active { transform: scale(0.95); }
+        .commission-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+        .commission-table th, .commission-table td { border: 1px solid var(--border); padding: 12px; text-align: center; }
+        .commission-table th { background: var(--bg); color: var(--text-muted); font-weight: 600; }
+        .commission-table td { color: var(--text); }
+        .stat-mini-row { display: flex; gap: 1rem; margin-top: 1rem; }
+        .stat-mini { flex: 1; background: var(--bg); padding: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
+        .stat-mini-val { font-weight: 800; font-size: 1.1rem; color: var(--text); }
+        .stat-mini-lbl { font-size: 0.75rem; color: var(--text-muted); }
+        .menu-list { margin: 0 1.5rem 1.5rem; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+        .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border); font-weight: 600; cursor: pointer; transition: background 0.2s; color: var(--text); }
+        .menu-item:active { background: var(--bg); }
+        .menu-item:last-child { border-bottom: none; }
+        .menu-arrow { color: var(--text-muted); font-size: 1.2rem; }
+        .lb-item { display: flex; align-items: center; background: var(--card-bg); margin: 0.75rem 1.5rem; padding: 1.25rem; border-radius: 8px; border: 1px solid var(--border); transition: transform 0.2s; }
+        .lb-item:active { transform: scale(0.98); }
+        .lb-rank { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--bg); border-radius: 50%; font-weight: 800; margin-right: 1.25rem; color: var(--text); }
+        .lb-rank.gold { background: #fef08a; color: #854d0e; }
+        .lb-rank.silver { background: #e2e8f0; color: #475569; }
+        .lb-rank.bronze { background: #fed7aa; color: #9a3412; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto; background: var(--card-bg); display: flex; justify-content: space-around; border-top: 1px solid var(--border); padding: 0.75rem 0; padding-bottom: env(safe-area-inset-bottom, 0); z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--text-muted); font-size: 0.7rem; font-weight: 600; cursor: pointer; padding: 0.5rem; flex: 1; transition: color 0.2s; font-family: 'Inter', sans-serif; }
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 1.4rem; margin-bottom: 0.25rem; transition: transform 0.2s; }
+        .nav-item.active .nav-icon { transform: translateY(-2px); }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: flex-end; justify-content: center; z-index: 200; padding: 1rem; backdrop-filter: blur(5px); animation: fadeIn 0.2s ease; }
+        .modal-content { background: var(--card-bg); width: 100%; max-width: 480px; padding: 2rem; border-radius: 16px 16px 0 0; max-height: 90vh; overflow-y: auto; text-align: center; animation: slideUp 0.3s ease; color: var(--text); border-top: 1px solid var(--border); }
+        .loader-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; animation: fadeIn 0.2s ease; }
+        #loader-1 { background-color: var(--bg); }
+        .clock-spinner { position: relative; width: 56px; height: 56px; }
+        .clock-spinner .seg { position: absolute; top: 0; left: 50%; width: 5px; height: 14px; margin-left: -2.5px; background: var(--text-muted); border-radius: 3px; transform-origin: 2.5px 28px; opacity: 0.25; }
+        .clock-spinner .seg:nth-child(1)  { transform: rotate(0deg);   animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0s; }
+        .clock-spinner .seg:nth-child(2)  { transform: rotate(30deg);  animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.1s; }
+        .clock-spinner .seg:nth-child(3)  { transform: rotate(60deg);  animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.2s; }
+        .clock-spinner .seg:nth-child(4)  { transform: rotate(90deg);  animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.3s; }
+        .clock-spinner .seg:nth-child(5)  { transform: rotate(120deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.4s; }
+        .clock-spinner .seg:nth-child(6)  { transform: rotate(150deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.5s; }
+        .clock-spinner .seg:nth-child(7)  { transform: rotate(180deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.6s; }
+        .clock-spinner .seg:nth-child(8)  { transform: rotate(210deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.7s; }
+        .clock-spinner .seg:nth-child(9)  { transform: rotate(240deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.8s; }
+        .clock-spinner .seg:nth-child(10) { transform: rotate(270deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.9s; }
+        .clock-spinner .seg:nth-child(11) { transform: rotate(300deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 1.0s; }
+        .clock-spinner .seg:nth-child(12) { transform: rotate(330deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 1.1s; }
+        @keyframes tick-seg { 0%, 100% { opacity: 0.25; background: var(--text-muted); } 8% { opacity: 1; background: var(--primary); } }
+        #loader-2 { background-color: #ffffff; }
+        .paynow-logo { font-size: 2rem; font-weight: 800; color: #2563eb; margin-bottom: 1.75rem; letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px; }
+        .paynow-icon { width: 28px; height: 28px; background-color: #10b981; border-radius: 7px; display: inline-block; }
+        .dots-container { display: flex; gap: 10px; }
+        .dot { width: 11px; height: 11px; background-color: #2563eb; border-radius: 50%; }
+        .dot-1, .dot-2 { animation: dots-move-1-2 1.4s infinite ease-in-out; }
+        .dot-3 { animation: dots-move-3 1.4s infinite ease-in-out; }
+        @keyframes dots-move-1-2 { 0%, 40%, 100% { transform: translateY(0); } 20% { transform: translateY(-14px); } }
+        @keyframes dots-move-3 { 0%, 60%, 100% { transform: translateY(0); } 40% { transform: translateY(-14px); } }
+        .saved-account-box { background: var(--bg); padding: 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: left; border: 1px solid var(--border); }
+        .saved-account-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+        .saved-account-name { font-weight: 700; font-size: 1.1rem; color: var(--text); }
+        .saved-account-number { color: var(--text-muted); font-size: 0.9rem; }
+        .history-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 1.5rem; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+        .history-table th, .history-table td { border: 1px solid var(--border); padding: 12px; text-align: center; color: var(--text); }
+        .history-table th { background: var(--bg); color: var(--text-muted); font-weight: 600; }
+        .info-content { text-align: left; line-height: 1.6; font-size: 0.95rem; color: var(--text); }
+        .info-content p { margin-bottom: 0.75rem; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .app-coming-soon-banner {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+            background: linear-gradient(270deg, #3b82f6, #8b5cf6, #3b82f6);
+            background-size: 200% 200%;
+            color: #fff;
+            font-weight: 700;
+            text-align: center;
+            animation: gradient-shift 3s ease infinite;
+        }
+        @keyframes gradient-shift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <div id="auth-view">
+        <div class="logo">AssetCore</div>
+        <p class="welcome-text">Welcome! Please sign in or create an account.</p>
+        <div id="signup-form">
+            <div class="form-group"><label>Telegram Username</label><input type="text" id="su-username" class="input-field" placeholder="@username"></div>
+            <div class="form-group"><label>Phone Number</label><input type="tel" id="su-phone" class="input-field" value="+251" placeholder="+251 9..."></div>
+            <div class="form-group"><label>Password</label><input type="password" id="su-pass" class="input-field" placeholder="********"></div>
+            <div class="form-group"><label>Repeat Password</label><input type="password" id="su-pass2" class="input-field" placeholder="********"></div>
+            <div class="form-group"><label>Captcha Code</label><div class="captcha-box" id="captcha-text">45be</div><input type="text" id="su-captcha" class="input-field" placeholder="Enter code above"></div>
+            <div class="form-group"><label>Invitation Code (Optional)</label><input type="text" id="su-invite" class="input-field" placeholder="Enter referral code"></div>
+            <button class="btn-primary" onclick="handleSignUp()">Sign Up</button>
+            <p class="toggle-text">I already have an account, <span onclick="toggleAuth('signin')">Sign In</span></p>
+        </div>
+        <div id="signin-form" class="hidden">
+            <div class="form-group"><label>Phone Number</label><input type="tel" id="si-phone" class="input-field" value="+251" placeholder="+251 9..."></div>
+            <div class="form-group"><label>Password</label><input type="password" id="si-pass" class="input-field" placeholder="********"></div>
+            <div class="form-group" style="display: flex; align-items: center;"><input type="checkbox" id="si-remember" style="width: 20px; height: 20px; margin-right: 10px;"><label for="si-remember" style="margin: 0;">Remember password</label></div>
+            <button class="btn-primary" onclick="handleSignIn()">Sign In</button>
+            <p class="toggle-text">Don't have an account? <span onclick="toggleAuth('signup')">Sign Up</span></p>
+        </div>
+    </div>
+
+    <div id="dashboard-view" class="hidden">
+        <div id="view-home" class="app-view">
+            <div class="view-header"><div class="view-title">Investment Products</div></div>
+            <div id="product-list"></div>
+        </div>
+        <div id="view-deposit" class="app-view hidden">
+            <div class="top-nav-bar">
+                <div class="nav-left-group"><button class="nav-back-btn" onclick="switchTab('home')">‹</button><div class="nav-title">Payment</div></div>
+                <button class="nav-info-btn" onclick="openHistoryModal()">i</button>
+            </div>
+            <div id="dep-step-1" class="dep-step">
+                <h3 class="section-title">Payment amount (Minimum ETB 650)</h3>
+                <div class="quick-amounts">
+                    <button class="btn-quick-amt" onclick="selectQuickAmount(650, this)">650</button>
+                    <button class="btn-quick-amt" onclick="selectQuickAmount(1000, this)">1000</button>
+                    <button class="btn-quick-amt" onclick="selectQuickAmount(1600, this)">1600</button>
+                    <button class="btn-quick-amt" onclick="selectQuickAmount(3000, this)">3000</button>
+                </div>
+                <div class="input-prefix-group"><span class="input-prefix">ETB</span><input type="number" id="dep-amount-input" placeholder="Please enter the payment amount"></div>
+                <button class="btn-black" onclick="proceedToPayment()">Payment Now</button>
+                <button class="btn-upload-voucher" onclick="showToast('Upload voucher feature coming soon!', 'info')">Payment failed? Upload voucher</button>
+                <div class="payment-notes">
+                    <p>1. The minimum recharge amount is 650 ETB.</p><p>2. Please do not modify the account information in the background, otherwise the recharge will fail.</p>
+                    <p>3. Please follow the payment instructions, otherwise the deposit will not be received.</p><p>4. If the funds are not received within 10 minutes, please contact customer service.</p>
+                </div>
+            </div>
+            <div id="dep-step-2" class="dep-step hidden">
+                <div class="invoice-header"><div style="color: var(--text-muted); font-size: 1rem; font-weight: 500;">Amount Due</div><div class="invoice-amt">Br <span id="inv-amount">0.00</span></div></div>
+                <div class="timer-box" id="deposit-timer">Account expires within 15:00</div>
+                <div class="payment-method-toggle">
+                    <button id="btn-cbe" class="method-btn active" onclick="selectPaymentMethod('CBE')">Bank Transfer (CBE)</button>
+                    <button id="btn-telebirr" class="method-btn" onclick="selectPaymentMethod('Telebirr')">Telebirr</button>
+                </div>
+                <table class="invoice-table">
+                    <tr><td class="inv-label">Account Name</td><td class="inv-val" id="inv-acc-name">Platform Admin</td></tr>
+                    <tr><td class="inv-label">Bank Name</td><td class="inv-val" id="inv-bank-name">Commercial Bank of Ethiopia</td></tr>
+                    <tr><td class="inv-label" id="acc-num-label">Account Number</td><td class="inv-val"><span id="inv-acc-num">1000123456789</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-acc-num').innerText)">Copy</button></td></tr>
+                    <tr><td class="inv-label">Amount</td><td class="inv-val"><span id="inv-amt-val">0 ETB</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-amt-val').innerText)">Copy</button></td></tr>
+                    <tr><td class="inv-label">Order Code</td><td class="inv-val"><span id="inv-order-code">PNXXXXXX</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-order-code').innerText)">Copy</button></td></tr>
+                </table>
+                <div class="warning-notes">⚠️ <strong>Important:</strong> Please put the <strong>Order Code</strong> in your transfer remarks. Do NOT transfer from a different bank or method.</div>
+                <button class="btn-primary" onclick="openConfirmModal()">I have made the payment</button>
+            </div>
+        </div>
+        <div id="view-mine" class="app-view hidden">
+            <div class="view-header"><div class="view-title">My Profile</div></div>
+            <div class="balance-container">
+                <div class="bal-main-row">
+                    <div class="bal-info">
+                        <div class="bal-label">Total Balance (ETB)</div><div class="bal-amount" id="bal-total">300.00</div>
+                        <div class="bal-user-info"><span id="user-tg-name">@assetcore_user</span> | <span id="user-phone">+251900000000</span></div>
+                    </div>
+                    <button class="btn-withdraw-header" onclick="openWithdrawModal()">Withdraw</button>
+                </div>
+                <div class="sub-bals">
+                    <div class="sub-bal-item"><div class="bal-label" style="font-size: 0.8rem;">Daily Income</div><div style="font-weight: 700; font-size: 1.1rem;" id="bal-daily">0.00</div></div>
+                    <div class="sub-bal-item"><div class="bal-label" style="font-size: 0.8rem;">Invitation Income</div><div style="font-weight: 700; font-size: 1.1rem;" id="bal-invite">0.00</div></div>
+                </div>
+            </div>
+            <div class="mine-assets-grid">
+                <div class="mine-asset-card"><div class="mine-asset-label">My device</div><div class="mine-asset-value">0</div></div>
+                <div class="mine-asset-card"><div class="mine-asset-label">My income</div><div class="mine-asset-value">ETB 0</div></div>
+            </div>
+            <div class="no-shop-text">You don't have a shop yet</div>
+            <div class="action-card">
+                <h3 style="margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 700;">Referral Program</h3>
+                <p style="font-size: 0.9rem; color: var(--text-muted);">Earn 30% of your friend's entry price instantly! A flat single-level reward system.</p>
+                <div class="referral-box">
+                    <div class="ref-row"><span class="ref-label">Invitation Code:</span><div class="ref-val-group"><strong id="user-invite-code">DEMO01</strong><button class="btn-copy-sm" onclick="copyText(document.getElementById('user-invite-code').innerText)">Copy</button></div></div>
+                    <div class="ref-row"><span class="ref-label">Invitation Link:</span><div class="ref-val-group"><strong id="user-invite-link-display" style="font-size: 0.8rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">https://assetcore-app.vercel.app/?start=DEMO01</strong><button class="btn-copy-sm" onclick="copyReferralLink()">Copy</button></div></div>
+                    <table class="commission-table"><thead><tr><th>Level</th><th>Commission</th><th>Valid Users</th><th>Income</th></tr></thead><tbody><tr><td>Level 1</td><td>30%</td><td>0</td><td>0 ETB</td></tr></tbody></table>
+                    <div class="stat-mini-row">
+                        <div class="stat-mini"><div class="stat-mini-val">0</div><div class="stat-mini-lbl">Valid users</div></div>
+                        <div class="stat-mini"><div class="stat-mini-val">0 ETB</div><div class="stat-mini-lbl">Invited income</div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="menu-list">
+                <div class="menu-item" onclick="openInfoModal('account')"><span>Account details</span><span class="menu-arrow">›</span></div>
+                <div class="menu-item" onclick="openInfoModal('rules')"><span>Platform rules</span><span class="menu-arrow">›</span></div>
+                <div class="menu-item" onclick="openInfoModal('service')"><span>Customer service</span><span class="menu-arrow">›</span></div>
+                <div class="menu-item" onclick="openInfoModal('about')"><span>About us</span><span class="menu-arrow">›</span></div>
+                <div class="menu-item" onclick="handleLogout()" style="color: var(--danger);"><span>Secure exit</span><span class="menu-arrow">›</span></div>
+            </div>
+        </div>
+        <div id="view-leaderboard" class="app-view hidden">
+            <div class="view-header"><div class="view-title">Leaderboard</div></div>
+            <div id="lb-list" style="margin-top: 1rem;"></div>
+        </div>
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-view="home" onclick="switchTab('home')"><span class="nav-icon">🏠</span> Home</button>
+            <button class="nav-item" data-view="deposit" onclick="switchTab('deposit')"><span class="nav-icon">💳</span> Deposit</button>
+            <button class="nav-item" data-view="mine" onclick="switchTab('mine')"><span class="nav-icon">👤</span> Mine</button>
+            <button class="nav-item" data-view="leaderboard" onclick="switchTab('leaderboard')"><span class="nav-icon">🏆</span> Rank</button>
+        </nav>
+    </div>
+
+    <div id="logout-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-icon" style="font-size: 2.5rem; margin-bottom: 0.5rem;">🚪</div>
+            <h2 style="margin-bottom: 0.75rem; color: var(--text); font-size: 1.3rem;">Secure Exit</h2>
+            <p style="margin-bottom: 1.75rem; font-size: 0.95rem; color: var(--text-muted); line-height: 1.6;">Are you sure you want to securely exit your account?</p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border);" onclick="closeLogoutModal()">Cancel</button>
+                <button class="btn-primary" style="background: var(--danger);" onclick="confirmLogout()">Exit</button>
+            </div>
+        </div>
+    </div>
+    <div id="login-promo-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 1.5rem; text-align: center; color: var(--text); font-size: 1.5rem;">Platform</h2>
+            <p style="white-space: pre-line; font-size: 0.95rem; line-height: 1.6; color: var(--text); text-align: left;">
+Welcome to AssetCore, Ethiopia's most trusted investment platform💯.
+▼ Invite friends to invest and earn up to 30% commission. Passive income is no longer a dream.
+🎁 Sign-up Bonus: 300 Ethiopian Birr.
+🔥 Invest 800 Ethiopian Birr and instantly withdraw 300 Ethiopian Birr.
+🎁 No time restrictions on deposits and withdrawals, 24/7 service.
+❤️ All products can be purchased multiple times.
+🎬 Referral Commission: 30%
+Note: Your investment earnings will be automatically deposited into your account daily, and you can withdraw them at any time. Our platform offers high-quality investment opportunities with strong long-term growth potential and generous returns.
+            </p>
+            <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+                <button class="btn-primary" style="background: var(--success);" onclick="window.open('https://t.me/Assetcorecommunity', '_blank')">Telegram Group</button>
+                <button class="btn-primary" onclick="closePromoModal()">OK</button>
+            </div>
+        </div>
+    </div>
+    <div id="bank-warning-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-icon" style="font-size: 2.5rem; margin-bottom: 0.5rem;">⚠️</div>
+            <h2 style="margin-bottom: 1rem; color: var(--danger); font-size: 1.3rem;">Warning</h2>
+            <p style="margin-bottom: 1.75rem; font-size: 0.95rem; color: var(--text); line-height: 1.6;">Please select your bank carefully! Do <strong style="color: var(--danger);">NOT</strong> transfer from a different bank, or your funds will be lost!</p>
+            <button class="btn-primary btn-understand" onclick="acceptBankWarning()">I Understand</button>
+        </div>
+    </div>
+    <div id="confirm-transfer-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Submit Transaction ID</h2>
+            <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">Enter the Transaction ID or Receipt Number from your banking app or Telebirr.</p>
+            <div class="form-group"><input type="text" id="tx-id" class="input-field" placeholder="e.g. FT12345678 or TB998877"></div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border);" onclick="closeConfirmModal()">Cancel</button>
+                <button class="btn-primary" onclick="submitPayment()">Submit</button>
+            </div>
+        </div>
+    </div>
+    <div id="withdraw-modal" class="modal-overlay hidden"><div class="modal-content"><div id="withdraw-modal-body"></div></div></div>
+    <div id="info-modal" class="modal-overlay hidden"><div class="modal-content"><div id="info-modal-body"></div></div></div>
+    <div id="history-modal" class="modal-overlay hidden"><div class="modal-content" style="max-width: 450px;"><div id="history-modal-body"></div></div></div>
+    <div id="loader-1" class="loader-overlay hidden"><div class="clock-spinner"><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div></div></div>
+    <div id="loader-2" class="loader-overlay hidden"><div class="paynow-logo"><span class="paynow-icon"></span>PayNow</div><div class="dots-container"><div class="dot dot-1"></div><div class="dot dot-2"></div><div class="dot dot-3"></div></div></div>
+
+    <script>
+        function extractErrorMessage(err, fallback = "An error occurred.") {
+            if (!err) return fallback;
+            if (typeof err === 'string') return err;
+            if (typeof err.detail === 'string') return err.detail;
+            if (Array.isArray(err.detail) && err.detail.length > 0) {
+                const item = err.detail[0];
+                if (typeof item === 'string') return item;
+                if (item && item.msg) return item.msg;
+            }
+            if (err.message) return err.message;
+            return fallback;
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = typeof message === 'string' ? message : extractErrorMessage(message);
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.add('hide'); setTimeout(() => toast.remove(), 300); }, 4000);
+        }
+
+        const tg = window.Telegram?.WebApp;
+        const IS_LOCAL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const API_URL = IS_LOCAL ? 'http://127.0.0.1:8000' : 'https://projectdeployment-1-yuwq.onrender.com';
+        const APP_BASE_URL = window.location.origin;
+
+        async function apiFetch(path, options = {}) {
+            const cleanPath = path.startsWith('/') ? path : `/${path}`;
+            return await fetch(`${API_URL}${cleanPath}`, options);
+        }
+
+        let currentProductAmount = 0; let countdownInterval = null; let socket = null; let reconnectTimer = null; let withdrawalAccount = null; let currentWdMethod = "CBE"; let currentPaymentMethod = "CBE"; 
+        
+        let userState = {
+            telegram_id: "123456789", telegram_username: "@assetcore_user", phone_number: "+251900000000", invite_code: "DEMO01",
+            total_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, has_checked_in: false, transactions: []
+        };
+
+        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            const u = tg.initDataUnsafe.user;
+            userState.telegram_id = u.id ? u.id.toString() : userState.telegram_id;
+            userState.telegram_username = u.username ? `@${u.username}` : (u.first_name || userState.telegram_username);
+            const suUser = document.getElementById("su-username");
+            if (suUser) suUser.value = userState.telegram_username;
+        }
+
+        if (window.safeTG && window.safeTG.isModern && tg.BackButton) {
+            tg.BackButton.onClick(() => {
+                const modals = ['login-promo-modal', 'bank-warning-modal', 'confirm-transfer-modal', 'withdraw-modal', 'info-modal', 'history-modal', 'logout-modal'];
+                let closed = false;
+                for (let id of modals) {
+                    let el = document.getElementById(id);
+                    if (!el.classList.contains('hidden')) {
+                        if (id === 'withdraw-modal') closeWithdrawModal();
+                        else if (id === 'confirm-transfer-modal') closeConfirmModal();
+                        else if (id === 'info-modal') closeInfoModal();
+                        else if (id === 'history-modal') closeHistoryModal();
+                        else if (id === 'bank-warning-modal') acceptBankWarning();
+                        else if (id === 'logout-modal') closeLogoutModal();
+                        else el.classList.add('hidden');
+                        closed = true; break;
+                    }
+                }
+                if (!closed && !document.getElementById('dep-step-2').classList.contains('hidden')) {
+                    clearInterval(countdownInterval);
+                    document.getElementById("dep-step-1").classList.remove("hidden");
+                    document.getElementById("dep-step-2").classList.add("hidden");
+                    closed = true;
+                }
+                if (!closed && !document.getElementById('view-home').classList.contains('hidden')) { } 
+                else if (!closed) { switchTab('home'); closed = true; }
+                if (!closed && tg.close) { tg.close(); }
+                syncTgBackButton();
+            });
+        }
+
+        function syncTgBackButton() {
+            if (!window.safeTG) return;
+            let showBack = false;
+            const modals = ['login-promo-modal', 'bank-warning-modal', 'confirm-transfer-modal', 'withdraw-modal', 'info-modal', 'history-modal', 'logout-modal'];
+            for (let id of modals) { if (!document.getElementById(id).classList.contains('hidden')) showBack = true; }
+            if (!document.getElementById('dep-step-2').classList.contains('hidden')) showBack = true;
+            if (!document.getElementById('view-home').classList.contains('hidden') && document.getElementById('dashboard-view').classList.contains('hidden')) showBack = false;
+            if (showBack) window.safeTG.showBackButton(); else window.safeTG.hideBackButton();
+        }
+
+        function initWebSocket(userId) {
+            if (socket) {
+                try { socket.close(); } catch(e) {}
+                socket = null;
+            }
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
+            }
+
+            const ws_protocol = window.location.protocol === "https:" ? "wss" : "ws";
+            const ws_host = IS_LOCAL ? "127.0.0.1:8000" : "projectdeployment-1-yuwq.onrender.com";
+            const ws_url = `${ws_protocol}://${ws_host}/ws/${userId}`;
+
+            console.log("Attempting WebSocket connection to:", ws_url);
+            socket = new WebSocket(ws_url);
+
+            socket.onopen = function(e) { 
+                console.log("WebSocket connection established."); 
+            };
+
+            socket.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === "connected") {
+                        console.log("WebSocket handshake confirmed for user:", data.user_id);
+                        return;
+                    }
+                    if (data.type === "deposit_approved") {
+                        userState.total_balance = data.new_balance; updateBalances();
+                        showToast(`✅ Deposit Approved! ${data.amount} ETB added. New balance: ${data.new_balance.toFixed(2)} ETB.`, 'success');
+                        const tx = userState.transactions.find(t => t.type === 'Purchase' && t.status === 'Pending' && t.amount === data.amount);
+                        if (tx) tx.status = 'Approved';
+                    } else if (data.type === "withdrawal_approved") {
+                        showToast(`✅ Withdrawal Approved! ${data.amount} ETB has been sent to your account.`, 'success');
+                        const tx = userState.transactions.find(t => t.type === 'Withdrawal' && t.status === 'Pending' && t.amount === data.amount);
+                        if (tx) tx.status = 'Approved';
+                    } else if (data.type === "withdrawal_rejected") {
+                        userState.total_balance += data.amount; updateBalances();
+                        showToast(`❌ Withdrawal Rejected! ${data.amount} ETB has been refunded to your balance.`, 'error');
+                        const tx = userState.transactions.find(t => t.type === 'Withdrawal' && t.status === 'Pending' && t.amount === data.amount);
+                        if (tx) tx.status = 'Rejected';
+                    } else if (data.type === "product_purchased") {
+                        userState.total_balance = data.new_balance; updateBalances();
+                        showToast(`✅ ${data.name} activated! Daily income will be credited automatically every 24h.`, 'success');
+                    } else if (data.type === "yield_credited") {
+                        userState.total_balance = data.new_balance; userState.daily_income_balance += data.amount; updateBalances();
+                        showToast(`💰 Daily Income Credited! ${data.amount} ETB from ${data.product}.`, 'success');
+                    }
+                } catch (err) { console.error("Error parsing WebSocket message:", err); }
+            };
+
+            socket.onclose = function(event) {
+                console.log(`WebSocket closed. Code: ${event.code}, Reason: ${event.reason}`);
+                if (event.code !== 1000) {
+                    console.log("Attempting to reconnect in 3 seconds...");
+                    reconnectTimer = setTimeout(() => initWebSocket(userId), 3000);
+                }
+            };
+
+            socket.onerror = function(e) {
+                console.warn("WebSocket error encountered.");
+            };
+        }
+
+        function toggleAuth(view) {
+            document.getElementById("signup-form").classList.toggle("hidden", view !== 'signup');
+            document.getElementById("signin-form").classList.toggle("hidden", view !== 'signin');
+            syncTgBackButton();
+        }
+
+        async function handleSignUp() {
+            const pass1 = document.getElementById("su-pass").value;
+            const pass2 = document.getElementById("su-pass2").value;
+            const captcha = document.getElementById("su-captcha").value;
+            const username = document.getElementById("su-username").value;
+            const phone = document.getElementById("su-phone").value;
+            const invite = document.getElementById("su-invite").value;
+
+            if (pass1 !== pass2) return showToast("Passwords do not match!", 'error');
+            if (captcha.toLowerCase() !== "45be") return showToast("Invalid Captcha code!", 'error');
+            if (!username || !phone || !pass1) return showToast("Please fill all required fields.", 'error');
+
+            const randomTelegramId = Math.floor(Math.random() * 1000000000) + 100000000;
+
+            try {
+                const res = await apiFetch('/register', {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ telegram_id: randomTelegramId, telegram_username: username, phone_number: phone, password: pass1, inviter_code: invite || "" })
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    userState.telegram_id = data.telegram_id;
+                    userState.total_balance = data.registration_bonus;
+                    userState.telegram_username = username;
+                    userState.phone_number = phone;
+                    userState.invite_code = data.invitation_code; 
+                    showToast("300 ETB Registration Bonus Awarded!", 'success');
+                    loginSuccess();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    const errorMsg = extractErrorMessage(err, "Registration failed. Please check your inputs.");
+                    if (res.status === 400 || res.status === 409 || errorMsg.toLowerCase().includes("already") || errorMsg.toLowerCase().includes("exist")) {
+                        showToast("You already have an account! Please sign in.", 'error');
+                        toggleAuth('signin');
+                    } else { showToast(errorMsg, 'error'); }
+                }
+            } catch (error) { console.error("API Error:", error); showToast("Network error. Is the backend running?", 'error'); }
+        }
+
+        async function handleSignIn() {
+            const phone = document.getElementById("si-phone").value.trim();
+            const pass = document.getElementById("si-pass").value;
+            if (!phone || !pass) return showToast("Please enter both phone number and password.", 'error');
+
+            try {
+                const res = await apiFetch('/login', {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ phone_number: phone, password: pass })
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    userState.telegram_id = data.telegram_id || userState.telegram_id;
+                    userState.total_balance = data.total_balance !== undefined ? data.total_balance : 300.00;
+                    userState.telegram_username = data.telegram_username || phone;
+                    userState.phone_number = phone;
+                    userState.invite_code = data.invitation_code || "DEMO01";
+                    userState.daily_income_balance = data.daily_income_balance || 0.00;
+                    userState.invite_income = data.invite_income || 0.00;
+                    showToast("Welcome back!", 'success');
+                    loginSuccess();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showToast(extractErrorMessage(err, "Invalid phone number or password."), 'error');
+                }
+            } catch (error) { 
+                console.error("API Error:", error); 
+                userState.phone_number = phone;
+                showToast("Signed in successfully!", 'success');
+                loginSuccess();
+            }
+        }
+
+        function loginSuccess() {
+            document.getElementById("auth-view").classList.add("hidden");
+            document.getElementById("dashboard-view").classList.remove("hidden");
+            document.getElementById("user-tg-name").innerText = userState.telegram_username;
+            document.getElementById("user-phone").innerText = userState.phone_number;
+            initApp();
+            document.getElementById("login-promo-modal").classList.remove("hidden");
+            initWebSocket(userState.telegram_id);
+            syncTgBackButton();
+        }
+
+        function closePromoModal() { document.getElementById("login-promo-modal").classList.add("hidden"); syncTgBackButton(); }
+        function handleLogout() { document.getElementById("logout-modal").classList.remove("hidden"); syncTgBackButton(); }
+        function closeLogoutModal() { document.getElementById("logout-modal").classList.add("hidden"); syncTgBackButton(); }
+        function confirmLogout() {
+            if (socket) socket.close();
+            closeLogoutModal();
+            document.getElementById("dashboard-view").classList.add("hidden");
+            document.getElementById("auth-view").classList.remove("hidden");
+            syncTgBackButton();
+        }
+
+        function initApp() { 
+            renderProducts(); renderLeaderboard(); 
+            document.getElementById("user-invite-code").innerText = userState.invite_code; 
+            document.getElementById("user-invite-link-display").innerText = `${APP_BASE_URL}/?start=${userState.invite_code}`;
+            updateBalances(); 
+        }
+
+        function copyReferralLink() { copyText(`${APP_BASE_URL}/?start=${userState.invite_code}`); }
+
+        function switchTab(viewName) {
+            document.querySelectorAll(".app-view").forEach(el => el.classList.add("hidden"));
+            document.getElementById(`view-${viewName}`).classList.remove("hidden");
+            document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("active"));
+            document.querySelector(`.nav-item[data-view="${viewName}"]`).classList.add("active");
+            if (viewName !== 'deposit') { clearInterval(countdownInterval); document.getElementById("dep-step-1").classList.remove("hidden"); document.getElementById("dep-step-2").classList.add("hidden"); }
+            syncTgBackButton();
+        }
+
+        const products = [
+            { name: "Cloud Server", desc: "Renting out server space.", img: "images/cloud_server.png", price: 650, daily: 100, days: 60, total: 6000 },
+            { name: "Electronic Device", desc: "Flipping or leasing consumer tech.", img: "images/electronic_device.png", price: 1000, daily: 200, days: 60, total: 12000 },
+            { name: "Crypto Mining Rig", desc: "Hardware dedicated to mining Bitcoin and altcoins.", img: "images/crypto_rig.png", price: 1600, daily: 400, days: 60, total: 24000 },
+            { name: "E-Commerce Node", desc: "Owning a piece of a digital retail supply chain.", img: "images/ecommerce_node.png", price: 3000, daily: 800, days: 60, total: 48000 },
+            { name: "Solar Energy Farm", desc: "Investing in renewable, passive energy grids.", img: "images/solar_farm.png", price: 5000, daily: 1400, days: 60, total: 84000 },
+            { name: "Crude Oil Pump", desc: "Traditional, high-yield energy extraction.", img: "images/oil_pump.png", price: 10000, daily: 3000, days: 60, total: 180000 },
+            { name: "Commercial Real Estate", desc: "Owning a share in high-rise office spaces.", img: "images/real_estate.png", price: 20000, daily: 6400, days: 60, total: 384000 },
+            { name: "Luxury Resort", desc: "High-end hospitality and tourism property.", img: "images/luxury_resort.png", price: 50000, daily: 17000, days: 60, total: 1020000 },
+            { name: "Global Index Fund", desc: "The ultimate asset—a diversified stake in global megacorporations.", img: "images/index_fund.png", price: 100000, daily: 36000, days: 60, total: 2160000 },
+        ];
+
+        function renderProducts() {
+            const container = document.getElementById("product-list");
+            container.innerHTML = "";
+            products.forEach(p => {
+                const isComingSoon = p.price >= 20000 && p.price <= 100000;
+                
+                let buttonHtml;
+                if (isComingSoon) {
+                    buttonHtml = `<button class="btn-coming-soon" disabled>COMING SOON</button>`;
+                } else {
+                    buttonHtml = `<button class="btn-buy" onclick="buyProduct('${p.name}', ${p.price}, ${p.daily})">Buy Now</button>`;
+                }
+
+                container.innerHTML += `
+                    <div class="product-card">
+                        <img src="${p.img}" alt="${p.name}" class="product-img">
+                        <div class="product-header">
+                            <div class="product-title-desc"><span class="product-title">${p.name}</span><span class="product-desc">${p.desc}</span></div>
+                            <span class="product-price">${p.price.toLocaleString()} ETB</span>
+                        </div>
+                        <div class="product-body">
+                            <div class="stats-grid">
+                                <div class="stat-item"><div class="stat-label">Daily Income</div><div class="stat-value highlight">${p.daily.toLocaleString()} ETB</div></div>
+                                <div class="stat-item"><div class="stat-label">Validity</div><div class="stat-value">${p.days} Days</div></div>
+                                <div class="stat-item"><div class="stat-label">Total Income</div><div class="stat-value highlight">${p.total.toLocaleString()} ETB</div></div>
+                                <div class="stat-item"><div class="stat-label">Entry Price</div><div class="stat-value">${p.price.toLocaleString()} ETB</div></div>
+                            </div>
+                            ${buttonHtml}
+                        </div>
+                    </div>`;
+            });
+        }
+
+        async function buyProduct(name, price, daily) {
+            if (userState.total_balance < price) {
+                showToast("Please deposit first to activate this product!", 'error');
+                selectQuickAmount(price); switchTab('deposit'); return;
+            }
+            try {
+                const res = await apiFetch('/api/buy-product', {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ telegram_id: parseInt(userState.telegram_id), product_name: name, product_price: price, daily_income: daily })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    userState.total_balance = data.new_balance; updateBalances();
+                    showToast(`${name} activated successfully! Income will be credited automatically every 24h.`, 'success');
+                    switchTab('mine');
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showToast(extractErrorMessage(err, "Purchase failed."), 'error');
+                }
+            } catch (error) { console.error("API Error:", error); showToast("Network error. Is the backend running?", 'error'); }
+        }
+
+        function selectQuickAmount(amount, btnElement) {
+            currentProductAmount = amount;
+            document.getElementById("dep-amount-input").value = amount;
+            document.querySelectorAll(".btn-quick-amt").forEach(btn => btn.classList.remove("active"));
+            if (btnElement) { btnElement.classList.add("active"); } 
+            else { document.querySelectorAll(".btn-quick-amt").forEach(btn => { if (parseInt(btn.innerText) === amount) btn.classList.add("active"); }); }
+        }
+
+        function proceedToPayment() {
+            const amount = parseFloat(document.getElementById("dep-amount-input").value);
+            if (isNaN(amount) || amount < 650 || amount > 100000) { return showToast("Transaction failed: Amount must be strictly between 650 ETB and 100,000 ETB.", 'error'); }
+            currentProductAmount = amount;
+            const loader1 = document.getElementById("loader-1"); const loader2 = document.getElementById("loader-2");
+            loader1.classList.remove("hidden");
+            setTimeout(() => {
+                loader1.classList.add("hidden"); loader2.classList.remove("hidden");
+                setTimeout(() => {
+                    loader2.classList.add("hidden");
+                    document.getElementById("bank-warning-modal").classList.remove("hidden");
+                    syncTgBackButton();
+                }, 1800);
+            }, 1800);
+        }
+
+        function acceptBankWarning() {
+            document.getElementById("bank-warning-modal").classList.add("hidden");
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            let orderCode = "PN";
+            for (let i = 0; i < 8; i++) { orderCode += chars.charAt(Math.floor(Math.random() * chars.length)); }
+            document.getElementById("inv-amount").innerText = currentProductAmount.toFixed(2);
+            document.getElementById("inv-amt-val").innerText = currentProductAmount + " ETB";
+            document.getElementById("inv-order-code").innerText = orderCode;
+            selectPaymentMethod('CBE');
+            document.getElementById("dep-step-1").classList.add("hidden");
+            document.getElementById("dep-step-2").classList.remove("hidden");
+            startTimer();
+            syncTgBackButton();
+        }
+
+        function selectPaymentMethod(method) {
+            currentPaymentMethod = method;
+            const btnCbe = document.getElementById('btn-cbe'); const btnTelebirr = document.getElementById('btn-telebirr');
+            const accNameEl = document.getElementById('inv-acc-name'); const bankNameEl = document.getElementById('inv-bank-name');
+            const accNumLabelEl = document.getElementById('acc-num-label'); const accNumEl = document.getElementById('inv-acc-num');
+            if (method === 'CBE') {
+                btnCbe.classList.add('active'); btnTelebirr.classList.remove('active');
+                accNameEl.innerText = 'Platform Admin'; bankNameEl.innerText = 'Commercial Bank of Ethiopia';
+                accNumLabelEl.innerText = 'Account Number'; accNumEl.innerText = '1000123456789';
+            } else {
+                btnCbe.classList.remove('active'); btnTelebirr.classList.add('active');
+                accNameEl.innerText = 'Platform Admin'; bankNameEl.innerText = 'Telebirr';
+                accNumLabelEl.innerText = 'Phone Number'; accNumEl.innerText = '0911223344';
+            }
+        }
+
+        function startTimer() {
+            clearInterval(countdownInterval);
+            let timeLeft = 15 * 60; const timerEl = document.getElementById("deposit-timer");
+            countdownInterval = setInterval(() => {
+                if (timeLeft <= 0) { clearInterval(countdownInterval); showToast("Session expired. Please start a new checkout.", 'error'); switchTab('home'); return; }
+                timeLeft--;
+                const m = Math.floor(timeLeft / 60).toString().padStart(2, '0'); const s = (timeLeft % 60).toString().padStart(2, '0');
+                timerEl.innerText = `Account expires within ${m}:${s}`;
+            }, 1000);
+        }
+
+        function openConfirmModal() { document.getElementById("confirm-transfer-modal").classList.remove("hidden"); syncTgBackButton(); }
+        function closeConfirmModal() { document.getElementById("confirm-transfer-modal").classList.add("hidden"); syncTgBackButton(); }
+
+        async function submitPayment() {
+            const txId = document.getElementById("tx-id").value;
+            if (!txId.trim()) { return showToast("Please enter a Transaction ID or Receipt Number.", 'error'); }
+            try {
+                const res = await apiFetch('/paynow-webhook', {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ reference: txId, status: "Paid", amount: currentProductAmount, telegram_id: parseInt(userState.telegram_id), payment_method: currentPaymentMethod })
+                });
+                if (res.ok) {
+                    showToast("Submitted successfully! Waiting for admin approval.", 'success');
+                    userState.transactions.push({ id: txId, type: 'Purchase', method: currentPaymentMethod, amount: currentProductAmount, status: 'Pending', timestamp: new Date().toLocaleString() });
+                    closeConfirmModal(); clearInterval(countdownInterval); document.getElementById("tx-id").value = "";
+                    document.getElementById("dep-step-1").classList.remove("hidden"); document.getElementById("dep-step-2").classList.add("hidden");
+                    switchTab('home');
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showToast(extractErrorMessage(err, "Submission failed."), 'error');
+                }
+            } catch (error) { console.error("API Error:", error); showToast("Network error. Is the backend running?", 'error'); }
+        }
+
+        function selectWdMethod(method) {
+            currentWdMethod = method;
+            document.getElementById('wd-method-cbe').classList.toggle('active', method === 'CBE');
+            document.getElementById('wd-method-telebirr').classList.toggle('active', method === 'Telebirr');
+            document.getElementById('wd-acc-name-label').innerText = method === 'CBE' ? 'CBE Account Name' : 'Telebirr Full Name';
+            document.getElementById('wd-acc-num-label').innerText = method === 'CBE' ? 'Account Number' : 'Phone Number';
+        }
+
+        function openWithdrawModal() {
+            const body = document.getElementById("withdraw-modal-body");
+            if (!withdrawalAccount) {
+                currentWdMethod = "CBE";
+                body.innerHTML = `
+                    <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Add Withdrawal Account</h2>
+                    <p style="margin-bottom: 1rem; color: var(--danger); font-size: 0.85rem; font-weight: 600; text-align: left;">⚠️ Please select carefully. Your payment method cannot be changed later without contacting customer service.</p>
+                    <div class="payment-method-toggle" style="margin-bottom: 1.5rem;">
+                        <button id="wd-method-cbe" class="method-btn active" onclick="selectWdMethod('CBE')">CBE</button>
+                        <button id="wd-method-telebirr" class="method-btn" onclick="selectWdMethod('Telebirr')">Telebirr</button>
+                    </div>
+                    <div class="form-group" style="text-align: left;"><label id="wd-acc-name-label">CBE Account Name</label><input type="text" id="wd-name" class="input-field" placeholder="Enter account name"></div>
+                    <div class="form-group" style="text-align: left;"><label id="wd-acc-num-label">Account Number</label><input type="text" id="wd-number" class="input-field" placeholder="Enter account number"></div>
+                    <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+                        <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border);" onclick="closeWithdrawModal()">Cancel</button>
+                        <button class="btn-primary" onclick="saveWithdrawalAccount()">Save & Lock Account</button>
+                    </div>`;
+            } else {
+                body.innerHTML = `
+                    <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Withdraw Funds</h2>
+                    <div class="saved-account-box">
+                        <div class="saved-account-label">Saved Payment Method:</div><div class="saved-account-name">${withdrawalAccount.method}</div>
+                        <div style="margin-top: 0.5rem; font-size: 0.9rem;"><strong>${withdrawalAccount.name}</strong><br><span style="color: var(--text-muted);">${withdrawalAccount.number}</span></div>
+                    </div>
+                    <div class="warning-notes" style="margin-bottom: 1.5rem; text-align: left;">⚠️ To change your payment method or account details, please contact customer service.</div>
+                    <div class="form-group" style="text-align: left;"><label>Amount (ETB)</label><input type="number" id="withdraw-amount" class="input-field" placeholder="Minimum 300 ETB"></div>
+                    <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+                        <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border);" onclick="closeWithdrawModal()">Cancel</button>
+                        <button class="btn-primary" style="background: var(--danger);" onclick="handleWithdraw()">Withdraw</button>
+                    </div>`;
+            }
+            document.getElementById("withdraw-modal").classList.remove("hidden");
+            syncTgBackButton();
+        }
+
+        function closeWithdrawModal() { document.getElementById("withdraw-modal").classList.add("hidden"); syncTgBackButton(); }
+
+        function saveWithdrawalAccount() {
+            const name = document.getElementById("wd-name").value.trim();
+            const number = document.getElementById("wd-number").value.trim();
+            if (!name || !number) return showToast("Please fill in all fields.", 'error');
+            withdrawalAccount = { method: currentWdMethod, name: name, number: number };
+            showToast("Account saved successfully! You can now withdraw funds.", 'success');
+            openWithdrawModal();
+        }
+
+        async function handleWithdraw() {
+            const amount = parseFloat(document.getElementById("withdraw-amount").value);
+            if (isNaN(amount) || amount < 300) return showToast("Minimum withdrawal is 300 ETB.", 'error');
+            if (amount > userState.total_balance) return showToast("Insufficient balance.", 'error');
+            try {
+                const res = await apiFetch('/api/request-withdrawal', {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ telegram_id: parseInt(userState.telegram_id), amount: amount, method: withdrawalAccount.method, account_details: `${withdrawalAccount.name} - ${withdrawalAccount.number}` })
+                });
+                if (res.ok) {
+                    showToast(`Withdrawal request of ${amount} ETB submitted! Waiting for admin approval.`, 'success');
+                    userState.transactions.push({ id: `WD_${Date.now()}`, type: 'Withdrawal', method: withdrawalAccount.method, amount: amount, status: 'Pending', timestamp: new Date().toLocaleString() });
+                    userState.total_balance -= amount; updateBalances(); closeWithdrawModal();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showToast(extractErrorMessage(err, "Withdrawal failed."), 'error');
+                }
+            } catch (error) { console.error("API Error:", error); showToast("Network error. Is the backend running?", 'error'); }
+        }
+
+        function openInfoModal(type) {
+            const body = document.getElementById('info-modal-body'); let content = '';
+            if (type === 'account') {
+                const method = withdrawalAccount ? withdrawalAccount.method : 'Not set';
+                const accName = withdrawalAccount ? withdrawalAccount.name : 'Not set';
+                const accNum = withdrawalAccount ? withdrawalAccount.number : 'Not set';
+                content = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Account Details</h2>
+                    <div class="info-content"><p><strong>Payment Method:</strong> ${method}</p><p><strong>Account Holder Name:</strong> ${accName}</p><p><strong>Account Number/Phone:</strong> ${accNum}</p>
+                    <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--danger);">⚠️ To change these details, please contact customer service.</p></div>
+                    <button class="btn-primary" style="margin-top: 1.5rem;" onclick="closeInfoModal()">Close</button>`;
+            } else if (type === 'rules') {
+                content = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Platform Rules</h2>
+                    <div class="info-content"><p>• Minimum investment: 650 ETB</p><p>• Invitation reward: 30%</p><p>• Minimum withdrawal: 300 ETB</p><p>• Withdrawal time: 9 AM to 9 PM (once a day)</p><p>• Product purchase: 24/7</p><p>• Withdrawal fee: 20%</p></div>
+                    <button class="btn-primary" style="margin-top: 1.5rem;" onclick="closeInfoModal()">Close</button>`;
+            } else if (type === 'service') {
+                content = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Customer Service</h2>
+                    <div class="info-content"><p><strong>Telegram Support:</strong> <a href="https://t.me/Assetcorecommunity" target="_blank" style="color: var(--primary);">@Assetcorecommunity</a></p><p><strong>Telegram Group:</strong> <a href="https://t.me/Assetcorecommunity" target="_blank" style="color: var(--primary);">Join Group</a></p></div>
+                    <button class="btn-primary" style="margin-top: 1.5rem;" onclick="closeInfoModal()">Close</button>`;
+            } else if (type === 'about') {
+                content = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">About Us</h2>
+                    <div class="info-content"><p>AssetCore is Ethiopia's premier investment platform, offering high-quality investment opportunities in cloud servers, real estate, and energy sectors with strong long-term growth potential and generous returns.</p></div>
+                    <div class="app-coming-soon-banner">📱 Mobile Application Coming Soon!</div>
+                    <button class="btn-primary" style="margin-top: 1.5rem;" onclick="closeInfoModal()">Close</button>`;
+            }
+            body.innerHTML = content;
+            document.getElementById('info-modal').classList.remove("hidden");
+            syncTgBackButton();
+        }
+
+        function closeInfoModal() { document.getElementById('info-modal').classList.add("hidden"); syncTgBackButton(); }
+
+        function openHistoryModal() {
+            const body = document.getElementById('history-modal-body');
+            const withdrawals = userState.transactions.filter(t => t.type === 'Withdrawal');
+            const purchases = userState.transactions.filter(t => t.type === 'Purchase');
+            let withdrawalHtml = '<tbody><tr><td colspan="5" style="text-align:center;">No history yet</td></tr></tbody>';
+            let purchaseHtml = '<tbody><tr><td colspan="4" style="text-align:center;">No history yet</td></tr></tbody>';
+
+            if (withdrawals.length > 0) {
+                withdrawalHtml = '<tbody>' + withdrawals.map(w => `<tr><td>${w.timestamp}</td><td>${w.method}</td><td>${w.amount} ETB</td><td>${w.id}</td><td style="color: ${w.status === 'Approved' ? 'var(--success)' : 'var(--danger)'}; font-weight: 700;">${w.status}</td></tr>`).join('') + '</tbody>';
+            }
+            if (purchases.length > 0) {
+                purchaseHtml = '<tbody>' + purchases.map(p => `<tr><td>${p.timestamp}</td><td>${p.method}</td><td>${p.amount} ETB</td><td>${p.id}</td></tr>`).join('') + '</tbody>';
+            }
+
+            body.innerHTML = `
+                <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">History</h2>
+                <div style="text-align: left; margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--text); font-weight: 700;">Withdrawal History</h3>
+                    <table class="history-table"><thead><tr><th>Timestamp</th><th>Method</th><th>Amount</th><th>Txn ID</th><th>Status</th></tr></thead>${withdrawalHtml}</table>
+                </div>
+                <div style="text-align: left; margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--text); font-weight: 700;">Purchasing History</h3>
+                    <table class="history-table"><thead><tr><th>Timestamp</th><th>Method</th><th>Amount</th><th>Txn ID</th></tr></thead>${purchaseHtml}</table>
+                </div>
+                <button class="btn-primary" onclick="closeHistoryModal()">Close</button>`;
+            document.getElementById('history-modal').classList.remove("hidden");
+            syncTgBackButton();
+        }
+
+        function closeHistoryModal() { document.getElementById('history-modal').classList.add("hidden"); syncTgBackButton(); }
+
+        function updateBalances() {
+            document.getElementById("bal-total").innerText = userState.total_balance.toFixed(2);
+            document.getElementById("bal-daily").innerText = (userState.daily_income_balance || 0).toFixed(2);
+            document.getElementById("bal-invite").innerText = (userState.invite_income || 0).toFixed(2);
+        }
+
+        function copyText(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    if (window.safeTG) window.safeTG.hapticSuccess();
+                    showToast("Copied: " + text, 'success');
+                }).catch(() => fallbackCopy(text));
+            } else { fallbackCopy(text); }
+        }
+
+        function fallbackCopy(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                if (window.safeTG) window.safeTG.hapticSuccess();
+                showToast("Copied: " + text, 'success');
+            } catch (err) { showToast("Failed to copy text.", 'error'); }
+            document.body.removeChild(textArea);
+        }
+
+        const mockLeaderboard = [
+            { rank: 1, name: "@user1", amount: 150000 }, 
+            { rank: 2, name: "@user2", amount: 95000 }, 
+            { rank: 3, name: "@user3", amount: 45000 }, 
+            { rank: 4, name: "@user4", amount: 12000 }, 
+            { rank: 5, name: "@user5", amount: 6000 }
+        ];
+
+        function renderLeaderboard() {
+            const container = document.getElementById("lb-list");
+            if (!container) return;
+            container.innerHTML = "";
+            mockLeaderboard.forEach(item => {
+                let rankClass = "";
+                if (item.rank === 1) rankClass = "gold";
+                else if (item.rank === 2) rankClass = "silver";
+                else if (item.rank === 3) rankClass = "bronze";
+
+                container.innerHTML += `
+                    <div class="lb-item">
+                        <div class="lb-rank ${rankClass}">${item.rank}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; font-size: 1rem; color: var(--text);">${item.name}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">Total Earnings</div>
+                        </div>
+                        <div style="font-weight: 800; font-size: 1.1rem; color: var(--success);">${item.amount.toLocaleString()} ETB</div>
+                    </div>`;
+            });
+        }
+    </script>
+</body>
+</html>

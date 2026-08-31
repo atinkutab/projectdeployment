@@ -278,7 +278,8 @@
                 <div class="payment-method-toggle">
                     <button id="btn-cbe" class="method-btn active" onclick="selectPaymentMethod('CBE')">Bank Transfer (CBE)</button>
                     <button id="btn-telebirr" class="method-btn" onclick="selectPaymentMethod('Telebirr')">Telebirr</button>
-                </div> class="invoice-table">
+                </div>
+                <table class="invoice-table">
                     <tr><td class="inv-label">Account Name</td><td class="inv-val" id="inv-acc-name">Platform Admin</td></tr>
                     <tr><td class="inv-label">Bank Name</td><td class="inv-val" id="inv-bank-name">Commercial Bank of Ethiopia</td></tr>
                     <tr><td class="inv-label" id="acc-num-label">Account Number</td><td class="inv-val"><span id="inv-acc-num">1000123456789</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-acc-num').innerText)">Copy</button></td></tr>
@@ -692,14 +693,11 @@ Note: Your investment earnings will be automatically deposited into your account
             currentProductAmount = amount;
             const loader1 = document.getElementById("loader-1"); const loader2 = document.getElementById("loader-2");
             loader1.classList.remove("hidden");
-            setTimeout(() => {
-                loader1.classList.add("hidden"); 
-                loader2.classList.remove("hidden");
+                loader1.classList.add("hidden"); loader2.classList.remove("hidden");
                 setTimeout(() => {
                     loader2.classList.add("hidden");
                     document.getElementById("bank-warning-modal").classList.remove("hidden");
                 }, 1800);
-            }, 1800);
         }
 
         function acceptBankWarning() {

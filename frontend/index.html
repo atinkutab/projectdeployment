@@ -408,8 +408,7 @@ Note: Your investment earnings will be automatically deposited into your account
                 if (item && item.msg) return item.msg;
             }
             if (err.message) return err.message;
-            return fallback;
-        }
+            return fallback;}
 
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
@@ -428,30 +427,39 @@ Note: Your investment earnings will be automatically deposited into your account
             return await fetch(`${API_URL}${cleanPath}`, options);
         }
 
-        let currentProductAmount = 0;
-        let countdownInterval = null;
-        let socket = null;
-        let reconnectTimer = null;
-        let withdrawalAccount = null;
-        let currentWdMethod = "CBE";
-        let currentPaymentMethod = "CBE";
-
+        let currentProductAmount = 0; let countdownInterval = null; let socket = null; let reconnectTimer = null; let withdrawalAccount = null; let currentWdMethod = "CBE"; let currentPaymentMethod = "CBE"; 
+        
         let userState = {
             telegram_id: "123456789", telegram_username: "@assetcore_user", phone_number: "+251900000000", invite_code: "DEMO01",
             total_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, has_checked_in: false, transactions: []
         };
 
         function initWebSocket(userId) {
-            if (socket) { try { socket.close(); } catch(e) {} socket = null; }
-            if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+            if (socket) {
+                try { socket.close(); } catch(e) {}
+                socket = null;
+            }
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
+            }
+
             const ws_url = `wss://projectdeployment-1-yuwq.onrender.com/ws/${userId}`;
+
             console.log("Attempting WebSocket connection to:", ws_url);
             socket = new WebSocket(ws_url);
-            socket.onopen = function(e) { console.log("WebSocket connection established."); };
+
+            socket.onopen = function(e) { 
+                console.log("WebSocket connection established."); 
+            };
+
             socket.onmessage = function(event) {
                 try {
                     const data = JSON.parse(event.data);
-                    if (data.type === "connected") { console.log("WebSocket handshake confirmed for user:", data.user_id); return; }
+                    if (data.type === "connected") {
+                        console.log("WebSocket handshake confirmed for user:", data.user_id);
+                        return;
+                    }
                     if (data.type === "deposit_approved") {
                         userState.total_balance = data.new_balance; updateBalances();
                         showToast(`✅ Deposit Approved! ${data.amount} ETB added. New balance: ${data.new_balance.toFixed(2)} ETB.`, 'success');
@@ -461,8 +469,7 @@ Note: Your investment earnings will be automatically deposited into your account
                         showToast(`✅ Withdrawal Approved! ${data.amount} ETB has been sent to your account.`, 'success');
                         const tx = userState.transactions.find(t => t.type === 'Withdrawal' && t.status === 'Pending' && t.amount === data.amount);
                         if (tx) tx.status = 'Approved';
-                    } else if (data.type === "withdrawal_rejected") {
-                        userState.total_balance += data.amount; updateBalances();
+                    } else if (data.type === "withdrawal_rejected") { userState.total_balance += data.amount; updateBalances();
                         showToast(`❌ Withdrawal Rejected! ${data.amount} ETB has been refunded to your balance.`, 'error');
                         const tx = userState.transactions.find(t => t.type === 'Withdrawal' && t.status === 'Pending' && t.amount === data.amount);
                         if (tx) tx.status = 'Rejected';
@@ -475,11 +482,18 @@ Note: Your investment earnings will be automatically deposited into your account
                     }
                 } catch (err) { console.error("Error parsing WebSocket message:", err); }
             };
+
             socket.onclose = function(event) {
                 console.log(`WebSocket closed. Code: ${event.code}, Reason: ${event.reason}`);
-                if (event.code !== 1000) { console.log("Attempting to reconnect in 3 seconds..."); reconnectTimer = setTimeout(() => initWebSocket(userId), 3000); }
+                if (event.code !== 1000) {
+                    console.log("Attempting to reconnect in 3 seconds...");
+                    reconnectTimer = setTimeout(() => initWebSocket(userId), 3000);
+                }
             };
-            socket.onerror = function(e) { console.warn("WebSocket error encountered."); };
+
+            socket.onerror = function(e) {
+                console.warn("WebSocket error encountered.");
+            };
         }
 
         function toggleAuth(view) {
@@ -494,22 +508,26 @@ Note: Your investment earnings will be automatically deposited into your account
             const username = document.getElementById("su-username").value;
             const phone = document.getElementById("su-phone").value;
             const invite = document.getElementById("su-invite").value;
+
             if (pass1 !== pass2) return showToast("Passwords do not match!", 'error');
             if (captcha.toLowerCase() !== "45be") return showToast("Invalid Captcha code!", 'error');
             if (!username || !phone || !pass1) return showToast("Please fill all required fields.", 'error');
+
             const randomTelegramId = Math.floor(Math.random() * 1000000000) + 100000000;
+
             try {
                 const res = await apiFetch('/api/register', {
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ telegram_id: randomTelegramId, telegram_username: username, phone_number: phone, password: pass1, inviter_code: invite || "" })
                 });
+                
                 if (res.ok) {
                     const data = await res.json();
                     userState.telegram_id = data.telegram_id;
                     userState.total_balance = data.registration_bonus;
                     userState.telegram_username = username;
                     userState.phone_number = phone;
-                    userState.invite_code = data.invitation_code;
+                    userState.invite_code = data.invitation_code; 
                     showToast("300 ETB Registration Bonus Awarded!", 'success');
                     loginSuccess();
                 } else {
@@ -527,11 +545,13 @@ Note: Your investment earnings will be automatically deposited into your account
             const phone = document.getElementById("si-phone").value.trim();
             const pass = document.getElementById("si-pass").value;
             if (!phone || !pass) return showToast("Please enter both phone number and password.", 'error');
+
             try {
                 const res = await apiFetch('/api/login', {
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ phone_number: phone, password: pass })
                 });
+                
                 if (res.ok) {
                     const data = await res.json();
                     userState.telegram_id = data.telegram_id || userState.telegram_id;
@@ -547,8 +567,8 @@ Note: Your investment earnings will be automatically deposited into your account
                     const err = await res.json().catch(() => ({}));
                     showToast(extractErrorMessage(err, "Invalid phone number or password."), 'error');
                 }
-            } catch (error) {
-                console.error("API Error:", error);
+            } catch (error) { 
+                console.error("API Error:", error); 
                 userState.phone_number = phone;
                 showToast("Signed in successfully!", 'success');
                 loginSuccess();
@@ -575,11 +595,11 @@ Note: Your investment earnings will be automatically deposited into your account
             document.getElementById("auth-view").classList.remove("hidden");
         }
 
-        function initApp() {
-            renderProducts(); renderLeaderboard();
-            document.getElementById("user-invite-code").innerText = userState.invite_code;
+        function initApp() { 
+            renderProducts(); renderLeaderboard(); 
+            document.getElementById("user-invite-code").innerText = userState.invite_code; 
             document.getElementById("user-invite-link-display").innerText = `${APP_BASE_URL}/?start=${userState.invite_code}`;
-            updateBalances();
+            updateBalances(); 
         }
 
         function copyReferralLink() { copyText(`${APP_BASE_URL}/?start=${userState.invite_code}`); }
@@ -603,18 +623,19 @@ Note: Your investment earnings will be automatically deposited into your account
             { name: "Luxury Resort", desc: "High-end hospitality and tourism property.", img: "images/luxury_resort.png", price: 50000, daily: 17000, days: 60, total: 1020000 },
             { name: "Global Index Fund", desc: "The ultimate asset—a diversified stake in global megacorporations.", img: "images/index_fund.png", price: 100000, daily: 36000, days: 60, total: 2160000 },
         ];
-
         function renderProducts() {
             const container = document.getElementById("product-list");
             container.innerHTML = "";
             products.forEach(p => {
                 const isComingSoon = p.price >= 20000 && p.price <= 100000;
+                
                 let buttonHtml;
                 if (isComingSoon) {
                     buttonHtml = `<button class="btn-coming-soon" disabled>COMING SOON</button>`;
                 } else {
                     buttonHtml = `<button class="btn-buy" onclick="buyProduct('${p.name}', ${p.price}, ${p.daily})">Buy Now</button>`;
                 }
+
                 container.innerHTML += `
                     <div class="product-card">
                         <img src="${p.img}" alt="${p.name}" class="product-img">
@@ -645,6 +666,7 @@ Note: Your investment earnings will be automatically deposited into your account
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ telegram_id: parseInt(userState.telegram_id), product_name: name, product_price: price, daily_income: daily })
                 });
+
                 if (res.ok) {
                     const data = await res.json();
                     userState.total_balance = data.new_balance; updateBalances();
@@ -661,7 +683,7 @@ Note: Your investment earnings will be automatically deposited into your account
             currentProductAmount = amount;
             document.getElementById("dep-amount-input").value = amount;
             document.querySelectorAll(".btn-quick-amt").forEach(btn => btn.classList.remove("active"));
-            if (btnElement) { btnElement.classList.add("active"); }
+            if (btnElement) { btnElement.classList.add("active"); } 
             else { document.querySelectorAll(".btn-quick-amt").forEach(btn => { if (parseInt(btn.innerText) === amount) btn.classList.add("active"); }); }
         }
 
@@ -669,17 +691,13 @@ Note: Your investment earnings will be automatically deposited into your account
             const amount = parseFloat(document.getElementById("dep-amount-input").value);
             if (isNaN(amount) || amount < 650 || amount > 100000) { return showToast("Transaction failed: Amount must be strictly between 650 ETB and 100,000 ETB.", 'error'); }
             currentProductAmount = amount;
-            const loader1 = document.getElementById("loader-1");
-            const loader2 = document.getElementById("loader-2");
+            const loader1 = document.getElementById("loader-1"); const loader2 = document.getElementById("loader-2");
             loader1.classList.remove("hidden");
-            setTimeout(() => {
-                loader1.classList.add("hidden");
-                loader2.classList.remove("hidden");
+                loader1.classList.add("hidden"); loader2.classList.remove("hidden");
                 setTimeout(() => {
                     loader2.classList.add("hidden");
                     document.getElementById("bank-warning-modal").classList.remove("hidden");
                 }, 1800);
-            }, 1800);
         }
 
         function acceptBankWarning() {
@@ -698,12 +716,9 @@ Note: Your investment earnings will be automatically deposited into your account
 
         function selectPaymentMethod(method) {
             currentPaymentMethod = method;
-            const btnCbe = document.getElementById('btn-cbe');
-            const btnTelebirr = document.getElementById('btn-telebirr');
-            const accNameEl = document.getElementById('inv-acc-name');
-            const bankNameEl = document.getElementById('inv-bank-name');
-            const accNumLabelEl = document.getElementById('acc-num-label');
-            const accNumEl = document.getElementById('inv-acc-num');
+            const btnCbe = document.getElementById('btn-cbe'); const btnTelebirr = document.getElementById('btn-telebirr');
+            const accNameEl = document.getElementById('inv-acc-name'); const bankNameEl = document.getElementById('inv-bank-name');
+            const accNumLabelEl = document.getElementById('acc-num-label'); const accNumEl = document.getElementById('inv-acc-num');
             if (method === 'CBE') {
                 btnCbe.classList.add('active'); btnTelebirr.classList.remove('active');
                 accNameEl.innerText = 'Platform Admin'; bankNameEl.innerText = 'Commercial Bank of Ethiopia';
@@ -717,13 +732,11 @@ Note: Your investment earnings will be automatically deposited into your account
 
         function startTimer() {
             clearInterval(countdownInterval);
-            let timeLeft = 15 * 60;
-            const timerEl = document.getElementById("deposit-timer");
+            let timeLeft = 15 * 60; const timerEl = document.getElementById("deposit-timer");
             countdownInterval = setInterval(() => {
                 if (timeLeft <= 0) { clearInterval(countdownInterval); showToast("Session expired. Please start a new checkout.", 'error'); switchTab('home'); return; }
                 timeLeft--;
-                const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-                const s = (timeLeft % 60).toString().padStart(2, '0');
+                const m = Math.floor(timeLeft / 60).toString().padStart(2, '0'); const s = (timeLeft % 60).toString().padStart(2, '0');
                 timerEl.innerText = `Account expires within ${m}:${s}`;
             }, 1000);
         }
@@ -826,8 +839,7 @@ Note: Your investment earnings will be automatically deposited into your account
         }
 
         function openInfoModal(type) {
-            const body = document.getElementById('info-modal-body');
-            let content = '';
+            const body = document.getElementById('info-modal-body'); let content = '';
             if (type === 'account') {
                 const method = withdrawalAccount ? withdrawalAccount.method : 'Not set';
                 const accName = withdrawalAccount ? withdrawalAccount.name : 'Not set';
@@ -842,7 +854,7 @@ Note: Your investment earnings will be automatically deposited into your account
                     <button class="btn-primary" style="margin-top: 1.5rem;" onclick="closeInfoModal()">Close</button>`;
             } else if (type === 'service') {
                 content = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Customer Service</h2>
-                    <div class="info-content"><p><strong>Telegram Support:</strong> <a href="https://t.me/EASTAYK" target="_blank" style="color: var(--primary);">@EASTAYK</a></p><p><strong>Telegram Group:</strong> <a href="https://t.me/Assetcorecommunity" target="_blank" style="color: var(--primary);">Join Group</a></p></div>
+                    <div class="info-content"><p><strong>Telegram Support:</strong> <a href="https://t.me/Assetcorecommunity" target="_blank" style="color: var(--primary);">@Assetcorecommunity</a></p><p><strong>Telegram Group:</strong> <a href="https://t.me/Assetcorecommunity" target="_blank" style="color: var(--primary);">Join Group</a></p></div>
                     <button class="btn-primary" style="margin-top: 1.5rem;" onclick="closeInfoModal()">Close</button>`;
             } else if (type === 'about') {
                 content = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">About Us</h2>
@@ -862,12 +874,14 @@ Note: Your investment earnings will be automatically deposited into your account
             const purchases = userState.transactions.filter(t => t.type === 'Purchase');
             let withdrawalHtml = '<tbody><tr><td colspan="5" style="text-align:center;">No history yet</td></tr></tbody>';
             let purchaseHtml = '<tbody><tr><td colspan="4" style="text-align:center;">No history yet</td></tr></tbody>';
+
             if (withdrawals.length > 0) {
                 withdrawalHtml = '<tbody>' + withdrawals.map(w => `<tr><td>${w.timestamp}</td><td>${w.method}</td><td>${w.amount} ETB</td><td>${w.id}</td><td style="color: ${w.status === 'Approved' ? 'var(--success)' : 'var(--danger)'}; font-weight: 700;">${w.status}</td></tr>`).join('') + '</tbody>';
             }
             if (purchases.length > 0) {
                 purchaseHtml = '<tbody>' + purchases.map(p => `<tr><td>${p.timestamp}</td><td>${p.method}</td><td>${p.amount} ETB</td><td>${p.id}</td></tr>`).join('') + '</tbody>';
             }
+
             body.innerHTML = `
                 <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">History</h2>
                 <div style="text-align: left; margin-bottom: 1.5rem;">
@@ -913,10 +927,10 @@ Note: Your investment earnings will be automatically deposited into your account
         }
 
         const mockLeaderboard = [
-            { rank: 1, name: "@user1", amount: 150000 },
-            { rank: 2, name: "@user2", amount: 95000 },
-            { rank: 3, name: "@user3", amount: 45000 },
-            { rank: 4, name: "@user4", amount: 12000 },
+            { rank: 1, name: "@user1", amount: 150000 }, 
+            { rank: 2, name: "@user2", amount: 95000 }, 
+            { rank: 3, name: "@user3", amount: 45000 }, 
+            { rank: 4, name: "@user4", amount: 12000 }, 
             { rank: 5, name: "@user5", amount: 6000 }
         ];
 
@@ -929,6 +943,7 @@ Note: Your investment earnings will be automatically deposited into your account
                 if (item.rank === 1) rankClass = "gold";
                 else if (item.rank === 2) rankClass = "silver";
                 else if (item.rank === 3) rankClass = "bronze";
+
                 container.innerHTML += `
                     <div class="lb-item">
                         <div class="lb-rank ${rankClass}">${item.rank}</div>

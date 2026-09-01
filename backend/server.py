@@ -666,4 +666,4 @@ def update_settings(payload: SystemSettingsUpdate, admin: str = Depends(get_curr
         else:
             db.add(Setting(key=key, value=str(value)))
     db.commit()
-    return {"message": "Settings updated successfully"}  
+    return {"message": "Settings updated successfully"}

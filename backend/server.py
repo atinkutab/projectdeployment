@@ -15,6 +15,12 @@ import re
 import random
 import string
 import hashlib
+import importlib
+
+try:
+    bcrypt = importlib.import_module("bcrypt")
+except ImportError:
+    bcrypt = None
 from datetime import datetime, timedelta
 from contextlib import asynccontextmanager
 from typing import Dict, Optional
@@ -249,9 +255,227 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+SQLALCHEMY_DATABASE_URL = URL.create(
+    drivername="postgresql+psycopg2",
+    username=DB_USER,
+    password=DB_PASSWORD,
+    host=DB_HOST,
+    port=DB_PORT,
+    database=DB_NAME,
+)
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL, pool_pre_ping=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+# --- WEBSOCKET CONNECTION MANAGER ---
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, WebSocket] = {}
+
+    async def connect(self, websocket: WebSocket, user_id: str):
+        await websocket.accept()
+        key = str(user_id)
+        old = self.active_connections.get(key)
+        if old is not None:
+            try:
+                await old.close(code=1000, reason="Replaced by new connection")
+            except Exception:
+                pass
+        self.active_connections[key] = websocket
+
+    def disconnect(self, user_id: str):
+        self.active_connections.pop(str(user_id), None)
+
+    async def send_personal_message(self, message: str, user_id: str):
+        key = str(user_id)
+        ws = self.active_connections.get(key)
+        if ws is None:
+            return
+        try:
+            await ws.send_text(message)
+        except Exception:
+            self.disconnect(key)
+
+manager = ConnectionManager()
+
+# --- DATABASE MODELS ---
+class User(Base):
+    __tablename__ = "users"
+    telegram_id = Column(BigInteger, primary_key=True, index=True)
+    telegram_username = Column(String, nullable=True)
+    phone_number = Column(String, unique=True, nullable=True)
+    password_hash = Column(String, nullable=False)
+    invitation_code = Column(String, unique=True, nullable=False)
+    invitation_link = Column(String, nullable=False)
+
+    balance = relationship("UserBalance", uselist=False, back_populates="user", cascade="all, delete-orphan")
+    products = relationship("UserProduct", back_populates="user", cascade="all, delete-orphan")
+    deposits = relationship("Deposit", back_populates="user", cascade="all, delete-orphan")
+    withdrawals = relationship("Withdrawal", back_populates="user", cascade="all, delete-orphan")
+    referrals = relationship("TeamReferral", foreign_keys="TeamReferral.telegram_id", back_populates="user", cascade="all, delete-orphan")
+    inviter_referrals = relationship("TeamReferral", foreign_keys="TeamReferral.inviter_id", back_populates="inviter", cascade="all, delete-orphan")
+
+class UserBalance(Base):
+    __tablename__ = "user_balances"
+    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), primary_key=True)
+    registration_bonus = Column(Float, default=0.0)
+    daily_income_balance = Column(Float, default=0.0)
+    invitation_income = Column(Float, default=0.0)
+    total_balance = Column(Float, default=0.0)
+    last_checkin_at = Column(DateTime, nullable=True)
+    user = relationship("User", back_populates="balance")
+
+class TeamReferral(Base):
+    __tablename__ = "team_referrals"
+    id = Column(Integer, primary_key=True, index=True)
+    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False)
+    inviter_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False)
+    commission_earned = Column(Float, default=0.0)
+    is_valid_depositor = Column(Boolean, default=False)
+    user = relationship("User", foreign_keys=[telegram_id], back_populates="referrals")
+    inviter = relationship("User", foreign_keys=[inviter_id], back_populates="inviter_referrals")
+
+class UserProduct(Base):
+    __tablename__ = "user_products"
+    id = Column(Integer, primary_key=True, index=True)
+    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False)
+    product_name = Column(String, nullable=False)
+    product_price = Column(Float, nullable=False)
+    daily_income = Column(Float, nullable=False)
+    purchased_at = Column(DateTime, default=datetime.utcnow)
+    last_yield_claimed_at = Column(DateTime, nullable=True)
+    user = relationship("User", back_populates="products")
+
+class Deposit(Base):
+    __tablename__ = "deposits"
+    id = Column(Integer, primary_key=True, index=True)
+    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False)
+    transaction_id = Column(String, unique=True, index=True, nullable=False)
+    amount_etb = Column(Float, nullable=False)
+    status = Column(String, default="Pending")
+    payment_method = Column(String, default="CBE")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User", back_populates="deposits")
+
+class Withdrawal(Base):
+    __tablename__ = "withdrawals"
+    id = Column(Integer, primary_key=True, index=True)
+    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False)
+    amount = Column(Float, nullable=False)
+    method = Column(String, nullable=False)
+    account_details = Column(String, nullable=False)
+    status = Column(String, default="Pending")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User", back_populates="withdrawals")
+
+class Setting(Base):
+    __tablename__ = "settings"
+    key = Column(String, primary_key=True)
+    value = Column(String, nullable=False)
+
+Base.metadata.create_all(bind=engine)
+
+def init_db():
+    db = SessionLocal()
+    try:
+        if not db.query(Setting).filter(Setting.key == "registration_bonus").first():
+            db.add(Setting(key="registration_bonus", value="300.0"))
+            db.add(Setting(key="commission_rate", value="0.30"))
+            db.add(Setting(key="cbe_account_name", value="Platform Admin"))
+            db.add(Setting(key="cbe_account_number", value="1000123456789"))
+            db.add(Setting(key="telebirr_phone", value="0911223344"))
+            db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
+
+init_db()
+
+# --- PYDANTIC SCHEMAS ---
+class RegisterRequest(BaseModel):
+    telegram_id: Optional[int] = None
+    telegram_username: Optional[str] = None
+    phone_number: str
+    password: str
+    inviter_code: Optional[str] = None
+
+    @field_validator("phone_number")
+    @classmethod
+    def validate_phone_digits(cls, v: str) -> str:
+        clean = v.strip()
+        digits = clean.lstrip("+")
+        if not digits.isdigit():
+            raise ValueError("Phone number must contain numbers only.")
+        return clean
+
+class LoginRequest(BaseModel):
+    phone_number: str
+    password: str
+
+class DailyCheckinRequest(BaseModel):
+    telegram_id: int
+
+class PaynowWebhookRequest(BaseModel):
+    reference: str
+    status: str
+    amount: float
+    telegram_id: int
+    payment_method: str = "CBE"
+
+class BuyProductRequest(BaseModel):
+    telegram_id: int
+    product_name: str
+    product_price: float
+    daily_income: float
+
+class WithdrawalRequest(BaseModel):
+    telegram_id: int
+    amount: float
+    method: str
+    account_details: str
+
+class SystemSettingsUpdate(BaseModel):
+    registration_bonus: Optional[float] = None
+    commission_rate: Optional[float] = None
+    cbe_account_name: Optional[str] = None
+    cbe_account_number: Optional[str] = None
+    telebirr_phone: Optional[str] = None
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
 # --- HELPERS ---
 def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+    if bcrypt is None:
+        return hashlib.sha256(password.encode('utf-8')).hexdigest()
+    # Using bcrypt for secure password hashing when available
+    pwd_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(pwd_bytes, salt)
+    return hashed.decode('utf-8')
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    # Check if it's a bcrypt hash (bcrypt hashes start with $2)
+    if bcrypt is not None and hashed_password.startswith('$2'):
+        try:
+            return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+        except Exception:
+            return False
+    else:
+        # Fallback for old SHA-256 hashes (so existing users aren't locked out)
+        return hashlib.sha256(plain_password.encode()).hexdigest() == hashed_password
+
+# Initialize admin hash properly using the new hash_password function
+
+def init_admin_hash():
+    global ADMIN_PASSWORD_HASH
+    ADMIN_PASSWORD_HASH = hash_password(ADMIN_PASSWORD)
+
+
+init_admin_hash()
 
 def generate_invitation_code() -> str:
     chars = string.ascii_uppercase + string.digits
@@ -363,7 +587,8 @@ async def get_current_admin(token: str = Depends(oauth2_scheme)):
 
 @app.post("/api/admin/login", response_model=Token)
 def admin_login(form_data: OAuth2PasswordRequestForm = Depends()):
-    if form_data.username != ADMIN_USERNAME or hash_password(form_data.password) != ADMIN_PASSWORD_HASH:
+    # Updated to use verify_password
+    if form_data.username != ADMIN_USERNAME or not verify_password(form_data.password, ADMIN_PASSWORD_HASH):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     access_token = create_access_token(data={"sub": ADMIN_USERNAME})
     return {"access_token": access_token, "token_type": "bearer"}
@@ -481,8 +706,11 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(
         or_(User.phone_number == identifier, User.telegram_username == identifier, User.telegram_username == formatted_username)
     ).first()
-    if not user or user.password_hash != hash_password(payload.password):
+    
+    # Updated to use verify_password
+    if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid phone number/username or password.")
+    
     balance = db.query(UserBalance).filter(UserBalance.telegram_id == user.telegram_id).first()
     return {
         "message": "Login successful",

@@ -41,7 +41,7 @@
         .btn-primary:disabled { background: #475569; color: #cbd5e1; cursor: not-allowed; }
         .toggle-text { text-align: center; margin-top: 1.5rem; color: var(--text-muted); font-weight: 500; }
         .toggle-text span { color: var(--primary); font-weight: 700; cursor: pointer; }
-        .captcha-box { background: var(--bg); background-size: 20px 20px; border: 1px solid var(--border); text-align: center; font-size: 1.5rem; font-weight: 800; letter-spacing: 0.5rem; padding: 12px; border-radius: 8px; user-select: none; margin-bottom: 0.5rem; font-style: italic; color: var(--text); }
+        .captcha-box { background: var(--bg); background-size: 20px 20px; border: 1px solid var(--border); text-align: center; font-size: 1.5rem; font-weight: 800; letter-spacing: 0.5rem; padding: 12px; border-radius: 8px; user-select: none; margin-bottom: 0.5rem; font-style: italic; color: var(--text); cursor: pointer; }
         #dashboard-view { padding-bottom: calc(90px + env(safe-area-inset-bottom)); animation: fadeIn 0.4s ease; }
         .view-header { background: var(--card-bg); padding: 1.5rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
         .view-title { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
@@ -198,7 +198,7 @@
         .saved-account-box { background: var(--bg); padding: 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: left; border: 1px solid var(--border); }
         .saved-account-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem; }
         .saved-account-name { font-weight: 700; font-size: 1.1rem; color: var(--text); }
-        .saved-account-number { color: var(--text-muted); font-size: 0.9rem; }
+ .saved-account-number { color: var(--text-muted); font-size: 0.9rem; }
         .history-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 1.5rem; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
         .history-table th, .history-table td { border: 1px solid var(--border); padding: 12px; text-align: center; color: var(--text); }
         .history-table th { background: var(--bg); color: var(--text-muted); font-weight: 600; }
@@ -232,7 +232,7 @@
             <div class="form-group"><label>Phone Number</label><input type="tel" id="su-phone" class="input-field" value="+251" placeholder="+251 9..."></div>
             <div class="form-group"><label>Password</label><input type="password" id="su-pass" class="input-field" placeholder="********"></div>
             <div class="form-group"><label>Repeat Password</label><input type="password" id="su-pass2" class="input-field" placeholder="********"></div>
-            <div class="form-group"><label>Captcha Code</label><div class="captcha-box" id="captcha-text">45be</div><input type="text" id="su-captcha" class="input-field" placeholder="Enter code above"></div>
+            <div class="form-group"><label>Captcha Code</label><div class="captcha-box" id="captcha-text" onclick="generateCaptcha()" title="Click to refresh">45be</div><input type="text" id="su-captcha" class="input-field" placeholder="Enter code above"></div>
             <div class="form-group"><label>Invitation Code (Optional)</label><input type="text" id="su-invite" class="input-field" placeholder="Enter referral code"></div>
             <button class="btn-primary" onclick="handleSignUp()">Sign Up</button>
             <p class="toggle-text">I already have an account, <span onclick="toggleAuth('signin')">Sign In</span></p>
@@ -315,7 +315,7 @@
                 <p style="font-size: 0.9rem; color: var(--text-muted);">Earn 30% of your friend's entry price instantly! A flat single-level reward system.</p>
                 <div class="referral-box">
                     <div class="ref-row"><span class="ref-label">Invitation Code:</span><div class="ref-val-group"><strong id="user-invite-code">DEMO01</strong><button class="btn-copy-sm" onclick="copyText(document.getElementById('user-invite-code').innerText)">Copy</button></div></div>
-                    <div class="ref-row"><span class="ref-label">Invitation Link:</span><div class="ref-val-group"><strong id="user-invite-link-display" style="font-size: 0.8rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">https://assetcore-app.vercel.app/?start=DEMO01</strong><button class="btn-copy-sm" onclick="copyReferralLink()">Copy</button></div></div>
+                    <div class="ref-row"><span class="ref-label">Invitation Link:</span><div class="ref-val-group"><strong id="user-invite-link-display" style="font-size: 0.8rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">https://assetcore-et.vercel.app/?start=DEMO01</strong><button class="btn-copy-sm" onclick="copyReferralLink()">Copy</button></div></div>
                     <table class="commission-table"><thead><tr><th>Level</th><th>Commission</th><th>Valid Users</th><th>Income</th></tr></thead><tbody><tr><td>Level 1</td><td>30%</td><td>0</td><td>0 ETB</td></tr></tbody></table>
                     <div class="stat-mini-row">
                         <div class="stat-mini"><div class="stat-mini-val">0</div><div class="stat-mini-lbl">Valid users</div></div>
@@ -360,7 +360,7 @@
 Welcome to AssetCore, Ethiopia's most trusted investment platform💯.
 ▼ Invite friends to invest and earn up to 30% commission. Passive income is no longer a dream.
 🎁 Sign-up Bonus: 300 Ethiopian Birr.
-🔥 Invest 800 Ethiopian Birr and instantly withdraw 300 Ethiopian Birr.
+🔥 Invest 650 Ethiopian Birr and instantly withdraw 300 Ethiopian Birr.
 🎁 No time restrictions on deposits and withdrawals, 24/7 service.
 ❤️ All products can be purchased multiple times.
 🎬 Referral Commission: 30%
@@ -398,7 +398,7 @@ Note: Your investment earnings will be automatically deposited into your account
     <div id="loader-2" class="loader-overlay hidden"><div class="paynow-logo"><span class="paynow-icon"></span>PayNow</div><div class="dots-container"><div class="dot dot-1"></div><div class="dot dot-2"></div><div class="dot dot-3"></div></div></div>
 
     <script>
-        function extractErrorMessage(err, fallback = "An error occurred.") {
+ function extractErrorMessage(err, fallback = "An error occurred.") {
             if (!err) return fallback;
             if (typeof err === 'string') return err;
             if (typeof err.detail === 'string') return err.detail;
@@ -428,11 +428,21 @@ Note: Your investment earnings will be automatically deposited into your account
         }
 
         let currentProductAmount = 0; let countdownInterval = null; let socket = null; let reconnectTimer = null; let withdrawalAccount = null; let currentWdMethod = "CBE"; let currentPaymentMethod = "CBE"; 
+        let currentCaptcha = "";
         
         let userState = {
             telegram_id: "123456789", telegram_username: "@assetcore_user", phone_number: "+251900000000", invite_code: "DEMO01",
             total_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, has_checked_in: false, transactions: []
         };
+
+        function generateCaptcha() {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            currentCaptcha = "";
+            for (let i = 0; i < 4; i++) {
+                currentCaptcha += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            document.getElementById("captcha-text").innerText = currentCaptcha;
+        }
 
         function initWebSocket(userId) {
             if (socket) {
@@ -510,7 +520,10 @@ Note: Your investment earnings will be automatically deposited into your account
             const invite = document.getElementById("su-invite").value;
 
             if (pass1 !== pass2) return showToast("Passwords do not match!", 'error');
-            if (captcha.toLowerCase() !== "45be") return showToast("Invalid Captcha code!", 'error');
+            if (captcha.toUpperCase() !== currentCaptcha) {
+                generateCaptcha();
+                return showToast("Invalid Captcha code!", 'error');
+            }
             if (!username || !phone || !pass1) return showToast("Please fill all required fields.", 'error');
 
             const randomTelegramId = Math.floor(Math.random() * 1000000000) + 100000000;
@@ -598,7 +611,7 @@ Note: Your investment earnings will be automatically deposited into your account
         function initApp() { 
             renderProducts(); renderLeaderboard(); 
             document.getElementById("user-invite-code").innerText = userState.invite_code; 
-            document.getElementById("user-invite-link-display").innerText = `${APP_BASE_URL}/?start=${userState.invite_code}`;
+ document.getElementById("user-invite-link-display").innerText = `${APP_BASE_URL}/?start=${userState.invite_code}`;
             updateBalances(); 
         }
 
@@ -800,7 +813,7 @@ Note: Your investment earnings will be automatically deposited into your account
                     <div class="warning-notes" style="margin-bottom: 1.5rem; text-align: left;">⚠️ To change your payment method or account details, please contact customer service.</div>
                     <div class="form-group" style="text-align: left;"><label>Amount (ETB)</label><input type="number" id="withdraw-amount" class="input-field" placeholder="Minimum 300 ETB"></div>
                     <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
-                        <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border);" onclick="closeWithdrawModal()">Cancel</button>
+ <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border);" onclick="closeWithdrawModal()">Cancel</button>
                         <button class="btn-primary" style="background: var(--danger);" onclick="handleWithdraw()">Withdraw</button>
                     </div>`;
             }
@@ -854,7 +867,11 @@ Note: Your investment earnings will be automatically deposited into your account
                     <button class="btn-primary" style="margin-top: 1.5rem;" onclick="closeInfoModal()">Close</button>`;
             } else if (type === 'service') {
                 content = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Customer Service</h2>
-                    <div class="info-content"><p><strong>Telegram Support:</strong> <a href="https://t.me/Assetcorecommunity" target="_blank" style="color: var(--primary);">@Assetcorecommunity</a></p><p><strong>Telegram Group:</strong> <a href="https://t.me/Assetcorecommunity" target="_blank" style="color: var(--primary);">Join Group</a></p></div>
+                    <div class="info-content">
+                        <p><strong>Customer Service:</strong> <a href="https://t.me/EASTAYK" target="_blank" style="color: var(--primary);">@EASTAYK</a></p>
+                        <p><strong>Telegram Official Channel:</strong> <a href="https://t.me/assetcore_anouncement_2026" target="_blank" style="color: var(--primary);">@assetcore_anouncement_2026</a></p>
+                        <p><strong>Telegram Group:</strong> <a href="https://t.me/Assetcorecommunity" target="_blank" style="color: var(--primary);">@Assetcorecommunity</a></p>
+                    </div>
                     <button class="btn-primary" style="margin-top: 1.5rem;" onclick="closeInfoModal()">Close</button>`;
             } else if (type === 'about') {
                 content = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">About Us</h2>
@@ -955,6 +972,9 @@ Note: Your investment earnings will be automatically deposited into your account
                     </div>`;
             });
         }
+
+        // Initialize captcha on load
+        generateCaptcha();
     </script>
 </body>
 </html>

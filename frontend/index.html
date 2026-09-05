@@ -27,7 +27,7 @@
         .toast { background: var(--card-bg); color: var(--text); padding: 16px 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid var(--border); border-left: 5px solid var(--primary); font-size: 14px; font-weight: 500; text-align: center; animation: slideDown 0.3s ease; opacity: 1; transition: opacity 0.3s ease, transform 0.3s ease; }
         .toast.success { border-left-color: var(--success); }
         .toast.error { border-left-color: var(--danger); }
-.toast.hide { opacity: 0; transform: translateY(-20px); }
+        .toast.hide { opacity: 0; transform: translateY(-20px); }
         @keyframes slideDown { from { transform: translateY(-100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         #auth-view { padding: 2rem 1.5rem; display: flex; flex-direction: column; justify-content: center; min-height: 100vh; background: var(--bg); animation: fadeIn 0.5s ease; }
         .logo { text-align: center; font-size: 2.5rem; font-weight: 900; background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem; letter-spacing: -1px; }
@@ -70,19 +70,9 @@
         .btn-buy:active { transform: scale(0.98); }
         
         .btn-coming-soon {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            font-family: 'Inter', sans-serif;
-            background: rgba(251, 191, 36, 0.15);
-            color: #fbbf24;
-            border: 1px solid rgba(251, 191, 36, 0.4);
-            animation: pulse-glow 2s infinite;
-            cursor: not-allowed;
-            box-sizing: border-box;
-            text-align: center;
+            width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 1rem; font-family: 'Inter', sans-serif;
+            background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4);
+            animation: pulse-glow 2s infinite; cursor: not-allowed; box-sizing: border-box; text-align: center;
         }
         @keyframes pulse-glow {
             0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
@@ -117,15 +107,50 @@
         .btn-copy-inline { background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; color: var(--text-muted); transition: transform 0.1s; }
         .btn-copy-inline:active { transform: scale(0.95); }
         .warning-notes { background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2); color: #fbbf24; padding: 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 1.5rem; }
-        .balance-container { background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%); color: #fff; padding: 2.5rem 1.5rem 2rem; border-bottom-left-radius: 2.5rem; border-bottom-right-radius: 2.5rem; margin-bottom: 1.5rem; position: relative; overflow: hidden; }
-        .balance-container::before { content: ''; position: absolute; top: -50%; right: -20%; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%; }
-        .balance-container::after { content: ''; position: absolute; bottom: -30%; left: -10%; width: 150px; height: 150px; background: rgba(255,255,255,0.05); border-radius: 50%; }
+        
+        /* --- NEW ANIMATED BALANCE CONTAINER --- */
+        .balance-container { 
+            background: radial-gradient(circle at top right, #1e293b, #0f172a); /* Dark navy/black */
+            color: #fff; padding: 2.5rem 1.5rem 2rem; border-bottom-left-radius: 2.5rem; border-bottom-right-radius: 2.5rem; 
+            margin-bottom: 1.5rem; position: relative; overflow: hidden; box-shadow: inset 0 0 40px rgba(16, 185, 129, 0.05);
+        }
+        .candlestick-bg {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 70%; 
+            display: flex; align-items: flex-end; justify-content: space-around; padding: 0 10px; z-index: 0; pointer-events: none;
+        }
+        .candle {
+            width: 6px; background: linear-gradient(to top, rgba(59, 130, 246, 0.1), #3b82f6); border-radius: 4px 4px 0 0;
+            animation: pulse-candle 2.5s ease-in-out infinite; box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+        }
+        .candle.green { background: linear-gradient(to top, rgba(16, 185, 129, 0.1), #10b981); box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+        @keyframes pulse-candle {
+            0%, 100% { height: 15%; opacity: 0.4; }
+            50% { height: 75%; opacity: 0.8; }
+        }
+        /* Staggered delays for a live trading wave effect */
+        .candle:nth-child(1) { animation-delay: 0s; height: 20%; }
+        .candle:nth-child(2) { animation-delay: 0.3s; height: 40%; }
+        .candle:nth-child(3) { animation-delay: 0.6s; height: 25%; }
+        .candle:nth-child(4) { animation-delay: 0.9s; height: 55%; }
+        .candle:nth-child(5) { animation-delay: 1.2s; height: 35%; }
+        .candle:nth-child(6) { animation-delay: 0.2s; height: 65%; }
+        .candle:nth-child(7) { animation-delay: 0.5s; height: 30%; }
+        .candle:nth-child(8) { animation-delay: 0.8s; height: 50%; }
+        .candle:nth-child(9) { animation-delay: 1.1s; height: 20%; }
+        .candle:nth-child(10) { animation-delay: 0.1s; height: 60%; }
+        .candle:nth-child(11) { animation-delay: 0.4s; height: 35%; }
+        .candle:nth-child(12) { animation-delay: 0.7s; height: 45%; }
+        .candle:nth-child(13) { animation-delay: 1.0s; height: 25%; }
+        .candle:nth-child(14) { animation-delay: 0.3s; height: 50%; }
+        .candle:nth-child(15) { animation-delay: 0.6s; height: 30%; }
+        /* ---------------------------------------- */
+
         .bal-main-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; position: relative; z-index: 1; }
         .bal-info { flex: 1; }
-        .bal-label { opacity: 0.8; font-size: 0.9rem; font-weight: 500; }
-        .bal-amount { font-size: 3rem; font-weight: 900; margin-bottom: 0.5rem; letter-spacing: -1px; }
-        .bal-user-info { font-size: 0.85rem; opacity: 0.9; display: flex; gap: 10px; font-weight: 500; }
-        .btn-withdraw-header { background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; align-self: flex-start; transition: transform 0.1s; font-family: 'Inter', sans-serif; }
+        .bal-label { opacity: 0.8; font-size: 0.9rem; font-weight: 500; color: #cbd5e1; }
+        .bal-amount { font-size: 3rem; font-weight: 900; margin-bottom: 0.5rem; letter-spacing: -1px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .bal-user-info { font-size: 0.85rem; opacity: 0.9; display: flex; gap: 10px; font-weight: 500; color: #94a3b8; }
+        .btn-withdraw-header { background: rgba(255,255,255,0.1); backdrop-filter: blur(5px); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; align-self: flex-start; transition: transform 0.1s; font-family: 'Inter', sans-serif; }
         .btn-withdraw-header:active { transform: scale(0.95); }
         .sub-bals { display: flex; justify-content: space-between; position: relative; z-index: 1; }
         .sub-bal-item { text-align: left; }
@@ -198,7 +223,7 @@
         .saved-account-box { background: var(--bg); padding: 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: left; border: 1px solid var(--border); }
         .saved-account-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem; }
         .saved-account-name { font-weight: 700; font-size: 1.1rem; color: var(--text); }
- .saved-account-number { color: var(--text-muted); font-size: 0.9rem; }
+        .saved-account-number { color: var(--text-muted); font-size: 0.9rem; }
         .history-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 1.5rem; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
         .history-table th, .history-table td { border: 1px solid var(--border); padding: 12px; text-align: center; color: var(--text); }
         .history-table th { background: var(--bg); color: var(--text-muted); font-weight: 600; }
@@ -208,14 +233,8 @@
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
         .app-coming-soon-banner {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            border-radius: 8px;
-            background: linear-gradient(270deg, #3b82f6, #8b5cf6, #3b82f6);
-            background-size: 200% 200%;
-            color: #fff;
-            font-weight: 700;text-align: center;
-            animation: gradient-shift 3s ease infinite;
+            margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background: linear-gradient(270deg, #3b82f6, #8b5cf6, #3b82f6);
+            background-size: 200% 200%; color: #fff; font-weight: 700; text-align: center; animation: gradient-shift 3s ease infinite;
         }
         @keyframes gradient-shift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
     </style>
@@ -293,6 +312,13 @@
         <div id="view-mine" class="app-view hidden">
             <div class="view-header"><div class="view-title">My Profile</div></div>
             <div class="balance-container">
+                <!-- ANIMATED CANDLESTICK BACKGROUND -->
+                <div class="candlestick-bg">
+                    <div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div>
+                    <div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div>
+                    <div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div>
+                    <div class="candle"></div><div class="candle green"></div><div class="candle"></div>
+                </div>
                 <div class="bal-main-row">
                     <div class="bal-info">
                         <div class="bal-label">Total Balance (ETB)</div><div class="bal-amount" id="bal-total">300.00</div>
@@ -321,7 +347,8 @@
                         <div class="stat-mini"><div class="stat-mini-val">0</div><div class="stat-mini-lbl">Valid users</div></div>
                         <div class="stat-mini"><div class="stat-mini-val">0 ETB</div><div class="stat-mini-lbl">Invited income</div></div>
                     </div>
-                </div> </div>
+                </div> 
+            </div>
             <div class="menu-list">
                 <div class="menu-item" onclick="openInfoModal('account')"><span>Account details</span><span class="menu-arrow">›</span></div>
                 <div class="menu-item" onclick="openInfoModal('rules')"><span>Platform rules</span><span class="menu-arrow">›</span></div>
@@ -611,7 +638,7 @@ Note: Your investment earnings will be automatically deposited into your account
         function initApp() { 
             renderProducts(); renderLeaderboard(); 
             document.getElementById("user-invite-code").innerText = userState.invite_code; 
- document.getElementById("user-invite-link-display").innerText = `${APP_BASE_URL}/?start=${userState.invite_code}`;
+            document.getElementById("user-invite-link-display").innerText = `${APP_BASE_URL}/?start=${userState.invite_code}`;
             updateBalances(); 
         }
 
@@ -813,7 +840,7 @@ Note: Your investment earnings will be automatically deposited into your account
                     <div class="warning-notes" style="margin-bottom: 1.5rem; text-align: left;">⚠️ To change your payment method or account details, please contact customer service.</div>
                     <div class="form-group" style="text-align: left;"><label>Amount (ETB)</label><input type="number" id="withdraw-amount" class="input-field" placeholder="Minimum 300 ETB"></div>
                     <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
- <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border);" onclick="closeWithdrawModal()">Cancel</button>
+                        <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border);" onclick="closeWithdrawModal()">Cancel</button>
                         <button class="btn-primary" style="background: var(--danger);" onclick="handleWithdraw()">Withdraw</button>
                     </div>`;
             }

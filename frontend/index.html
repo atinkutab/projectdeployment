@@ -3,17 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
-    <!-- Cache Control to force Vercel and Telegram to load the latest version -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    
     <title>AssetCore</title>
-    
-    <!-- Favicon to prevent 404 -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>" />
-    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -65,21 +59,10 @@
         .stat-item { display: flex; flex-direction: column; }.stat-item .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 500; }
         .stat-item .stat-value { font-size: 1.15rem; font-weight: 700; color: var(--text); }
         .stat-item .stat-value.highlight { color: var(--success); }
-        
         .btn-buy { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; }
         .btn-buy:active { transform: scale(0.98); }
-        
-        .btn-coming-soon {
-            width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 1rem; font-family: 'Inter', sans-serif;
-            background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4);
-            animation: pulse-glow 2s infinite; cursor: not-allowed; box-sizing: border-box; text-align: center;
-        }
-        @keyframes pulse-glow {
-            0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
-        }
-        
+        .btn-coming-soon { width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 1rem; font-family: 'Inter', sans-serif; background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); animation: pulse-glow 2s infinite; cursor: not-allowed; box-sizing: border-box; text-align: center; }
+        @keyframes pulse-glow { 0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); } 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); } }
         .dep-step { padding: 1.5rem; }
         .section-title { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; color: var(--text); }
         .quick-amounts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
@@ -107,44 +90,12 @@
         .btn-copy-inline { background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; color: var(--text-muted); transition: transform 0.1s; }
         .btn-copy-inline:active { transform: scale(0.95); }
         .warning-notes { background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2); color: #fbbf24; padding: 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 1.5rem; }
-        
-        /* --- NEW ANIMATED BALANCE CONTAINER --- */
-        .balance-container { 
-            background: radial-gradient(circle at top right, #1e293b, #0f172a); /* Dark navy/black */
-            color: #fff; padding: 2.5rem 1.5rem 2rem; border-bottom-left-radius: 2.5rem; border-bottom-right-radius: 2.5rem; 
-            margin-bottom: 1.5rem; position: relative; overflow: hidden; box-shadow: inset 0 0 40px rgba(16, 185, 129, 0.05);
-        }
-        .candlestick-bg {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 70%; 
-            display: flex; align-items: flex-end; justify-content: space-around; padding: 0 10px; z-index: 0; pointer-events: none;
-        }
-        .candle {
-            width: 6px; background: linear-gradient(to top, rgba(59, 130, 246, 0.1), #3b82f6); border-radius: 4px 4px 0 0;
-            animation: pulse-candle 2.5s ease-in-out infinite; box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
-        }
+        .balance-container { background: radial-gradient(circle at top right, #1e293b, #0f172a); color: #fff; padding: 2.5rem 1.5rem 2rem; border-bottom-left-radius: 2.5rem; border-bottom-right-radius: 2.5rem; margin-bottom: 1.5rem; position: relative; overflow: hidden; box-shadow: inset 0 0 40px rgba(16, 185, 129, 0.05); }
+        .candlestick-bg { position: absolute; bottom: 0; left: 0; width: 100%; height: 70%; display: flex; align-items: flex-end; justify-content: space-around; padding: 0 10px; z-index: 0; pointer-events: none; }
+        .candle { width: 6px; background: linear-gradient(to top, rgba(59, 130, 246, 0.1), #3b82f6); border-radius: 4px 4px 0 0; animation: pulse-candle 2.5s ease-in-out infinite; box-shadow: 0 0 8px rgba(59, 130, 246, 0.4); }
         .candle.green { background: linear-gradient(to top, rgba(16, 185, 129, 0.1), #10b981); box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
-        @keyframes pulse-candle {
-            0%, 100% { height: 15%; opacity: 0.4; }
-            50% { height: 75%; opacity: 0.8; }
-        }
-        /* Staggered delays for a live trading wave effect */
-        .candle:nth-child(1) { animation-delay: 0s; height: 20%; }
-        .candle:nth-child(2) { animation-delay: 0.3s; height: 40%; }
-        .candle:nth-child(3) { animation-delay: 0.6s; height: 25%; }
-        .candle:nth-child(4) { animation-delay: 0.9s; height: 55%; }
-        .candle:nth-child(5) { animation-delay: 1.2s; height: 35%; }
-        .candle:nth-child(6) { animation-delay: 0.2s; height: 65%; }
-        .candle:nth-child(7) { animation-delay: 0.5s; height: 30%; }
-        .candle:nth-child(8) { animation-delay: 0.8s; height: 50%; }
-        .candle:nth-child(9) { animation-delay: 1.1s; height: 20%; }
-        .candle:nth-child(10) { animation-delay: 0.1s; height: 60%; }
-        .candle:nth-child(11) { animation-delay: 0.4s; height: 35%; }
-        .candle:nth-child(12) { animation-delay: 0.7s; height: 45%; }
-        .candle:nth-child(13) { animation-delay: 1.0s; height: 25%; }
-        .candle:nth-child(14) { animation-delay: 0.3s; height: 50%; }
-        .candle:nth-child(15) { animation-delay: 0.6s; height: 30%; }
-        /* ---------------------------------------- */
-
+        @keyframes pulse-candle { 0%, 100% { height: 15%; opacity: 0.4; } 50% { height: 75%; opacity: 0.8; } }
+        .candle:nth-child(1) { animation-delay: 0s; height: 20%; } .candle:nth-child(2) { animation-delay: 0.3s; height: 40%; } .candle:nth-child(3) { animation-delay: 0.6s; height: 25%; } .candle:nth-child(4) { animation-delay: 0.9s; height: 55%; } .candle:nth-child(5) { animation-delay: 1.2s; height: 35%; } .candle:nth-child(6) { animation-delay: 0.2s; height: 65%; } .candle:nth-child(7) { animation-delay: 0.5s; height: 30%; } .candle:nth-child(8) { animation-delay: 0.8s; height: 50%; } .candle:nth-child(9) { animation-delay: 1.1s; height: 20%; } .candle:nth-child(10) { animation-delay: 0.1s; height: 60%; } .candle:nth-child(11) { animation-delay: 0.4s; height: 35%; } .candle:nth-child(12) { animation-delay: 0.7s; height: 45%; } .candle:nth-child(13) { animation-delay: 1.0s; height: 25%; } .candle:nth-child(14) { animation-delay: 0.3s; height: 50%; } .candle:nth-child(15) { animation-delay: 0.6s; height: 30%; }
         .bal-main-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; position: relative; z-index: 1; }
         .bal-info { flex: 1; }
         .bal-label { opacity: 0.8; font-size: 0.9rem; font-weight: 500; color: #cbd5e1; }
@@ -198,18 +149,7 @@
         #loader-1 { background-color: var(--bg); }
         .clock-spinner { position: relative; width: 56px; height: 56px; }
         .clock-spinner .seg { position: absolute; top: 0; left: 50%; width: 5px; height: 14px; margin-left: -2.5px; background: var(--text-muted); border-radius: 3px; transform-origin: 2.5px 28px; opacity: 0.25; }
-        .clock-spinner .seg:nth-child(1)  { transform: rotate(0deg);   animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0s; }
-        .clock-spinner .seg:nth-child(2)  { transform: rotate(30deg);  animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.1s; }
-        .clock-spinner .seg:nth-child(3)  { transform: rotate(60deg);  animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.2s; }
-        .clock-spinner .seg:nth-child(4)  { transform: rotate(90deg);  animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.3s; }
-        .clock-spinner .seg:nth-child(5)  { transform: rotate(120deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.4s; }
-        .clock-spinner .seg:nth-child(6)  { transform: rotate(150deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.5s; }
-        .clock-spinner .seg:nth-child(7)  { transform: rotate(180deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.6s; }
-        .clock-spinner .seg:nth-child(8)  { transform: rotate(210deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.7s; }
-        .clock-spinner .seg:nth-child(9)  { transform: rotate(240deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.8s; }
-        .clock-spinner .seg:nth-child(10) { transform: rotate(270deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.9s; }
-        .clock-spinner .seg:nth-child(11) { transform: rotate(300deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 1.0s; }
-        .clock-spinner .seg:nth-child(12) { transform: rotate(330deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 1.1s; }
+        .clock-spinner .seg:nth-child(1)  { transform: rotate(0deg);   animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0s; } .clock-spinner .seg:nth-child(2)  { transform: rotate(30deg);  animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.1s; } .clock-spinner .seg:nth-child(3)  { transform: rotate(60deg);  animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.2s; } .clock-spinner .seg:nth-child(4)  { transform: rotate(90deg);  animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.3s; } .clock-spinner .seg:nth-child(5)  { transform: rotate(120deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.4s; } .clock-spinner .seg:nth-child(6)  { transform: rotate(150deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.5s; } .clock-spinner .seg:nth-child(7)  { transform: rotate(180deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.6s; } .clock-spinner .seg:nth-child(8)  { transform: rotate(210deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.7s; } .clock-spinner .seg:nth-child(9)  { transform: rotate(240deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.8s; } .clock-spinner .seg:nth-child(10) { transform: rotate(270deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.9s; } .clock-spinner .seg:nth-child(11) { transform: rotate(300deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 1.0s; } .clock-spinner .seg:nth-child(12) { transform: rotate(330deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 1.1s; }
         @keyframes tick-seg { 0%, 100% { opacity: 0.25; background: var(--text-muted); } 8% { opacity: 1; background: var(--primary); } }
         #loader-2 { background-color: #ffffff; }
         .paynow-logo { font-size: 2rem; font-weight: 800; color: #2563eb; margin-bottom: 1.75rem; letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px; }
@@ -231,12 +171,9 @@
         .info-content p { margin-bottom: 0.75rem; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-        .app-coming-soon-banner {
-            margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background: linear-gradient(270deg, #3b82f6, #8b5cf6, #3b82f6);
-            background-size: 200% 200%; color: #fff; font-weight: 700; text-align: center; animation: gradient-shift 3s ease infinite;
-        }
+        .app-coming-soon-banner { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background: linear-gradient(270deg, #3b82f6, #8b5cf6, #3b82f6); background-size: 200% 200%; color: #fff; font-weight: 700; text-align: center; animation: gradient-shift 3s ease infinite; }
         @keyframes gradient-shift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .fee-breakdown { margin-top: -10px; margin-bottom: 15px; padding: 12px; background: var(--bg); border-radius: 8px; font-size: 13px; color: var(--text-muted); text-align: left; }
     </style>
 </head>
 <body>
@@ -294,14 +231,10 @@
             <div id="dep-step-2" class="dep-step hidden">
                 <div class="invoice-header"><div style="color: var(--text-muted); font-size: 1rem; font-weight: 500;">Amount Due</div><div class="invoice-amt">Br <span id="inv-amount">0.00</span></div></div>
                 <div class="timer-box" id="deposit-timer">Account expires within 15:00</div>
-                <div class="payment-method-toggle">
-                    <button id="btn-cbe" class="method-btn active" onclick="selectPaymentMethod('CBE')">Bank Transfer (CBE)</button>
-                    <button id="btn-telebirr" class="method-btn" onclick="selectPaymentMethod('Telebirr')">Telebirr</button>
-                </div>
                 <table class="invoice-table">
-                    <tr><td class="inv-label">Account Name</td><td class="inv-val" id="inv-acc-name">Platform Admin</td></tr>
-                    <tr><td class="inv-label">Bank Name</td><td class="inv-val" id="inv-bank-name">Commercial Bank of Ethiopia</td></tr>
-                    <tr><td class="inv-label" id="acc-num-label">Account Number</td><td class="inv-val"><span id="inv-acc-num">1000123456789</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-acc-num').innerText)">Copy</button></td></tr>
+                    <tr><td class="inv-label">Account Name</td><td class="inv-val" id="inv-acc-name">Loading...</td></tr>
+                    <tr><td class="inv-label">Bank Name</td><td class="inv-val" id="inv-bank-name">Loading...</td></tr>
+                    <tr><td class="inv-label" id="acc-num-label">Account Number</td><td class="inv-val"><span id="inv-acc-num">Loading...</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-acc-num').innerText)">Copy</button></td></tr>
                     <tr><td class="inv-label">Amount</td><td class="inv-val"><span id="inv-amt-val">0 ETB</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-amt-val').innerText)">Copy</button></td></tr>
                     <tr><td class="inv-label">Order Code</td><td class="inv-val"><span id="inv-order-code">PNXXXXXX</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-order-code').innerText)">Copy</button></td></tr>
                 </table>
@@ -312,12 +245,8 @@
         <div id="view-mine" class="app-view hidden">
             <div class="view-header"><div class="view-title">My Profile</div></div>
             <div class="balance-container">
-                <!-- ANIMATED CANDLESTICK BACKGROUND -->
                 <div class="candlestick-bg">
-                    <div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div>
-                    <div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div>
-                    <div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div>
-                    <div class="candle"></div><div class="candle green"></div><div class="candle"></div>
+                    <div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div><div class="candle"></div>
                 </div>
                 <div class="bal-main-row">
                     <div class="bal-info">
@@ -425,7 +354,7 @@ Note: Your investment earnings will be automatically deposited into your account
     <div id="loader-2" class="loader-overlay hidden"><div class="paynow-logo"><span class="paynow-icon"></span>PayNow</div><div class="dots-container"><div class="dot dot-1"></div><div class="dot dot-2"></div><div class="dot dot-3"></div></div></div>
 
     <script>
- function extractErrorMessage(err, fallback = "An error occurred.") {
+        function extractErrorMessage(err, fallback = "An error occurred.") {
             if (!err) return fallback;
             if (typeof err === 'string') return err;
             if (typeof err.detail === 'string') return err.detail;
@@ -435,7 +364,8 @@ Note: Your investment earnings will be automatically deposited into your account
                 if (item && item.msg) return item.msg;
             }
             if (err.message) return err.message;
-            return fallback;}
+            return fallback;
+        }
 
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
@@ -456,6 +386,7 @@ Note: Your investment earnings will be automatically deposited into your account
 
         let currentProductAmount = 0; let countdownInterval = null; let socket = null; let reconnectTimer = null; let withdrawalAccount = null; let currentWdMethod = "CBE"; let currentPaymentMethod = "CBE"; 
         let currentCaptcha = "";
+        let currentAssignedAccount = ""; // Tracks the dynamically assigned account
         
         let userState = {
             telegram_id: "123456789", telegram_username: "@assetcore_user", phone_number: "+251900000000", invite_code: "DEMO01",
@@ -472,65 +403,40 @@ Note: Your investment earnings will be automatically deposited into your account
         }
 
         function initWebSocket(userId) {
-            if (socket) {
-                try { socket.close(); } catch(e) {}
-                socket = null;
-            }
-            if (reconnectTimer) {
-                clearTimeout(reconnectTimer);
-                reconnectTimer = null;
-            }
-
+            if (socket) { try { socket.close(); } catch(e) {} socket = null; }
+            if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
             const ws_url = `wss://projectdeployment-1-yuwq.onrender.com/ws/${userId}`;
-
-            console.log("Attempting WebSocket connection to:", ws_url);
             socket = new WebSocket(ws_url);
-
-            socket.onopen = function(e) { 
-                console.log("WebSocket connection established."); 
-            };
-
+            socket.onopen = function(e) { console.log("WebSocket connected."); };
             socket.onmessage = function(event) {
                 try {
                     const data = JSON.parse(event.data);
-                    if (data.type === "connected") {
-                        console.log("WebSocket handshake confirmed for user:", data.user_id);
-                        return;
-                    }
+                    if (data.type === "connected") return;
                     if (data.type === "deposit_approved") {
                         userState.total_balance = data.new_balance; updateBalances();
-                        showToast(`✅ Deposit Approved! ${data.amount} ETB added. New balance: ${data.new_balance.toFixed(2)} ETB.`, 'success');
+                        showToast(`✅ Deposit Approved! ${data.amount} ETB added.`, 'success');
                         const tx = userState.transactions.find(t => t.type === 'Purchase' && t.status === 'Pending' && t.amount === data.amount);
                         if (tx) tx.status = 'Approved';
                     } else if (data.type === "withdrawal_approved") {
-                        showToast(`✅ Withdrawal Approved! ${data.amount} ETB has been sent to your account.`, 'success');
+                        showToast(`✅ Withdrawal Approved! ${data.amount} ETB sent.`, 'success');
                         const tx = userState.transactions.find(t => t.type === 'Withdrawal' && t.status === 'Pending' && t.amount === data.amount);
                         if (tx) tx.status = 'Approved';
-                    } else if (data.type === "withdrawal_rejected") { userState.total_balance += data.amount; updateBalances();
-                        showToast(`❌ Withdrawal Rejected! ${data.amount} ETB has been refunded to your balance.`, 'error');
+                    } else if (data.type === "withdrawal_rejected") { 
+                        userState.total_balance += data.amount; updateBalances();
+                        showToast(`❌ Withdrawal Rejected! ${data.amount} ETB refunded.`, 'error');
                         const tx = userState.transactions.find(t => t.type === 'Withdrawal' && t.status === 'Pending' && t.amount === data.amount);
                         if (tx) tx.status = 'Rejected';
                     } else if (data.type === "product_purchased") {
                         userState.total_balance = data.new_balance; updateBalances();
-                        showToast(`✅ ${data.name} activated! Daily income will be credited automatically every 24h.`, 'success');
+                        showToast(`✅ ${data.name} activated!`, 'success');
                     } else if (data.type === "yield_credited") {
                         userState.total_balance = data.new_balance; userState.daily_income_balance += data.amount; updateBalances();
-                        showToast(`💰 Daily Income Credited! ${data.amount} ETB from ${data.product}.`, 'success');
+                        showToast(`💰 Daily Income: +${data.amount} ETB from ${data.product}.`, 'success');
                     }
-                } catch (err) { console.error("Error parsing WebSocket message:", err); }
+                } catch (err) { console.error(err); }
             };
-
-            socket.onclose = function(event) {
-                console.log(`WebSocket closed. Code: ${event.code}, Reason: ${event.reason}`);
-                if (event.code !== 1000) {
-                    console.log("Attempting to reconnect in 3 seconds...");
-                    reconnectTimer = setTimeout(() => initWebSocket(userId), 3000);
-                }
-            };
-
-            socket.onerror = function(e) {
-                console.warn("WebSocket error encountered.");
-            };
+            socket.onclose = function(event) { if (event.code !== 1000) { reconnectTimer = setTimeout(() => initWebSocket(userId), 3000); } };
+            socket.onerror = function(e) {};
         }
 
         function toggleAuth(view) {
@@ -547,10 +453,7 @@ Note: Your investment earnings will be automatically deposited into your account
             const invite = document.getElementById("su-invite").value;
 
             if (pass1 !== pass2) return showToast("Passwords do not match!", 'error');
-            if (captcha.toUpperCase() !== currentCaptcha) {
-                generateCaptcha();
-                return showToast("Invalid Captcha code!", 'error');
-            }
+            if (captcha.toUpperCase() !== currentCaptcha) { generateCaptcha(); return showToast("Invalid Captcha code!", 'error'); }
             if (!username || !phone || !pass1) return showToast("Please fill all required fields.", 'error');
 
             const randomTelegramId = Math.floor(Math.random() * 1000000000) + 100000000;
@@ -572,13 +475,13 @@ Note: Your investment earnings will be automatically deposited into your account
                     loginSuccess();
                 } else {
                     const err = await res.json().catch(() => ({}));
-                    const errorMsg = extractErrorMessage(err, "Registration failed. Please check your inputs.");
+                    const errorMsg = extractErrorMessage(err, "Registration failed.");
                     if (res.status === 400 || res.status === 409 || errorMsg.toLowerCase().includes("already") || errorMsg.toLowerCase().includes("exist")) {
                         showToast("You already have an account! Please sign in.", 'error');
                         toggleAuth('signin');
                     } else { showToast(errorMsg, 'error'); }
                 }
-            } catch (error) { console.error("API Error:", error); showToast("Network error. Please check your connection.", 'error'); }
+            } catch (error) { showToast("Network error.", 'error'); }
         }
 
         async function handleSignIn() {
@@ -608,7 +511,6 @@ Note: Your investment earnings will be automatically deposited into your account
                     showToast(extractErrorMessage(err, "Invalid phone number or password."), 'error');
                 }
             } catch (error) { 
-                console.error("API Error:", error); 
                 userState.phone_number = phone;
                 showToast("Signed in successfully!", 'success');
                 loginSuccess();
@@ -668,14 +570,9 @@ Note: Your investment earnings will be automatically deposited into your account
             container.innerHTML = "";
             products.forEach(p => {
                 const isComingSoon = p.price >= 20000 && p.price <= 100000;
-                
                 let buttonHtml;
-                if (isComingSoon) {
-                    buttonHtml = `<button class="btn-coming-soon" disabled>COMING SOON</button>`;
-                } else {
-                    buttonHtml = `<button class="btn-buy" onclick="buyProduct('${p.name}', ${p.price}, ${p.daily})">Buy Now</button>`;
-                }
-
+                if (isComingSoon) { buttonHtml = `<button class="btn-coming-soon" disabled>COMING SOON</button>`; } 
+                else { buttonHtml = `<button class="btn-buy" onclick="buyProduct('${p.name}', ${p.price}, ${p.daily})">Buy Now</button>`; }
                 container.innerHTML += `
                     <div class="product-card">
                         <img src="${p.img}" alt="${p.name}" class="product-img">
@@ -706,17 +603,16 @@ Note: Your investment earnings will be automatically deposited into your account
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ telegram_id: parseInt(userState.telegram_id), product_name: name, product_price: price, daily_income: daily })
                 });
-
                 if (res.ok) {
                     const data = await res.json();
                     userState.total_balance = data.new_balance; updateBalances();
-                    showToast(`${name} activated successfully! Income will be credited automatically every 24h.`, 'success');
+                    showToast(`${name} activated successfully!`, 'success');
                     switchTab('mine');
                 } else {
                     const err = await res.json().catch(() => ({}));
                     showToast(extractErrorMessage(err, "Purchase failed."), 'error');
                 }
-            } catch (error) { console.error("API Error:", error); showToast("Network error. Please check your connection.", 'error'); }
+            } catch (error) { showToast("Network error.", 'error'); }
         }
 
         function selectQuickAmount(amount, btnElement) {
@@ -729,18 +625,18 @@ Note: Your investment earnings will be automatically deposited into your account
 
         function proceedToPayment() {
             const amount = parseFloat(document.getElementById("dep-amount-input").value);
-            if (isNaN(amount) || amount < 650 || amount > 100000) { return showToast("Transaction failed: Amount must be strictly between 650 ETB and 100,000 ETB.", 'error'); }
+            if (isNaN(amount) || amount < 650 || amount > 100000) { return showToast("Amount must be strictly between 650 ETB and 100,000 ETB.", 'error'); }
             currentProductAmount = amount;
             const loader1 = document.getElementById("loader-1"); const loader2 = document.getElementById("loader-2");
             loader1.classList.remove("hidden");
-                loader1.classList.add("hidden"); loader2.classList.remove("hidden");
-                setTimeout(() => {
-                    loader2.classList.add("hidden");
-                    document.getElementById("bank-warning-modal").classList.remove("hidden");
-                }, 1800);
+            loader1.classList.add("hidden"); loader2.classList.remove("hidden");
+            setTimeout(() => {
+                loader2.classList.add("hidden");
+                document.getElementById("bank-warning-modal").classList.remove("hidden");
+            }, 1800);
         }
 
-        function acceptBankWarning() {
+        async function acceptBankWarning() {
             document.getElementById("bank-warning-modal").classList.add("hidden");
             const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
             let orderCode = "PN";
@@ -748,33 +644,35 @@ Note: Your investment earnings will be automatically deposited into your account
             document.getElementById("inv-amount").innerText = currentProductAmount.toFixed(2);
             document.getElementById("inv-amt-val").innerText = currentProductAmount + " ETB";
             document.getElementById("inv-order-code").innerText = orderCode;
-            selectPaymentMethod('CBE');
+            
+            // --- NEW: Fetch dynamic account ---
+            try {
+                const res = await apiFetch(`/api/get-deposit-account?telegram_id=${parseInt(userState.telegram_id)}`);
+                if (res.ok) {
+                    const accData = await res.json();
+                    currentAssignedAccount = accData.account_string; // Save to send with payment submission
+                    currentPaymentMethod = accData.method; // Update global method variable
+                    
+                    document.getElementById('inv-acc-name').innerText = accData.name;
+                    document.getElementById('inv-bank-name').innerText = accData.method === 'CBE' ? 'Commercial Bank of Ethiopia' : 'Telebirr';
+                    document.getElementById('acc-num-label').innerText = accData.method === 'CBE' ? 'Account Number' : 'Phone Number';
+                    document.getElementById('inv-acc-num').innerText = accData.number;
+                } else {
+                    showToast("Failed to fetch payment account. Please try again.", 'error');
+                    return;
+                }
+            } catch(e) { showToast("Network error fetching account.", 'error'); return; }
+
             document.getElementById("dep-step-1").classList.add("hidden");
             document.getElementById("dep-step-2").classList.remove("hidden");
             startTimer();
-        }
-
-        function selectPaymentMethod(method) {
-            currentPaymentMethod = method;
-            const btnCbe = document.getElementById('btn-cbe'); const btnTelebirr = document.getElementById('btn-telebirr');
-            const accNameEl = document.getElementById('inv-acc-name'); const bankNameEl = document.getElementById('inv-bank-name');
-            const accNumLabelEl = document.getElementById('acc-num-label'); const accNumEl = document.getElementById('inv-acc-num');
-            if (method === 'CBE') {
-                btnCbe.classList.add('active'); btnTelebirr.classList.remove('active');
-                accNameEl.innerText = 'Platform Admin'; bankNameEl.innerText = 'Commercial Bank of Ethiopia';
-                accNumLabelEl.innerText = 'Account Number'; accNumEl.innerText = '1000123456789';
-            } else {
-                btnCbe.classList.remove('active'); btnTelebirr.classList.add('active');
-                accNameEl.innerText = 'Platform Admin'; bankNameEl.innerText = 'Telebirr';
-                accNumLabelEl.innerText = 'Phone Number'; accNumEl.innerText = '0911223344';
-            }
         }
 
         function startTimer() {
             clearInterval(countdownInterval);
             let timeLeft = 15 * 60; const timerEl = document.getElementById("deposit-timer");
             countdownInterval = setInterval(() => {
-                if (timeLeft <= 0) { clearInterval(countdownInterval); showToast("Session expired. Please start a new checkout.", 'error'); switchTab('home'); return; }
+                if (timeLeft <= 0) { clearInterval(countdownInterval); showToast("Session expired.", 'error'); switchTab('home'); return; }
                 timeLeft--;
                 const m = Math.floor(timeLeft / 60).toString().padStart(2, '0'); const s = (timeLeft % 60).toString().padStart(2, '0');
                 timerEl.innerText = `Account expires within ${m}:${s}`;
@@ -786,11 +684,15 @@ Note: Your investment earnings will be automatically deposited into your account
 
         async function submitPayment() {
             const txId = document.getElementById("tx-id").value;
-            if (!txId.trim()) { return showToast("Please enter a Transaction ID or Receipt Number.", 'error'); }
+            if (!txId.trim()) { return showToast("Please enter a Transaction ID.", 'error'); }
             try {
                 const res = await apiFetch('/api/paynow-webhook', {
                     method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ reference: txId, status: "Paid", amount: currentProductAmount, telegram_id: parseInt(userState.telegram_id), payment_method: currentPaymentMethod })
+                    body: JSON.stringify({ 
+                        reference: txId, status: "Paid", amount: currentProductAmount, 
+                        telegram_id: parseInt(userState.telegram_id), payment_method: currentPaymentMethod,
+                        assigned_account: currentAssignedAccount // Pass the account string here
+                    })
                 });
                 if (res.ok) {
                     showToast("Submitted successfully! Waiting for admin approval.", 'success');
@@ -802,7 +704,7 @@ Note: Your investment earnings will be automatically deposited into your account
                     const err = await res.json().catch(() => ({}));
                     showToast(extractErrorMessage(err, "Submission failed."), 'error');
                 }
-            } catch (error) { console.error("API Error:", error); showToast("Network error. Please check your connection.", 'error'); }
+            } catch (error) { showToast("Network error.", 'error'); }
         }
 
         function selectWdMethod(method) {
@@ -811,6 +713,17 @@ Note: Your investment earnings will be automatically deposited into your account
             document.getElementById('wd-method-telebirr').classList.toggle('active', method === 'Telebirr');
             document.getElementById('wd-acc-name-label').innerText = method === 'CBE' ? 'CBE Account Name' : 'Telebirr Full Name';
             document.getElementById('wd-acc-num-label').innerText = method === 'CBE' ? 'Account Number' : 'Phone Number';
+        }
+
+        // --- NEW: Calculate 20% Withdrawal Fee Live ---
+        function calculateWdFee() {
+            const amount = parseFloat(document.getElementById("withdraw-amount").value) || 0;
+            const fee = amount * 0.20;
+            const payout = amount - fee;
+            document.getElementById("wd-fee-breakdown").innerHTML = `
+                Transaction Fee (20%): <strong style="color: var(--danger);">${fee.toFixed(2)} ETB</strong><br>
+                You will receive: <strong style="color: var(--success);">${payout.toFixed(2)} ETB</strong>
+            `;
         }
 
         function openWithdrawModal() {
@@ -837,8 +750,12 @@ Note: Your investment earnings will be automatically deposited into your account
                         <div class="saved-account-label">Saved Payment Method:</div><div class="saved-account-name">${withdrawalAccount.method}</div>
                         <div style="margin-top: 0.5rem; font-size: 0.9rem;"><strong>${withdrawalAccount.name}</strong><br><span style="color: var(--text-muted);">${withdrawalAccount.number}</span></div>
                     </div>
-                    <div class="warning-notes" style="margin-bottom: 1.5rem; text-align: left;">⚠️ To change your payment method or account details, please contact customer service.</div>
-                    <div class="form-group" style="text-align: left;"><label>Amount (ETB)</label><input type="number" id="withdraw-amount" class="input-field" placeholder="Minimum 300 ETB"></div>
+                    <div class="warning-notes" style="margin-bottom: 1.5rem; text-align: left;">⚠️ To change your payment method, please contact customer service.</div>
+                    <div class="form-group" style="text-align: left;">
+                        <label>Amount (ETB)</label>
+                        <input type="number" id="withdraw-amount" class="input-field" placeholder="Minimum 300 ETB" oninput="calculateWdFee()">
+                        <div class="fee-breakdown" id="wd-fee-breakdown">Transaction Fee (20%): <strong style="color: var(--danger);">0.00 ETB</strong><br>You will receive: <strong style="color: var(--success);">0.00 ETB</strong></div>
+                    </div>
                     <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
                         <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border);" onclick="closeWithdrawModal()">Cancel</button>
                         <button class="btn-primary" style="background: var(--danger);" onclick="handleWithdraw()">Withdraw</button>
@@ -855,7 +772,7 @@ Note: Your investment earnings will be automatically deposited into your account
             if (!name || !number) return showToast("Please fill in all fields.", 'error');
             withdrawalAccount = { method: currentWdMethod, name: name, number: number };
             showToast("Account saved successfully! You can now withdraw funds.", 'success');
-            openWithdrawModal();
+            openWithdrawModal(); // Re-render modal to show withdrawal view
         }
 
         async function handleWithdraw() {
@@ -868,14 +785,14 @@ Note: Your investment earnings will be automatically deposited into your account
                     body: JSON.stringify({ telegram_id: parseInt(userState.telegram_id), amount: amount, method: withdrawalAccount.method, account_details: `${withdrawalAccount.name} - ${withdrawalAccount.number}` })
                 });
                 if (res.ok) {
-                    showToast(`Withdrawal request of ${amount} ETB submitted! Waiting for admin approval.`, 'success');
+                    showToast(`Withdrawal request of ${amount} ETB submitted!`, 'success');
                     userState.transactions.push({ id: `WD_${Date.now()}`, type: 'Withdrawal', method: withdrawalAccount.method, amount: amount, status: 'Pending', timestamp: new Date().toLocaleString() });
                     userState.total_balance -= amount; updateBalances(); closeWithdrawModal();
                 } else {
                     const err = await res.json().catch(() => ({}));
                     showToast(extractErrorMessage(err, "Withdrawal failed."), 'error');
                 }
-            } catch (error) { console.error("API Error:", error); showToast("Network error. Please check your connection.", 'error'); }
+            } catch (error) { showToast("Network error.", 'error'); }
         }
 
         function openInfoModal(type) {
@@ -950,44 +867,32 @@ Note: Your investment earnings will be automatically deposited into your account
 
         function copyText(text) {
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => {
-                    showToast("Copied: " + text, 'success');
-                }).catch(() => fallbackCopy(text));
+                navigator.clipboard.writeText(text).then(() => { showToast("Copied: " + text, 'success'); }).catch(() => fallbackCopy(text));
             } else { fallbackCopy(text); }
         }
 
         function fallbackCopy(text) {
             const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.position = "fixed";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                showToast("Copied: " + text, 'success');
-            } catch (err) { showToast("Failed to copy text.", 'error'); }
+            textArea.value = text; textArea.style.position = "fixed";
+            document.body.appendChild(textArea); textArea.focus(); textArea.select();
+            try { document.execCommand('copy'); showToast("Copied: " + text, 'success'); } catch (err) { showToast("Failed to copy text.", 'error'); }
             document.body.removeChild(textArea);
         }
 
         const mockLeaderboard = [
-            { rank: 1, name: "@user1", amount: 150000 }, 
-            { rank: 2, name: "@user2", amount: 95000 }, 
-            { rank: 3, name: "@user3", amount: 45000 }, 
-            { rank: 4, name: "@user4", amount: 12000 }, 
+            { rank: 1, name: "@user1", amount: 150000 }, { rank: 2, name: "@user2", amount: 95000 }, 
+            { rank: 3, name: "@user3", amount: 45000 }, { rank: 4, name: "@user4", amount: 12000 }, 
             { rank: 5, name: "@user5", amount: 6000 }
         ];
 
         function renderLeaderboard() {
             const container = document.getElementById("lb-list");
-            if (!container) return;
-            container.innerHTML = "";
+            if (!container) return; container.innerHTML = "";
             mockLeaderboard.forEach(item => {
                 let rankClass = "";
                 if (item.rank === 1) rankClass = "gold";
                 else if (item.rank === 2) rankClass = "silver";
                 else if (item.rank === 3) rankClass = "bronze";
-
                 container.innerHTML += `
                     <div class="lb-item">
                         <div class="lb-rank ${rankClass}">${item.rank}</div>
@@ -1000,7 +905,6 @@ Note: Your investment earnings will be automatically deposited into your account
             });
         }
 
-        // Initialize captcha on load
         generateCaptcha();
     </script>
 </body>

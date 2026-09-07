@@ -80,9 +80,6 @@
         .invoice-header { text-align: center; margin: 1.5rem 0; }
         .invoice-amt { font-size: 3.5rem; font-weight: 900; color: var(--text); letter-spacing: -1px; }
         .timer-box { text-align: center; background: rgba(239, 68, 68, 0.1); color: var(--danger); padding: 0.85rem; margin: 0 0 1.5rem 0; border-radius: 8px; font-weight: 700; font-size: 1rem; border: 1px solid rgba(239, 68, 68, 0.2); }
-        .payment-method-toggle { display: flex; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 1.5rem; overflow: hidden; padding: 4px; gap: 4px; }
-        .method-btn { flex: 1; padding: 12px; background: transparent; border: none; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all 0.2s; border-radius: 6px; font-family: 'Inter', sans-serif; }
-        .method-btn.active { background: var(--primary); color: #fff; }
         .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; background: var(--card-bg); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
         .invoice-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
         .invoice-table tr:last-child td { border-bottom: none; } .inv-label { color: var(--text-muted); width: 40%; font-weight: 500; }
@@ -386,7 +383,7 @@ Note: Your investment earnings will be automatically deposited into your account
 
         let currentProductAmount = 0; let countdownInterval = null; let socket = null; let reconnectTimer = null; let withdrawalAccount = null; let currentWdMethod = "CBE"; let currentPaymentMethod = "CBE"; 
         let currentCaptcha = "";
-        let currentAssignedAccount = ""; // Tracks the dynamically assigned account
+        let currentAssignedAccount = ""; 
         
         let userState = {
             telegram_id: "123456789", telegram_username: "@assetcore_user", phone_number: "+251900000000", invite_code: "DEMO01",
@@ -645,23 +642,36 @@ Note: Your investment earnings will be automatically deposited into your account
             document.getElementById("inv-amt-val").innerText = currentProductAmount + " ETB";
             document.getElementById("inv-order-code").innerText = orderCode;
             
-            // --- NEW: Fetch dynamic account ---
+            // Fetch dynamic account, with FALLBACK to default if backend fails
             try {
                 const res = await apiFetch(`/api/get-deposit-account?telegram_id=${parseInt(userState.telegram_id)}`);
                 if (res.ok) {
                     const accData = await res.json();
-                    currentAssignedAccount = accData.account_string; // Save to send with payment submission
-                    currentPaymentMethod = accData.method; // Update global method variable
+                    currentAssignedAccount = accData.account_string; 
+                    currentPaymentMethod = accData.method; 
                     
                     document.getElementById('inv-acc-name').innerText = accData.name;
                     document.getElementById('inv-bank-name').innerText = accData.method === 'CBE' ? 'Commercial Bank of Ethiopia' : 'Telebirr';
                     document.getElementById('acc-num-label').innerText = accData.method === 'CBE' ? 'Account Number' : 'Phone Number';
                     document.getElementById('inv-acc-num').innerText = accData.number;
                 } else {
-                    showToast("Failed to fetch payment account. Please try again.", 'error');
-                    return;
+                    // Fallback if 404 or other error
+                    currentAssignedAccount = "CBE, Platform Admin, 1000123456789";
+                    currentPaymentMethod = "CBE";
+                    document.getElementById('inv-acc-name').innerText = 'Platform Admin';
+                    document.getElementById('inv-bank-name').innerText = 'Commercial Bank of Ethiopia';
+                    document.getElementById('acc-num-label').innerText = 'Account Number';
+                    document.getElementById('inv-acc-num').innerText = '1000123456789';
                 }
-            } catch(e) { showToast("Network error fetching account.", 'error'); return; }
+            } catch(e) { 
+                // Fallback on network error
+                currentAssignedAccount = "CBE, Platform Admin, 1000123456789";
+                currentPaymentMethod = "CBE";
+                document.getElementById('inv-acc-name').innerText = 'Platform Admin';
+                document.getElementById('inv-bank-name').innerText = 'Commercial Bank of Ethiopia';
+                document.getElementById('acc-num-label').innerText = 'Account Number';
+                document.getElementById('inv-acc-num').innerText = '1000123456789';
+            }
 
             document.getElementById("dep-step-1").classList.add("hidden");
             document.getElementById("dep-step-2").classList.remove("hidden");
@@ -691,7 +701,7 @@ Note: Your investment earnings will be automatically deposited into your account
                     body: JSON.stringify({ 
                         reference: txId, status: "Paid", amount: currentProductAmount, 
                         telegram_id: parseInt(userState.telegram_id), payment_method: currentPaymentMethod,
-                        assigned_account: currentAssignedAccount // Pass the account string here
+                        assigned_account: currentAssignedAccount 
                     })
                 });
                 if (res.ok) {
@@ -715,7 +725,6 @@ Note: Your investment earnings will be automatically deposited into your account
             document.getElementById('wd-acc-num-label').innerText = method === 'CBE' ? 'Account Number' : 'Phone Number';
         }
 
-        // --- NEW: Calculate 20% Withdrawal Fee Live ---
         function calculateWdFee() {
             const amount = parseFloat(document.getElementById("withdraw-amount").value) || 0;
             const fee = amount * 0.20;
@@ -772,7 +781,7 @@ Note: Your investment earnings will be automatically deposited into your account
             if (!name || !number) return showToast("Please fill in all fields.", 'error');
             withdrawalAccount = { method: currentWdMethod, name: name, number: number };
             showToast("Account saved successfully! You can now withdraw funds.", 'success');
-            openWithdrawModal(); // Re-render modal to show withdrawal view
+            openWithdrawModal(); 
         }
 
         async function handleWithdraw() {

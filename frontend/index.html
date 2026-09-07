@@ -420,7 +420,7 @@ Note: Your investment earnings will be automatically deposited into your account
             if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
             const ws_url = `wss://projectdeployment-1-yuwq.onrender.com/ws/${userId}`;
             socket = new WebSocket(ws_url);
-            socket.onopen = function(e) { console.log("WebSocket connected."); };
+            socket.onopen = function(e) {};
             socket.onmessage = function(event) {
                 try {
                     const data = JSON.parse(event.data);
@@ -446,7 +446,7 @@ Note: Your investment earnings will be automatically deposited into your account
                         userState.total_balance = data.new_balance; userState.daily_income_balance += data.amount; updateBalances();
                         showToast(`💰 Daily Income: +${data.amount} ETB from ${data.product}.`, 'success');
                     }
-                } catch (err) { console.error(err); }
+                } catch (err) {}
             };
             socket.onclose = function(event) { if (event.code !== 1000) { reconnectTimer = setTimeout(() => initWebSocket(userId), 3000); } };
             socket.onerror = function(e) {};
@@ -558,7 +558,6 @@ Note: Your investment earnings will be automatically deposited into your account
             updateMineStats(); 
         }
 
-        // NEW: Update "My Devices" count and total daily income
         function updateMineStats() {
             const products = userState.products || [];
             const deviceCount = products.length;
@@ -568,7 +567,6 @@ Note: Your investment earnings will be automatically deposited into your account
             document.getElementById("mine-income-sum").innerText = `ETB ${dailyIncomeSum.toLocaleString()}`;
         }
 
-        // NEW: Open modal showing all purchased devices
         function openMyDevicesModal() {
             const body = document.getElementById('my-devices-modal-body');
             const products = userState.products || [];
@@ -668,7 +666,6 @@ Note: Your investment earnings will be automatically deposited into your account
                     const data = await res.json();
                     userState.total_balance = data.new_balance; updateBalances();
                     
-                    // Save purchased product locally
                     if (!userState.products) userState.products = [];
                     userState.products.push({
                         name: name,
@@ -678,7 +675,7 @@ Note: Your investment earnings will be automatically deposited into your account
                         validity_days: days,
                         total_earning: total
                     });
-                    updateMineStats(); // Update UI immediately
+                    updateMineStats(); 
 
                     showToast(`${name} activated successfully! Income will be credited automatically every 24h.`, 'success');
                     switchTab('mine');
@@ -797,14 +794,6 @@ Note: Your investment earnings will be automatically deposited into your account
             } catch (error) { showToast("Network error.", 'error'); }
         }
 
-        function selectWdMethod(method) {
-            currentWdMethod = method;
-            document.getElementById('wd-method-cbe').classList.toggle('active', method === 'CBE');
-            document.getElementById('wd-method-telebirr').classList.toggle('active', method === 'Telebirr');
-            document.getElementById('wd-acc-name-label').innerText = method === 'CBE' ? 'CBE Account Name' : 'Telebirr Full Name';
-            document.getElementById('wd-acc-num-label').innerText = method === 'CBE' ? 'Account Number' : 'Phone Number';
-        }
-
         function calculateWdFee() {
             const amount = parseFloat(document.getElementById("withdraw-amount").value) || 0;
             const fee = amount * 0.20;
@@ -818,16 +807,12 @@ Note: Your investment earnings will be automatically deposited into your account
         function openWithdrawModal() {
             const body = document.getElementById("withdraw-modal-body");
             if (!withdrawalAccount) {
-                currentWdMethod = "CBE";
+                currentWdMethod = "CBE"; // Hardcoded to CBE only
                 body.innerHTML = `
                     <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Add Withdrawal Account</h2>
-                    <p style="margin-bottom: 1rem; color: var(--danger); font-size: 0.85rem; font-weight: 600; text-align: left;">⚠️ Please select carefully. Your payment method cannot be changed later without contacting customer service.</p>
-                    <div class="payment-method-toggle" style="margin-bottom: 1.5rem;">
-                        <button id="wd-method-cbe" class="method-btn active" onclick="selectWdMethod('CBE')">CBE</button>
-                        <button id="wd-method-telebirr" class="method-btn" onclick="selectWdMethod('Telebirr')">Telebirr</button>
-                    </div>
-                    <div class="form-group" style="text-align: left;"><label id="wd-acc-name-label">CBE Account Name</label><input type="text" id="wd-name" class="input-field" placeholder="Enter account name"></div>
-                    <div class="form-group" style="text-align: left;"><label id="wd-acc-num-label">Account Number</label><input type="text" id="wd-number" class="input-field" placeholder="Enter account number"></div>
+                    <p style="margin-bottom: 1rem; color: var(--danger); font-size: 0.85rem; font-weight: 600; text-align: left;">⚠️ Please enter your CBE bank details carefully. Your payment method cannot be changed later without contacting customer service.</p>
+                    <div class="form-group" style="text-align: left;"><label>CBE Account Name</label><input type="text" id="wd-name" class="input-field" placeholder="Enter account name"></div>
+                    <div class="form-group" style="text-align: left;"><label>Account Number</label><input type="text" id="wd-number" class="input-field" placeholder="Enter account number"></div>
                     <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
                         <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border);" onclick="closeWithdrawModal()">Cancel</button>
                         <button class="btn-primary" onclick="saveWithdrawalAccount()">Save & Lock Account</button>
@@ -859,7 +844,7 @@ Note: Your investment earnings will be automatically deposited into your account
             const name = document.getElementById("wd-name").value.trim();
             const number = document.getElementById("wd-number").value.trim();
             if (!name || !number) return showToast("Please fill in all fields.", 'error');
-            withdrawalAccount = { method: currentWdMethod, name: name, number: number };
+            withdrawalAccount = { method: "CBE", name: name, number: number }; // Hardcoded CBE
             showToast("Account saved successfully! You can now withdraw funds.", 'success');
             openWithdrawModal(); 
         }
@@ -871,11 +856,11 @@ Note: Your investment earnings will be automatically deposited into your account
             try {
                 const res = await apiFetch('/api/request-withdrawal', {
                     method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ telegram_id: parseInt(userState.telegram_id), amount: amount, method: withdrawalAccount.method, account_details: `${withdrawalAccount.name} - ${withdrawalAccount.number}` })
+                    body: JSON.stringify({ telegram_id: parseInt(userState.telegram_id), amount: amount, method: "CBE", account_details: `${withdrawalAccount.name} - ${withdrawalAccount.number}` })
                 });
                 if (res.ok) {
                     showToast(`Withdrawal request of ${amount} ETB submitted!`, 'success');
-                    userState.transactions.push({ id: `WD_${Date.now()}`, type: 'Withdrawal', method: withdrawalAccount.method, amount: amount, status: 'Pending', timestamp: new Date().toLocaleString() });
+                    userState.transactions.push({ id: `WD_${Date.now()}`, type: 'Withdrawal', method: "CBE", amount: amount, status: 'Pending', timestamp: new Date().toLocaleString() });
                     userState.total_balance -= amount; updateBalances(); closeWithdrawModal();
                 } else {
                     const err = await res.json().catch(() => ({}));

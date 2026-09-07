@@ -210,10 +210,29 @@
             } catch (e) { console.error(e); }
         }
 
-        async function approveDeposit(id) { await fetch(`${API_URL}/api/admin/approve-deposit/${id}`, { method: "POST", headers: authHeaders() }); alert("Deposit Approved"); fetchDeposits(); }
-        async function rejectDeposit(id) { await fetch(`${API_URL}/api/admin/reject-deposit/${id}`, { method: "POST", headers: authHeaders() }); alert("Deposit Rejected"); fetchDeposits(); }
-        async function approveWithdrawal(id) { await fetch(`${API_URL}/api/admin/approve-withdrawal/${id}`, { method: "POST", headers: authHeaders() }); alert("Withdrawal Approved"); fetchWithdrawals(); }
-        async function rejectWithdrawal(id) { await fetch(`${API_URL}/api/admin/reject-withdrawal/${id}`, { method: "POST", headers: authHeaders() }); alert("Withdrawal Rejected"); fetchWithdrawals(); }
+        async function approveDeposit(id) {
+            const res = await fetch(`${API_URL}/api/admin/approve-deposit/${id}`, { method: "POST", headers: authHeaders() });
+            if (res.ok) { alert("Deposit Approved"); } else { alert("Failed to approve deposit."); }
+            fetchDeposits();
+        }
+
+        async function rejectDeposit(id) {
+            const res = await fetch(`${API_URL}/api/admin/reject-deposit/${id}`, { method: "POST", headers: authHeaders() });
+            if (res.ok) { alert("Deposit Rejected"); } else { alert("Failed to reject deposit."); }
+            fetchDeposits();
+        }
+
+        async function approveWithdrawal(id) {
+            const res = await fetch(`${API_URL}/api/admin/approve-withdrawal/${id}`, { method: "POST", headers: authHeaders() });
+            if (res.ok) { alert("Withdrawal Approved"); } else { alert("Failed to approve withdrawal."); }
+            fetchWithdrawals();
+        }
+
+        async function rejectWithdrawal(id) {
+            const res = await fetch(`${API_URL}/api/admin/reject-withdrawal/${id}`, { method: "POST", headers: authHeaders() });
+            if (res.ok) { alert("Withdrawal Rejected"); } else { alert("Failed to reject withdrawal."); }
+            fetchWithdrawals();
+        }
 
         async function saveSettings() {
             const payload = {

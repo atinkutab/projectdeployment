@@ -591,10 +591,6 @@ Note: Your investment earnings will be automatically deposited into your account
         }
 
         async function buyProduct(name, price, daily) {
-            if (userState.total_balance < price) {
-                showToast("Please deposit first to activate this product!", 'error');
-                selectQuickAmount(price); switchTab('deposit'); return;
-            }
             try {
                 const res = await apiFetch('/api/buy-product', {
                     method: "POST", headers: { "Content-Type": "application/json" },
@@ -603,13 +599,19 @@ Note: Your investment earnings will be automatically deposited into your account
                 if (res.ok) {
                     const data = await res.json();
                     userState.total_balance = data.new_balance; updateBalances();
-                    showToast(`${name} activated successfully!`, 'success');
+                    showToast(`${name} activated successfully! Income will be credited automatically every 24h.`, 'success');
                     switchTab('mine');
                 } else {
                     const err = await res.json().catch(() => ({}));
-                    showToast(extractErrorMessage(err, "Purchase failed."), 'error');
+                    const errorMsg = extractErrorMessage(err, "Purchase failed.");
+                    if (errorMsg.toLowerCase().includes("insufficient")) {
+                        showToast("Please deposit first to activate this product!", 'error');
+                        selectQuickAmount(price); switchTab('deposit'); 
+                    } else {
+                        showToast(errorMsg, 'error');
+                    }
                 }
-            } catch (error) { showToast("Network error.", 'error'); }
+            } catch (error) { showToast("Network error. Please check your connection.", 'error'); }
         }
 
         function selectQuickAmount(amount, btnElement) {
@@ -642,7 +644,6 @@ Note: Your investment earnings will be automatically deposited into your account
             document.getElementById("inv-amt-val").innerText = currentProductAmount + " ETB";
             document.getElementById("inv-order-code").innerText = orderCode;
             
-            // Fetch dynamic account, with FALLBACK to default if backend fails
             try {
                 const res = await apiFetch(`/api/get-deposit-account?telegram_id=${parseInt(userState.telegram_id)}`);
                 if (res.ok) {
@@ -655,7 +656,6 @@ Note: Your investment earnings will be automatically deposited into your account
                     document.getElementById('acc-num-label').innerText = accData.method === 'CBE' ? 'Account Number' : 'Phone Number';
                     document.getElementById('inv-acc-num').innerText = accData.number;
                 } else {
-                    // Fallback if 404 or other error
                     currentAssignedAccount = "CBE, Platform Admin, 1000123456789";
                     currentPaymentMethod = "CBE";
                     document.getElementById('inv-acc-name').innerText = 'Platform Admin';
@@ -664,7 +664,6 @@ Note: Your investment earnings will be automatically deposited into your account
                     document.getElementById('inv-acc-num').innerText = '1000123456789';
                 }
             } catch(e) { 
-                // Fallback on network error
                 currentAssignedAccount = "CBE, Platform Admin, 1000123456789";
                 currentPaymentMethod = "CBE";
                 document.getElementById('inv-acc-name').innerText = 'Platform Admin';

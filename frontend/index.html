@@ -104,7 +104,9 @@
         .sub-bal-item { text-align: left; }
         .sub-bal-item:last-child { text-align: right; }
         .mine-assets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem; }
-        .mine-asset-card { background: var(--card-bg); padding: 1.5rem 1rem; border-radius: 12px; border: 1px solid var(--border); text-align: center; }
+        .mine-asset-card { background: var(--card-bg); padding: 1.5rem 1rem; border-radius: 12px; border: 1px solid var(--border); text-align: center; transition: transform 0.2s; }
+        .mine-asset-card:active { transform: scale(0.98); }
+        .mine-asset-card.clickable { cursor: pointer; border-color: var(--primary); }
         .mine-asset-label { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 500; }
         .mine-asset-value { font-size: 1.5rem; font-weight: 800; color: var(--text); }
         .no-shop-text { text-align: center; color: var(--text-muted); margin: 0 1.5rem 1.5rem; font-weight: 600; font-size: 0.9rem; }
@@ -171,6 +173,13 @@
         .app-coming-soon-banner { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background: linear-gradient(270deg, #3b82f6, #8b5cf6, #3b82f6); background-size: 200% 200%; color: #fff; font-weight: 700; text-align: center; animation: gradient-shift 3s ease infinite; }
         @keyframes gradient-shift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
         .fee-breakdown { margin-top: -10px; margin-bottom: 15px; padding: 12px; background: var(--bg); border-radius: 8px; font-size: 13px; color: var(--text-muted); text-align: left; }
+        .my-device-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 15px; margin-bottom: 15px; text-align: left; }
+        .my-device-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+        .my-device-name { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+        .my-device-validity { font-size: 0.8rem; color: var(--success); font-weight: 600; background: rgba(16, 185, 129, 0.1); padding: 4px 8px; border-radius: 12px; }
+        .my-device-stat { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 6px; }
+        .my-device-stat-label { color: var(--text-muted); }
+        .my-device-stat-value { color: var(--text); font-weight: 600; }
     </style>
 </head>
 <body>
@@ -258,10 +267,16 @@
                 </div>
             </div>
             <div class="mine-assets-grid">
-                <div class="mine-asset-card"><div class="mine-asset-label">My device</div><div class="mine-asset-value">0</div></div>
-                <div class="mine-asset-card"><div class="mine-asset-label">My income</div><div class="mine-asset-value">ETB 0</div></div>
+                <div class="mine-asset-card clickable" onclick="openMyDevicesModal()">
+                    <div class="mine-asset-label">My Devices</div>
+                    <div class="mine-asset-value" id="mine-device-count">0</div>
+                </div>
+                <div class="mine-asset-card">
+                    <div class="mine-asset-label">Daily Income</div>
+                    <div class="mine-asset-value" id="mine-income-sum">ETB 0</div>
+                </div>
             </div>
-            <div class="no-shop-text">You don't have a shop yet</div>
+            <div class="no-shop-text">Click "My Devices" to view your active investments</div>
             <div class="action-card">
                 <h3 style="margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 700;">Referral Program</h3>
                 <p style="font-size: 0.9rem; color: var(--text-muted);">Earn 30% of your friend's entry price instantly! A flat single-level reward system.</p>
@@ -347,6 +362,7 @@ Note: Your investment earnings will be automatically deposited into your account
     <div id="withdraw-modal" class="modal-overlay hidden"><div class="modal-content"><div id="withdraw-modal-body"></div></div></div>
     <div id="info-modal" class="modal-overlay hidden"><div class="modal-content"><div id="info-modal-body"></div></div></div>
     <div id="history-modal" class="modal-overlay hidden"><div class="modal-content" style="max-width: 450px;"><div id="history-modal-body"></div></div></div>
+    <div id="my-devices-modal" class="modal-overlay hidden"><div class="modal-content"><div id="my-devices-modal-body"></div></div></div>
     <div id="loader-1" class="loader-overlay hidden"><div class="clock-spinner"><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div></div></div>
     <div id="loader-2" class="loader-overlay hidden"><div class="paynow-logo"><span class="paynow-icon"></span>PayNow</div><div class="dots-container"><div class="dot dot-1"></div><div class="dot dot-2"></div><div class="dot dot-3"></div></div></div>
 
@@ -387,7 +403,7 @@ Note: Your investment earnings will be automatically deposited into your account
         
         let userState = {
             telegram_id: "123456789", telegram_username: "@assetcore_user", phone_number: "+251900000000", invite_code: "DEMO01",
-            total_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, has_checked_in: false, transactions: []
+            total_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, has_checked_in: false, transactions: [], products: []
         };
 
         function generateCaptcha() {
@@ -538,8 +554,60 @@ Note: Your investment earnings will be automatically deposited into your account
             renderProducts(); renderLeaderboard(); 
             document.getElementById("user-invite-code").innerText = userState.invite_code; 
             document.getElementById("user-invite-link-display").innerText = `${APP_BASE_URL}/?start=${userState.invite_code}`;
-            updateBalances(); 
+            updateBalances();
+            updateMineStats(); 
         }
+
+        // NEW: Update "My Devices" count and total daily income
+        function updateMineStats() {
+            const products = userState.products || [];
+            const deviceCount = products.length;
+            const dailyIncomeSum = products.reduce((sum, p) => sum + p.daily_income, 0);
+
+            document.getElementById("mine-device-count").innerText = deviceCount;
+            document.getElementById("mine-income-sum").innerText = `ETB ${dailyIncomeSum.toLocaleString()}`;
+        }
+
+        // NEW: Open modal showing all purchased devices
+        function openMyDevicesModal() {
+            const body = document.getElementById('my-devices-modal-body');
+            const products = userState.products || [];
+
+            if (products.length === 0) {
+                body.innerHTML = `
+                    <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">My Investment Devices</h2>
+                    <p style="text-align: center; color: var(--text-muted); margin-bottom: 2rem;">You have no active devices.<br>Go to the Home tab to invest and start earning!</p>
+                    <button class="btn-primary" onclick="closeMyDevicesModal()">Close</button>`;
+            } else {
+                let html = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">My Investment Devices (${products.length})</h2>`;
+                products.forEach(p => {
+                    html += `
+                        <div class="my-device-item">
+                            <div class="my-device-header">
+                                <span class="my-device-name">${p.name}</span>
+                                <span class="my-device-validity">${p.validity_days} Days Validity</span>
+                            </div>
+                            <div class="my-device-stat">
+                                <span class="my-device-stat-label">💰 Daily Income:</span>
+                                <span class="my-device-stat-value" style="color: var(--success)">${p.daily_income} ETB</span>
+                            </div>
+                            <div class="my-device-stat">
+                                <span class="my-device-stat-label">📅 Time of Purchase:</span>
+                                <span class="my-device-stat-value">${p.purchase_time}</span>
+                            </div>
+                            <div class="my-device-stat">
+                                <span class="my-device-stat-label">🚀 Total Expected Earning:</span>
+                                <span class="my-device-stat-value">${p.total_earning} ETB</span>
+                            </div>
+                        </div>`;
+                });
+                html += `<button class="btn-primary" style="margin-top: 1rem;" onclick="closeMyDevicesModal()">Close</button>`;
+                body.innerHTML = html;
+            }
+            document.getElementById('my-devices-modal').classList.remove("hidden");
+        }
+
+        function closeMyDevicesModal() { document.getElementById('my-devices-modal').classList.add("hidden"); }
 
         function copyReferralLink() { copyText(`${APP_BASE_URL}/?start=${userState.invite_code}`); }
 
@@ -569,7 +637,7 @@ Note: Your investment earnings will be automatically deposited into your account
                 const isComingSoon = p.price >= 20000 && p.price <= 100000;
                 let buttonHtml;
                 if (isComingSoon) { buttonHtml = `<button class="btn-coming-soon" disabled>COMING SOON</button>`; } 
-                else { buttonHtml = `<button class="btn-buy" onclick="buyProduct('${p.name}', ${p.price}, ${p.daily})">Buy Now</button>`; }
+                else { buttonHtml = `<button class="btn-buy" onclick="buyProduct('${p.name}', ${p.price}, ${p.daily}, ${p.days}, ${p.total})">Buy Now</button>`; }
                 container.innerHTML += `
                     <div class="product-card">
                         <img src="${p.img}" alt="${p.name}" class="product-img">
@@ -590,7 +658,7 @@ Note: Your investment earnings will be automatically deposited into your account
             });
         }
 
-        async function buyProduct(name, price, daily) {
+        async function buyProduct(name, price, daily, days, total) {
             try {
                 const res = await apiFetch('/api/buy-product', {
                     method: "POST", headers: { "Content-Type": "application/json" },
@@ -599,6 +667,19 @@ Note: Your investment earnings will be automatically deposited into your account
                 if (res.ok) {
                     const data = await res.json();
                     userState.total_balance = data.new_balance; updateBalances();
+                    
+                    // Save purchased product locally
+                    if (!userState.products) userState.products = [];
+                    userState.products.push({
+                        name: name,
+                        price: price,
+                        daily_income: daily,
+                        purchase_time: new Date().toLocaleString(),
+                        validity_days: days,
+                        total_earning: total
+                    });
+                    updateMineStats(); // Update UI immediately
+
                     showToast(`${name} activated successfully! Income will be credited automatically every 24h.`, 'success');
                     switchTab('mine');
                 } else {

@@ -157,7 +157,7 @@ class Deposit(Base):
     status = Column(String, default="Pending")
     payment_method = Column(String, default="CBE")
     created_at = Column(DateTime, default=datetime.utcnow)
-    assigned_account = Column(String, nullable=True)  # NEW: Tracks which account they were told to use
+    assigned_account = Column(String, nullable=True)
     user = relationship("User", back_populates="deposits")
 
 class Withdrawal(Base):
@@ -165,8 +165,8 @@ class Withdrawal(Base):
     id = Column(Integer, primary_key=True, index=True)
     telegram_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False)
     amount = Column(Float, nullable=False)
-    fee = Column(Float, default=0.0)                # NEW: 20% fee
-    payout_amount = Column(Float, default=0.0)      # NEW: Amount user receives
+    fee = Column(Float, default=0.0)
+    payout_amount = Column(Float, default=0.0)
     method = Column(String, nullable=False)
     account_details = Column(String, nullable=False)
     status = Column(String, default="Pending")
@@ -183,7 +183,6 @@ Base.metadata.create_all(bind=engine)
 def init_db():
     db = SessionLocal()
     try:
-        # Safe migration to add new columns to existing tables
         try: db.execute(text("ALTER TABLE deposits ADD COLUMN IF NOT EXISTS assigned_account VARCHAR;"))
         except: pass
         try: db.execute(text("ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS fee FLOAT DEFAULT 0;"))
@@ -195,7 +194,7 @@ def init_db():
         if not db.query(Setting).filter(Setting.key == "registration_bonus").first():
             db.add(Setting(key="registration_bonus", value="300.0"))
             db.add(Setting(key="commission_rate", value="0.30"))
-            db.add(Setting(key="deposit_account_pool", value="CBE, Platform Admin, 1000123456789\nTelebirr, John Doe, 0911223344"))
+            db.add(Setting(key="deposit_account_pool", value="CBE, Platform Admin, 1000123456789\nTelebirr, John Doe, 0911223344\nAbyssinia, Jane Doe, 1000987654321"))
             db.commit()
     except Exception as e:
         print(f"DB Init Error: {e}")
@@ -235,7 +234,7 @@ class PaynowWebhookRequest(BaseModel):
     amount: float
     telegram_id: int
     payment_method: str = "CBE"
-    assigned_account: Optional[str] = None  # NEW
+    assigned_account: Optional[str] = None
 
 class BuyProductRequest(BaseModel):
     telegram_id: int
@@ -252,7 +251,7 @@ class WithdrawalRequest(BaseModel):
 class SystemSettingsUpdate(BaseModel):
     registration_bonus: Optional[float] = None
     commission_rate: Optional[float] = None
-    deposit_account_pool: Optional[str] = None  # NEW
+    deposit_account_pool: Optional[str] = None
 
 class Token(BaseModel):
     access_token: str
@@ -283,11 +282,6 @@ init_admin_hash()
 def generate_invitation_code() -> str:
     chars = string.ascii_uppercase + string.digits
     return "".join(random.choices(chars, k=6))
-
-def validate_math_trap(amount: float):
-    if amount < 650 or amount > 100000:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Transaction failed: Amount must be strictly between 650 ETB and 100,000 ETB.")
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -543,9 +537,15 @@ async def buy_product(payload: BuyProductRequest, db: Session = Depends(get_db))
     return {"message": f"{payload.product_name} activated successfully!",
             "new_balance": balance.total_balance, "daily_income": payload.daily_income}
 
-# --- NEW: GET DEPOSIT ACCOUNT (Rotation Logic) ---
+# --- NEW: GET DEPOSIT ACCOUNT (Smart Rotation Logic with Amount Rules) ---
 @app.get("/api/get-deposit-account")
-def get_deposit_account(telegram_id: int, db: Session = Depends(get_db)):
+def get_deposit_account(telegram_id: int, amount: float, db: Session = Depends(get_db)):
+    # Validate amount ranges based on bank limits
+    if amount < 650 or amount > 100000:
+        raise HTTPException(status_code=400, detail="Amount must be between 650 and 100,000 ETB.")
+    if 1000 < amount < 1600:
+        raise HTTPException(status_code=400, detail="Invalid amount. Telebirr max is 1000, CBE/Abyssinia min is 1600.")
+
     setting = db.query(Setting).filter(Setting.key == "deposit_account_pool").first()
     if not setting or not setting.value:
         raise HTTPException(status_code=404, detail="No accounts configured")
@@ -554,10 +554,19 @@ def get_deposit_account(telegram_id: int, db: Session = Depends(get_db)):
     for line in setting.value.strip().split('\n'):
         parts = [p.strip() for p in line.split(',')]
         if len(parts) == 3:
-            accounts.append({"method": parts[0], "name": parts[1], "number": parts[2]})
+            method = parts[0]
+            # Check if method is allowed for this amount
+            is_allowed = False
+            if method.lower() == "telebirr" and 650 <= amount <= 1000:
+                is_allowed = True
+            elif method.lower() in ["cbe", "abyssinia", "bank of abysinia"] and amount >= 1600:
+                is_allowed = True
+            
+            if is_allowed:
+                accounts.append({"method": method, "name": parts[1], "number": parts[2]})
     
     if not accounts:
-        raise HTTPException(status_code=404, detail="No valid accounts configured")
+        raise HTTPException(status_code=404, detail="No valid accounts configured for this amount")
     
     # Check transactions in the last 3 hours
     three_hours_ago = datetime.utcnow() - timedelta(hours=3)
@@ -570,10 +579,16 @@ def get_deposit_account(telegram_id: int, db: Session = Depends(get_db)):
     for d in recent_deposits:
         usage_counts[d.assigned_account] = usage_counts.get(d.assigned_account, 0) + 1
 
-    # Find a fresh account (less than 2 uses in 3 hrs)
+    # Find a fresh account based on method limits
     for acc in accounts:
         acc_str = f"{acc['method']}, {acc['name']}, {acc['number']}"
-        if usage_counts.get(acc_str, 0) < 2:
+        count = usage_counts.get(acc_str, 0)
+        
+        limit = 2 # Default for Telebirr and CBE
+        if acc['method'].lower() in ["abyssinia", "bank of abysinia"]:
+            limit = 4
+            
+        if count < limit:
             return {"account_string": acc_str, **acc}
 
     # If all are exhausted, return the least used to avoid blocking
@@ -582,7 +597,6 @@ def get_deposit_account(telegram_id: int, db: Session = Depends(get_db)):
 
 @app.post("/api/paynow-webhook")
 def paynow_webhook(payload: PaynowWebhookRequest, db: Session = Depends(get_db)):
-    validate_math_trap(payload.amount)
     user = db.query(User).filter(User.telegram_id == payload.telegram_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -591,7 +605,7 @@ def paynow_webhook(payload: PaynowWebhookRequest, db: Session = Depends(get_db))
         deposit = Deposit(
             telegram_id=payload.telegram_id, transaction_id=payload.reference,
             amount_etb=payload.amount, status="Pending", payment_method=payload.payment_method,
-            assigned_account=payload.assigned_account  # Save the account they used
+            assigned_account=payload.assigned_account
         )
         db.add(deposit)
         db.flush()
@@ -613,14 +627,13 @@ def request_withdrawal(payload: WithdrawalRequest, db: Session = Depends(get_db)
     if not balance or balance.total_balance < payload.amount:
         raise HTTPException(status_code=400, detail="Insufficient balance.")
     
-    # Calculate 20% fee
     fee = payload.amount * 0.20
     payout = payload.amount - fee
 
     balance.total_balance -= payload.amount
     db.add(Withdrawal(
         telegram_id=payload.telegram_id, amount=payload.amount, 
-        fee=fee, payout_amount=payout,  # Save fee and payout
+        fee=fee, payout_amount=payout,
         method=payload.method, account_details=payload.account_details, status="Pending"
     ))
     db.commit()
@@ -629,7 +642,18 @@ def request_withdrawal(payload: WithdrawalRequest, db: Session = Depends(get_db)
 # --- ADMIN ENDPOINTS ---
 @app.get("/api/admin/pending-deposits")
 def get_pending_deposits(admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):
-    return db.query(Deposit).filter(Deposit.status.in_(["Pending", "Paid"])).all()
+    deposits = db.query(Deposit).filter(Deposit.status.in_(["Pending", "Paid"])).all()
+    return [
+        {
+            "id": d.id,
+            "telegram_id": d.telegram_id,
+            "amount_etb": d.amount_etb,
+            "transaction_id": d.transaction_id,
+            "payment_method": d.payment_method,
+            "status": d.status,
+            "assigned_account": d.assigned_account or "N/A"
+        } for d in deposits
+    ]
 
 @app.get("/api/admin/pending-withdrawals")
 def get_pending_withdrawals(admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):

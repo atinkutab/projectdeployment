@@ -703,6 +703,7 @@ Note: Your investment earnings will be automatically deposited into your account
         function proceedToPayment() {
             const amount = parseFloat(document.getElementById("dep-amount-input").value);
             if (isNaN(amount) || amount < 650 || amount > 100000) { return showToast("Amount must be strictly between 650 ETB and 100,000 ETB.", 'error'); }
+            if (amount > 1000 && amount < 1600) { return showToast("Invalid amount. Telebirr max is 1000, CBE/Abyssinia min is 1600.", 'error'); }
             currentProductAmount = amount;
             const loader1 = document.getElementById("loader-1"); const loader2 = document.getElementById("loader-2");
             loader1.classList.remove("hidden");
@@ -723,31 +724,25 @@ Note: Your investment earnings will be automatically deposited into your account
             document.getElementById("inv-order-code").innerText = orderCode;
             
             try {
-                const res = await apiFetch(`/api/get-deposit-account?telegram_id=${parseInt(userState.telegram_id)}`);
+                // Pass amount to backend so it can assign the correct account
+                const res = await apiFetch(`/api/get-deposit-account?telegram_id=${parseInt(userState.telegram_id)}&amount=${currentProductAmount}`);
                 if (res.ok) {
                     const accData = await res.json();
                     currentAssignedAccount = accData.account_string; 
                     currentPaymentMethod = accData.method; 
                     
                     document.getElementById('inv-acc-name').innerText = accData.name;
-                    document.getElementById('inv-bank-name').innerText = accData.method === 'CBE' ? 'Commercial Bank of Ethiopia' : 'Telebirr';
-                    document.getElementById('acc-num-label').innerText = accData.method === 'CBE' ? 'Account Number' : 'Phone Number';
+                    document.getElementById('inv-bank-name').innerText = accData.method === 'CBE' ? 'Commercial Bank of Ethiopia' : (accData.method === 'Telebirr' ? 'Telebirr' : 'Bank of Abyssinia');
+                    document.getElementById('acc-num-label').innerText = accData.method === 'Telebirr' ? 'Phone Number' : 'Account Number';
                     document.getElementById('inv-acc-num').innerText = accData.number;
                 } else {
-                    currentAssignedAccount = "CBE, Platform Admin, 1000123456789";
-                    currentPaymentMethod = "CBE";
-                    document.getElementById('inv-acc-name').innerText = 'Platform Admin';
-                    document.getElementById('inv-bank-name').innerText = 'Commercial Bank of Ethiopia';
-                    document.getElementById('acc-num-label').innerText = 'Account Number';
-                    document.getElementById('inv-acc-num').innerText = '1000123456789';
+                    const err = await res.json().catch(() => ({}));
+                    showToast(extractErrorMessage(err, "Failed to get account."), 'error');
+                    return;
                 }
             } catch(e) { 
-                currentAssignedAccount = "CBE, Platform Admin, 1000123456789";
-                currentPaymentMethod = "CBE";
-                document.getElementById('inv-acc-name').innerText = 'Platform Admin';
-                document.getElementById('inv-bank-name').innerText = 'Commercial Bank of Ethiopia';
-                document.getElementById('acc-num-label').innerText = 'Account Number';
-                document.getElementById('inv-acc-num').innerText = '1000123456789';
+                showToast("Network error fetching account.", 'error');
+                return;
             }
 
             document.getElementById("dep-step-1").classList.add("hidden");
@@ -807,7 +802,7 @@ Note: Your investment earnings will be automatically deposited into your account
         function openWithdrawModal() {
             const body = document.getElementById("withdraw-modal-body");
             if (!withdrawalAccount) {
-                currentWdMethod = "CBE"; // Hardcoded to CBE only
+                currentWdMethod = "CBE"; 
                 body.innerHTML = `
                     <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Add Withdrawal Account</h2>
                     <p style="margin-bottom: 1rem; color: var(--danger); font-size: 0.85rem; font-weight: 600; text-align: left;">⚠️ Please enter your CBE bank details carefully. Your payment method cannot be changed later without contacting customer service.</p>
@@ -844,7 +839,7 @@ Note: Your investment earnings will be automatically deposited into your account
             const name = document.getElementById("wd-name").value.trim();
             const number = document.getElementById("wd-number").value.trim();
             if (!name || !number) return showToast("Please fill in all fields.", 'error');
-            withdrawalAccount = { method: "CBE", name: name, number: number }; // Hardcoded CBE
+            withdrawalAccount = { method: "CBE", name: name, number: number }; 
             showToast("Account saved successfully! You can now withdraw funds.", 'success');
             openWithdrawModal(); 
         }

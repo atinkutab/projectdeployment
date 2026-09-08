@@ -59,7 +59,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>ID</th><th>User ID</th><th>Amount</th><th>Txn ID</th><th>Method</th><th>Status</th><th>Actions</th>
+                            <th>ID</th><th>User ID</th><th>Amount</th><th>Txn ID</th><th>Method</th><th>Assigned Account</th><th>Status</th><th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="deposits-tbody"></tbody>
@@ -103,7 +103,7 @@
                     </div>
                     <div style="grid-column: span 2;">
                         <label>Deposit Account Pool (Format: Method, Name, Number per line)</label>
-                        <textarea id="set-pool" rows="6" placeholder="CBE, Platform Admin, 1000123456789&#10;Telebirr, John Doe, 0911223344"></textarea>
+                        <textarea id="set-pool" rows="6" placeholder="CBE, Platform Admin, 1000123456789&#10;Telebirr, John Doe, 0911223344&#10;Abyssinia, Jane Doe, 1000987654321"></textarea>
                     </div>
                 </div>
                 <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
@@ -164,9 +164,9 @@
                 const data = await res.json();
                 const tbody = document.getElementById("deposits-tbody");
                 tbody.innerHTML = "";
-                if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">No pending deposits</td></tr>`; return; }
+                if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">No pending deposits</td></tr>`; return; }
                 data.forEach(d => {
-                    tbody.innerHTML += `<tr><td>${d.id}</td><td>${d.telegram_id}</td><td>${d.amount_etb} ETB</td><td>${d.transaction_id}</td><td>${d.payment_method}</td><td>${d.status}</td><td><button class="btn btn-success" onclick="approveDeposit(${d.id})">Approve</button><button class="btn btn-danger" onclick="rejectDeposit(${d.id})">Reject</button></td></tr>`;
+                    tbody.innerHTML += `<tr><td>${d.id}</td><td>${d.telegram_id}</td><td>${d.amount_etb} ETB</td><td>${d.transaction_id}</td><td>${d.payment_method}</td><td>${d.assigned_account || 'N/A'}</td><td>${d.status}</td><td><button class="btn btn-success" onclick="approveDeposit(${d.id})">Approve</button><button class="btn btn-danger" onclick="rejectDeposit(${d.id})">Reject</button></td></tr>`;
                 });
             } catch (e) { console.error(e); }
         }

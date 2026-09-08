@@ -36,6 +36,13 @@
         .toggle-text { text-align: center; margin-top: 1.5rem; color: var(--text-muted); font-weight: 500; }
         .toggle-text span { color: var(--primary); font-weight: 700; cursor: pointer; }
         .captcha-box { background: var(--bg); background-size: 20px 20px; border: 1px solid var(--border); text-align: center; font-size: 1.5rem; font-weight: 800; letter-spacing: 0.5rem; padding: 12px; border-radius: 8px; user-select: none; margin-bottom: 0.5rem; font-style: italic; color: var(--text); cursor: pointer; }
+        
+        /* NEW: Terms Checkbox Styling */
+        .terms-group { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 1.5rem; }
+        .terms-group input { width: 20px; height: 20px; margin-top: 2px; cursor: pointer; accent-color: var(--primary); }
+        .terms-group label { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
+        .terms-group label span { color: var(--primary); font-weight: 700; cursor: pointer; }
+
         #dashboard-view { padding-bottom: calc(90px + env(safe-area-inset-bottom)); animation: fadeIn 0.4s ease; }
         .view-header { background: var(--card-bg); padding: 1.5rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
         .view-title { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
@@ -196,7 +203,14 @@
             <div class="form-group"><label>Repeat Password</label><input type="password" id="su-pass2" class="input-field" placeholder="********"></div>
             <div class="form-group"><label>Captcha Code</label><div class="captcha-box" id="captcha-text" onclick="generateCaptcha()" title="Click to refresh">45be</div><input type="text" id="su-captcha" class="input-field" placeholder="Enter code above"></div>
             <div class="form-group"><label>Invitation Code (Optional)</label><input type="text" id="su-invite" class="input-field" placeholder="Enter referral code"></div>
-            <button class="btn-primary" onclick="handleSignUp()">Sign Up</button>
+            
+            <!-- NEW: Terms and Agreement Checkbox -->
+            <div class="terms-group">
+                <input type="checkbox" id="terms-agree" onclick="toggleSignUpButton()">
+                <label for="terms-agree">I have read and agree to the <span onclick="openTermsModal()">Terms & Agreement</span></label>
+            </div>
+
+            <button class="btn-primary" id="signup-btn" disabled onclick="handleSignUp()">Sign Up</button>
             <p class="toggle-text">I already have an account, <span onclick="toggleAuth('signin')">Sign In</span></p>
         </div>
         <div id="signin-form" class="hidden">
@@ -205,6 +219,22 @@
             <div class="form-group" style="display: flex; align-items: center;"><input type="checkbox" id="si-remember" style="width: 20px; height: 20px; margin-right: 10px;"><label for="si-remember" style="margin: 0;">Remember password</label></div>
             <button class="btn-primary" onclick="handleSignIn()">Sign In</button>
             <p class="toggle-text">Don't have an account? <span onclick="toggleAuth('signup')">Sign Up</span></p>
+        </div>
+    </div>
+
+    <!-- NEW: Terms and Agreement Modal -->
+    <div id="terms-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 450px; text-align: left;">
+            <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem; text-align: center;">Terms and Agreement</h2>
+            <div class="info-content" style="font-size: 0.9rem; line-height: 1.6;">
+                <p>1. I understand that the minimum deposit is 650 ETB and the minimum withdrawal is 300 ETB.</p>
+                <p>2. I understand that all withdrawals are subject to a 20% transaction fee.</p>
+                <p>3. I understand that I must provide the exact correct Transaction ID when making a deposit, and that providing a fake ID will result in a permanent account ban.</p>
+                <p>4. I understand that daily income is credited automatically every 24 hours and can be withdrawn at any time.</p>
+                <p>5. I agree that AssetCore is not liable for funds sent to the wrong bank account due to user error.</p>
+                <p>6. I understand that withdrawals are processed between 9:00 AM and 6:00 PM, and are limited to one transaction per day.</p>
+            </div>
+            <button class="btn-primary" style="margin-top: 2rem; width: 100%;" onclick="closeTermsModal()">I Understand</button>
         </div>
     </div>
 
@@ -418,6 +448,14 @@ Note: Your investment earnings will be automatically deposited into your account
             telegram_id: "123456789", telegram_username: "@assetcore_user", phone_number: "+251900000000", invite_code: "DEMO01",
             total_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, has_checked_in: false, transactions: [], products: []
         };
+
+        // NEW: Terms Modal and Checkbox Logic
+        function openTermsModal() { document.getElementById("terms-modal").classList.remove("hidden"); }
+        function closeTermsModal() { document.getElementById("terms-modal").classList.add("hidden"); }
+        function toggleSignUpButton() {
+            const isChecked = document.getElementById("terms-agree").checked;
+            document.getElementById("signup-btn").disabled = !isChecked;
+        }
 
         function generateCaptcha() {
             const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";

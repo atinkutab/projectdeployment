@@ -540,13 +540,21 @@ async def buy_product(payload: BuyProductRequest, db: Session = Depends(get_db))
     return {"message": f"{payload.product_name} activated successfully!",
             "new_balance": balance.total_balance, "daily_income": payload.daily_income}
 
-# --- NEW: GET DEPOSIT ACCOUNT (Smart Rotation Logic with Amount Rules) ---
+# --- GET DEPOSIT ACCOUNT (User Selected Method) ---
 @app.get("/api/get-deposit-account")
-def get_deposit_account(telegram_id: int, amount: float, db: Session = Depends(get_db)):
+def get_deposit_account(telegram_id: int, amount: float, method: str, db: Session = Depends(get_db)):
     if amount < 650 or amount > 100000:
         raise HTTPException(status_code=400, detail="Amount must be between 650 and 100,000 ETB.")
-    if 1000 < amount < 1600:
-        raise HTTPException(status_code=400, detail="Invalid amount. Telebirr max is 1000, CBE/Abyssinia min is 1600.")
+    
+    method_lower = method.lower()
+    if method_lower == "telebirr":
+        if not (650 <= amount <= 1000):
+            raise HTTPException(status_code=400, detail="Telebirr can only be used for amounts between 650 and 1000 ETB.")
+    elif method_lower in ["cbe", "abyssinia", "bank of abysinia"]:
+        if amount < 1600:
+            raise HTTPException(status_code=400, detail="CBE/Abyssinia requires a minimum amount of 1600 ETB.")
+    else:
+        raise HTTPException(status_code=400, detail="Invalid payment method.")
 
     setting = db.query(Setting).filter(Setting.key == "deposit_account_pool").first()
     if not setting or not setting.value:
@@ -556,18 +564,15 @@ def get_deposit_account(telegram_id: int, amount: float, db: Session = Depends(g
     for line in setting.value.strip().split('\n'):
         parts = [p.strip() for p in line.split(',')]
         if len(parts) == 3:
-            method = parts[0]
-            is_allowed = False
-            if method.lower() == "telebirr" and 650 <= amount <= 1000:
-                is_allowed = True
-            elif method.lower() in ["cbe", "abyssinia", "bank of abysinia"] and amount >= 1600:
-                is_allowed = True
-            
-            if is_allowed:
-                accounts.append({"method": method, "name": parts[1], "number": parts[2]})
+            acc_method = parts[0]
+            if acc_method.lower() == method_lower or \
+               (method_lower == "abyssinia" and acc_method.lower() in ["abyssinia", "bank of abysinia"]) or \
+               (method_lower == "cbe" and acc_method.lower() == "cbe"):
+                
+                accounts.append({"method": acc_method, "name": parts[1], "number": parts[2]})
     
     if not accounts:
-        raise HTTPException(status_code=404, detail="No valid accounts configured for this amount")
+        raise HTTPException(status_code=404, detail=f"No {method} accounts configured for this amount")
     
     # Check transactions in the last 3 hours
     three_hours_ago = datetime.utcnow() - timedelta(hours=3)
@@ -580,10 +585,8 @@ def get_deposit_account(telegram_id: int, amount: float, db: Session = Depends(g
     for d in recent_deposits:
         usage_counts[d.assigned_account] = usage_counts.get(d.assigned_account, 0) + 1
 
-    # FIX: Shuffle accounts so it doesn't just always pick CBE first
     random.shuffle(accounts)
 
-    # Find a fresh account based on method limits
     available_accounts = []
     for acc in accounts:
         acc_str = f"{acc['method']}, {acc['name']}, {acc['number']}"
@@ -597,7 +600,6 @@ def get_deposit_account(telegram_id: int, amount: float, db: Session = Depends(g
             available_accounts.append(acc)
 
     if available_accounts:
-        # Randomly pick one from the available fresh accounts
         chosen_acc = random.choice(available_accounts)
         return {"account_string": f"{chosen_acc['method']}, {chosen_acc['name']}, {chosen_acc['number']}", **chosen_acc}
 

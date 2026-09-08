@@ -603,9 +603,8 @@ def get_deposit_account(telegram_id: int, amount: float, method: str, db: Sessio
         chosen_acc = random.choice(available_accounts)
         return {"account_string": f"{chosen_acc['method']}, {chosen_acc['name']}, {chosen_acc['number']}", **chosen_acc}
 
-    # If all are exhausted, return the least used to avoid blocking
-    least_used = min(accounts, key=lambda a: usage_counts.get(f"{a['method']}, {a['name']}, {a['number']}", 0))
-    return {"account_string": f"{least_used['method']}, {least_used['name']}, {least_used['number']}", **least_used}
+    # FIX: If all accounts are exhausted, block the deposit and ask the user to wait
+    raise HTTPException(status_code=429, detail="Currently payment method unavailable, please wait while we update our accounts.")
 
 @app.post("/api/paynow-webhook")
 def paynow_webhook(payload: PaynowWebhookRequest, db: Session = Depends(get_db)):

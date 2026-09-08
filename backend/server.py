@@ -191,7 +191,6 @@ def init_db():
         except: pass
         db.commit()
 
-        # FIX: Force create deposit_account_pool if it doesn't exist
         if not db.query(Setting).filter(Setting.key == "deposit_account_pool").first():
             db.add(Setting(key="deposit_account_pool", value="CBE, Platform Admin, 1000123456789\nTelebirr, John Doe, 0911223344\nAbyssinia, Jane Doe, 1000987654321"))
             db.commit()
@@ -544,7 +543,6 @@ async def buy_product(payload: BuyProductRequest, db: Session = Depends(get_db))
 # --- NEW: GET DEPOSIT ACCOUNT (Smart Rotation Logic with Amount Rules) ---
 @app.get("/api/get-deposit-account")
 def get_deposit_account(telegram_id: int, amount: float, db: Session = Depends(get_db)):
-    # Validate amount ranges based on bank limits
     if amount < 650 or amount > 100000:
         raise HTTPException(status_code=400, detail="Amount must be between 650 and 100,000 ETB.")
     if 1000 < amount < 1600:
@@ -559,7 +557,6 @@ def get_deposit_account(telegram_id: int, amount: float, db: Session = Depends(g
         parts = [p.strip() for p in line.split(',')]
         if len(parts) == 3:
             method = parts[0]
-            # Check if method is allowed for this amount
             is_allowed = False
             if method.lower() == "telebirr" and 650 <= amount <= 1000:
                 is_allowed = True
@@ -583,7 +580,11 @@ def get_deposit_account(telegram_id: int, amount: float, db: Session = Depends(g
     for d in recent_deposits:
         usage_counts[d.assigned_account] = usage_counts.get(d.assigned_account, 0) + 1
 
+    # FIX: Shuffle accounts so it doesn't just always pick CBE first
+    random.shuffle(accounts)
+
     # Find a fresh account based on method limits
+    available_accounts = []
     for acc in accounts:
         acc_str = f"{acc['method']}, {acc['name']}, {acc['number']}"
         count = usage_counts.get(acc_str, 0)
@@ -593,7 +594,12 @@ def get_deposit_account(telegram_id: int, amount: float, db: Session = Depends(g
             limit = 4
             
         if count < limit:
-            return {"account_string": acc_str, **acc}
+            available_accounts.append(acc)
+
+    if available_accounts:
+        # Randomly pick one from the available fresh accounts
+        chosen_acc = random.choice(available_accounts)
+        return {"account_string": f"{chosen_acc['method']}, {chosen_acc['name']}, {chosen_acc['number']}", **chosen_acc}
 
     # If all are exhausted, return the least used to avoid blocking
     least_used = min(accounts, key=lambda a: usage_counts.get(f"{a['method']}, {a['name']}, {a['number']}", 0))

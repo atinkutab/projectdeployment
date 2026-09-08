@@ -191,10 +191,14 @@ def init_db():
         except: pass
         db.commit()
 
+        # FIX: Force create deposit_account_pool if it doesn't exist
+        if not db.query(Setting).filter(Setting.key == "deposit_account_pool").first():
+            db.add(Setting(key="deposit_account_pool", value="CBE, Platform Admin, 1000123456789\nTelebirr, John Doe, 0911223344\nAbyssinia, Jane Doe, 1000987654321"))
+            db.commit()
+
         if not db.query(Setting).filter(Setting.key == "registration_bonus").first():
             db.add(Setting(key="registration_bonus", value="300.0"))
             db.add(Setting(key="commission_rate", value="0.30"))
-            db.add(Setting(key="deposit_account_pool", value="CBE, Platform Admin, 1000123456789\nTelebirr, John Doe, 0911223344\nAbyssinia, Jane Doe, 1000987654321"))
             db.commit()
     except Exception as e:
         print(f"DB Init Error: {e}")

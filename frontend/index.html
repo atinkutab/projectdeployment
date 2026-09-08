@@ -735,19 +735,21 @@ Note: Your investment earnings will be automatically deposited into your account
                     document.getElementById('inv-bank-name').innerText = accData.method === 'CBE' ? 'Commercial Bank of Ethiopia' : (accData.method === 'Telebirr' ? 'Telebirr' : 'Bank of Abyssinia');
                     document.getElementById('acc-num-label').innerText = accData.method === 'Telebirr' ? 'Phone Number' : 'Account Number';
                     document.getElementById('inv-acc-num').innerText = accData.number;
+                    
+                    document.getElementById("dep-step-1").classList.add("hidden");
+                    document.getElementById("dep-step-2").classList.remove("hidden");
+                    startTimer();
                 } else {
                     const err = await res.json().catch(() => ({}));
-                    showToast(extractErrorMessage(err, "Failed to get account."), 'error');
-                    return;
+                    const errorMsg = extractErrorMessage(err, "Failed to get payment account.");
+                    showToast(errorMsg, 'error');
+                    // Do not proceed to step 2, go back to home
+                    switchTab('home'); 
                 }
             } catch(e) { 
                 showToast("Network error fetching account.", 'error');
-                return;
+                switchTab('home');
             }
-
-            document.getElementById("dep-step-1").classList.add("hidden");
-            document.getElementById("dep-step-2").classList.remove("hidden");
-            startTimer();
         }
 
         function startTimer() {

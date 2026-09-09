@@ -24,7 +24,13 @@
         .toast.hide { opacity: 0; transform: translateY(-20px); }
         @keyframes slideDown { from { transform: translateY(-100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         #auth-view { padding: 2rem 1.5rem; display: flex; flex-direction: column; justify-content: center; min-height: 100vh; background: var(--bg); animation: fadeIn 0.5s ease; }
-        .logo { text-align: center; font-size: 2.5rem; font-weight: 900; background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem; letter-spacing: -1px; }
+        
+        /* NEW: Clean Text-Based CSS Logo */
+        .logo { text-align: center; font-size: 2.5rem; font-weight: 900; margin-bottom: 0.5rem; letter-spacing: -1px; color: var(--text); }
+        .logo span { color: var(--primary); }
+        .logo-sm { font-size: 1.2rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text); }
+        .logo-sm span { color: var(--primary); }
+
         .welcome-text { text-align: center; color: var(--text-muted); margin-bottom: 2.5rem; font-size: 1.1rem; font-weight: 500; }
         .form-group { margin-bottom: 1.25rem; animation: slideUp 0.4s ease; }
         .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text); }
@@ -36,16 +42,14 @@
         .toggle-text { text-align: center; margin-top: 1.5rem; color: var(--text-muted); font-weight: 500; }
         .toggle-text span { color: var(--primary); font-weight: 700; cursor: pointer; }
         .captcha-box { background: var(--bg); background-size: 20px 20px; border: 1px solid var(--border); text-align: center; font-size: 1.5rem; font-weight: 800; letter-spacing: 0.5rem; padding: 12px; border-radius: 8px; user-select: none; margin-bottom: 0.5rem; font-style: italic; color: var(--text); cursor: pointer; }
-        
-        /* NEW: Terms Checkbox Styling */
         .terms-group { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 1.5rem; }
         .terms-group input { width: 20px; height: 20px; margin-top: 2px; cursor: pointer; accent-color: var(--primary); }
         .terms-group label { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
         .terms-group label span { color: var(--primary); font-weight: 700; cursor: pointer; }
 
         #dashboard-view { padding-bottom: calc(90px + env(safe-area-inset-bottom)); animation: fadeIn 0.4s ease; }
-        .view-header { background: var(--card-bg); padding: 1.5rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
-        .view-title { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
+        .view-header { background: var(--card-bg); padding: 1.5rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; }
+        .view-title { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
         .top-nav-bar { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; background: var(--card-bg); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
         .nav-left-group { display: flex; align-items: center; gap: 0.75rem; }
         .nav-back-btn { font-size: 1.5rem; background: none; border: none; color: var(--text); cursor: pointer; line-height: 1; padding: 0.5rem; transition: transform 0.2s; }
@@ -175,6 +179,7 @@
         .history-table th { background: var(--bg); color: var(--text-muted); font-weight: 600; }
         .info-content { text-align: left; line-height: 1.6; font-size: 0.95rem; color: var(--text); }
         .info-content p { margin-bottom: 0.75rem; }
+        .info-content h4 { margin-top: 1rem; margin-bottom: 0.5rem; color: var(--primary); }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .app-coming-soon-banner { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background: linear-gradient(270deg, #3b82f6, #8b5cf6, #3b82f6); background-size: 200% 200%; color: #fff; font-weight: 700; text-align: center; animation: gradient-shift 3s ease infinite; }
@@ -194,7 +199,8 @@
     <div id="toast-container"></div>
 
     <div id="auth-view">
-        <div class="logo">AssetCore</div>
+        <!-- NEW: Clean Text-Based CSS Logo -->
+        <div class="logo">Asset<span>Core</span></div>
         <p class="welcome-text">Welcome! Please sign in or create an account.</p>
         <div id="signup-form">
             <div class="form-group"><label>Telegram Username</label><input type="text" id="su-username" class="input-field" placeholder="@username"></div>
@@ -204,7 +210,6 @@
             <div class="form-group"><label>Captcha Code</label><div class="captcha-box" id="captcha-text" onclick="generateCaptcha()" title="Click to refresh">45be</div><input type="text" id="su-captcha" class="input-field" placeholder="Enter code above"></div>
             <div class="form-group"><label>Invitation Code (Optional)</label><input type="text" id="su-invite" class="input-field" placeholder="Enter referral code"></div>
             
-            <!-- NEW: Terms and Agreement Checkbox -->
             <div class="terms-group">
                 <input type="checkbox" id="terms-agree" onclick="toggleSignUpButton()">
                 <label for="terms-agree">I have read and agree to the <span onclick="openTermsModal()">Terms & Agreement</span></label>
@@ -222,7 +227,7 @@
         </div>
     </div>
 
-    <!-- NEW: Terms and Agreement Modal -->
+    <!-- NEW: Updated Terms and Agreement Modal -->
     <div id="terms-modal" class="modal-overlay hidden">
         <div class="modal-content" style="max-width: 450px; text-align: left;">
             <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem; text-align: center;">Terms and Agreement</h2>
@@ -233,6 +238,9 @@
                 <p>4. I understand that daily income is credited automatically every 24 hours and can be withdrawn at any time.</p>
                 <p>5. I agree that AssetCore is not liable for funds sent to the wrong bank account due to user error.</p>
                 <p>6. I understand that withdrawals are processed between 9:00 AM and 6:00 PM, and are limited to one transaction per day.</p>
+                <p>7. I understand that if we find my personal information is inaccurate or fake and I make transactions with it, inevitably my funds will be gone.</p>
+                <p>8. I understand that ruining the company's reputation is strictly not allowed. If I have any questions or confusion, I can have a conversation with customer support.</p>
+                <p style="color: var(--danger); font-family: 'Courier New', Courier, monospace; font-weight: 800; text-transform: uppercase; border: 2px solid var(--danger); padding: 10px; border-radius: 6px; text-align: center; margin-top: 1rem;">9. REMEMBER THE RULE WILL BE APPLIED REGARDLESS OF WHO YOU ARE. WE ARE NOT RESPONSIBLE FOR THE CONSEQUENCES YOU ENCOUNTER DUE TO THE VIOLATION OF ANY ONE OF OUR "TERMS AND SERVICE".</p>
             </div>
             <button class="btn-primary" style="margin-top: 2rem; width: 100%;" onclick="closeTermsModal()">I Understand</button>
         </div>
@@ -240,7 +248,11 @@
 
     <div id="dashboard-view" class="hidden">
         <div id="view-home" class="app-view">
-            <div class="view-header"><div class="view-title">Investment Products</div></div>
+            <!-- NEW: Added small logo to the header -->
+            <div class="view-header">
+                <div class="view-title">Investment Products</div>
+                <div class="logo-sm">Asset<span>Core</span></div>
+            </div>
             <div id="product-list"></div>
         </div>
         <div id="view-deposit" class="app-view hidden">
@@ -371,7 +383,6 @@ Note: Your investment earnings will be automatically deposited into your account
         </div>
     </div>
     
-    <!-- NEW: Method Selection Modal -->
     <div id="select-method-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <h2 style="margin-bottom: 1.5rem; text-align: center; color: var(--text); font-size: 1.5rem;">Select Payment Method</h2>
@@ -449,7 +460,6 @@ Note: Your investment earnings will be automatically deposited into your account
             total_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, has_checked_in: false, transactions: [], products: []
         };
 
-        // NEW: Terms Modal and Checkbox Logic
         function openTermsModal() { document.getElementById("terms-modal").classList.remove("hidden"); }
         function closeTermsModal() { document.getElementById("terms-modal").classList.add("hidden"); }
         function toggleSignUpButton() {
@@ -759,11 +769,9 @@ Note: Your investment earnings will be automatically deposited into your account
             currentProductAmount = amount;
             
             if (amount >= 1600) {
-                // Show method selection
                 document.getElementById("method-select-amount").innerText = amount.toFixed(2);
                 document.getElementById("select-method-modal").classList.remove("hidden");
             } else {
-                // Telebirr flow
                 triggerBankWarning("Telebirr");
             }
         }
@@ -949,16 +957,49 @@ Note: Your investment earnings will be automatically deposited into your account
             } else if (type === 'service') {
                 content = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Customer Service</h2>
                     <div class="info-content">
-                        <p><strong>Customer Service:</strong> <a href="https://t.me/EASTAYK" target="_blank" style="color: var(--primary);">@EASTAYK</a></p>
-                        <p><strong>Telegram Official Channel:</strong> <a href="https://t.me/assetcore_anouncement_2026" target="_blank" style="color: var(--primary);">@assetcore_anouncement_2026</a></p>
-                        <p><strong>Telegram Group:</strong> <a href="https://t.me/Assetcorecommunity" target="_blank" style="color: var(--primary);">@Assetcorecommunity</a></p>
+                        <p><strong>Customer Service:</strong> <a href="https://t.me/mrFinances" target="_blank" style="color: var(--primary);">@mrFinances</a></p>
+                        <p><strong>Telegram Official Channel:</strong> <a href="https://t.me/assetcoreofficial" target="_blank" style="color: var(--primary);">@assetcoreofficial</a></p>
+                        <p><strong>Community Group:</strong> <a href="https://t.me/Assetcorecommunity" target="_blank" style="color: var(--primary);">@Assetcorecommunity</a></p>
                     </div>
                     <button class="btn-primary" style="margin-top: 1.5rem;" onclick="closeInfoModal()">Close</button>`;
             } else if (type === 'about') {
+                // NEW: Injected the exact About Us text provided by the user
                 content = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">About Us</h2>
-                    <div class="info-content"><p>AssetCore is Ethiopia's premier investment platform, offering high-quality investment opportunities in cloud servers, real estate, and energy sectors with strong long-term growth potential and generous returns.</p></div>
-                    <div class="app-coming-soon-banner">📱 Mobile Application Coming Soon!</div>
-                    <button class="btn-primary" style="margin-top: 1.5rem;" onclick="closeInfoModal()">Close</button>`;
+                    <div class="info-content" style="font-size: 0.9rem; line-height: 1.6;">
+                        <p>Welcome to AssetCore, Ethiopia's premier digital asset management and investment platform! 🚀📈</p>
+                        <p>We are often asked: "How does AssetCore generate profit while paying such high daily returns to users?"</p>
+                        <p>It’s a great question. To present AssetCore as a legitimate, sustainable, and professional fintech platform, our narrative focuses on Asset Aggregation, Yield Spreads, and Platform Liquidity. We don't just hold funds; we act as a digital asset manager.</p>
+                        <p>Here is a transparent breakdown of how AssetCore generates profit, explained with real scenarios:</p>
+                        
+                        <h4>1. The Yield Spread (Arbitrage)</h4>
+                        <p>AssetCore pools user capital to access high-yield investment opportunities normally restricted to institutional investors (like wholesale cloud infrastructure leasing, large-scale DeFi liquidity pooling, or commercial real estate syndication). The platform generates a higher percentage yield than what it pays out to the users.</p>
+                        <p><strong>The Scenario:</strong> AssetCore pools 100,000 ETB from 100 users. By pooling this capital, AssetCore can deploy it into a high-yield infrastructure project that generates a 15% monthly return.</p>
+                        <p><strong>The Payout:</strong> AssetCore promises users a fixed return equivalent to 9% monthly (e.g., VIP 2 costs 1,000 ETB and pays 200 ETB daily over 60 days = 12,000 ETB total, a strong yield for the user).</p>
+                        <p><strong>The Profit:</strong> The platform keeps the 6% difference (the spread). On 100,000 ETB, the platform earns 6,000 ETB per month in pure profit just from the yield difference, while users are thrilled with their guaranteed 9% return.</p>
+                        
+                        <h4>2. Transaction & Liquidity Fees (Direct Revenue)</h4>
+                        <p>Every time money moves out of the ecosystem, the platform takes a percentage. This prevents capital drain and creates direct, immediate revenue.</p>
+                        <p><strong>The Scenario:</strong> John accumulates 1,000 ETB from daily yields and requests a withdrawal. The platform charges a 20% liquidity fee. John receives 800 ETB (which he is happy with, as it is pure profit for him), and AssetCore retains 200 ETB as operational revenue.</p>
+                        <p><strong>Why this works:</strong> This fee structure ensures the platform always retains 20% of all generated yields in the main treasury, keeping the platform solvent and highly liquid, even during high withdrawal periods.</p>
+                        
+                        <h4>3. Idle Capital & Reinvestment Cycles (The Float)</h4>
+                        <p>Money sitting in user balances (not immediately withdrawn) acts as a "float." The platform can safely deploy this idle capital into short-term, low-risk yield farms to generate extra profit.</p>
+                        <p><strong>The Scenario:</strong> John buys VIP 2 (1,000 ETB). He instantly withdraws his 300 ETB bonus. He then leaves his daily income to accumulate for 5 days without touching it. Over those 5 days, his balance grows to 1,000 ETB. During those 5 days, John’s 1,000 ETB (plus the 300 ETB from thousands of other users doing the same thing) sits in the AssetCore treasury. The platform uses this massive "float" to execute a 5-day flash loan or short-term crypto stake, generating thousands of ETB in interest. When John finally clicks "reinvest" to buy VIP 2 again, the capital is simply rotated, and the platform keeps the interest earned during the idle time.</p>
+                        
+                        <h4>4. Referral Economics (Exponential Growth at Low Cost)</h4>
+                        <p>The 30% referral commission is not a loss of profit; it is a customer acquisition cost (CAC) that is paid only from generated yield, not from the platform's pocket.</p>
+                        <p><strong>The Scenario:</strong> Sarah invites Mike. Mike deposits 1,000 ETB. Sarah gets 300 ETB as a commission. However, that 300 ETB is credited to Sarah's internal balance. If Sarah withdraws it, the platform takes a 20% fee (60 ETB back to the platform). Furthermore, Mike's 1,000 ETB is now working for the platform in the high-yield pool (generating 150 ETB/month). The platform paid Sarah 300 ETB out of future yields, but gained a 1,000 ETB asset that will generate returns for 60 days. It is a mathematically sound marketing strategy.</p>
+                        
+                        <h4>Summary</h4>
+                        <p>AssetCore is a digital asset management platform. We aggregate micro-investments from users to access institutional-grade yield opportunities in cloud infrastructure and decentralized finance. By sharing a portion of the high-yield returns with our users, while retaining a yield spread and implementing standard liquidity fees, we create a sustainable, win-win financial ecosystem.</p>
+                        
+                        <h4>📞 Contact & Official Links:</h4>
+                        <p>For any inquiries, support, or to join our community, please reach out through the official channels below:</p>
+                        <p>Customer Service: <a href="https://t.me/mrFinances" target="_blank" style="color: var(--primary);">@mrFinances</a></p>
+                        <p>Official Channel: <a href="https://t.me/assetcoreofficial" target="_blank" style="color: var(--primary);">https://t.me/assetcoreofficial</a></p>
+                        <p>Community Group: <a href="https://t.me/Assetcorecommunity" target="_blank" style="color: var(--primary);">https://t.me/Assetcorecommunity</a></p>
+                    </div>
+                    <button class="btn-primary" style="margin-top: 2rem;" onclick="closeInfoModal()">Close</button>`;
             }
             body.innerHTML = content;
             document.getElementById('info-modal').classList.remove("hidden");

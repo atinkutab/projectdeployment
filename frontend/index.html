@@ -456,6 +456,17 @@ Note: Your investment earnings will be automatically deposited into your account
             total_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, has_checked_in: false, transactions: [], products: []
         };
 
+        // On page load, check for saved credentials
+        window.onload = function() {
+            const savedPhone = localStorage.getItem("ac_phone");
+            const savedPass = localStorage.getItem("ac_pass");
+            if (savedPhone && savedPass) {
+                document.getElementById("si-phone").value = savedPhone;
+                document.getElementById("si-pass").value = savedPass;
+                document.getElementById("si-remember").checked = true;
+            }
+        };
+
         function openTermsModal() { document.getElementById("terms-modal").classList.remove("hidden"); }
         function closeTermsModal() { document.getElementById("terms-modal").classList.add("hidden"); }
         function toggleSignUpButton() {
@@ -559,6 +570,8 @@ Note: Your investment earnings will be automatically deposited into your account
             const pass = document.getElementById("si-pass").value;
             if (!phone || !pass) return showToast("Please enter both phone number and password.", 'error');
 
+            const rememberMe = document.getElementById("si-remember").checked;
+
             try {
                 const res = await apiFetch('/api/login', {
                     method: "POST", headers: { "Content-Type": "application/json" },
@@ -568,12 +581,23 @@ Note: Your investment earnings will be automatically deposited into your account
                 if (res.ok) {
                     const data = await res.json();
                     userState.telegram_id = data.telegram_id || userState.telegram_id;
+                    // FIX: Correctly map backend response to userState
                     userState.total_balance = data.total_balance !== undefined ? data.total_balance : 300.00;
                     userState.telegram_username = data.telegram_username || phone;
                     userState.phone_number = phone;
                     userState.invite_code = data.invitation_code || "DEMO01";
                     userState.daily_income_balance = data.daily_income_balance || 0.00;
                     userState.invite_income = data.invite_income || 0.00;
+                    
+                    // Remember Password Logic
+                    if (rememberMe) {
+                        localStorage.setItem("ac_phone", phone);
+                        localStorage.setItem("ac_pass", pass);
+                    } else {
+                        localStorage.removeItem("ac_phone");
+                        localStorage.removeItem("ac_pass");
+                    }
+
                     showToast("Welcome back!", 'success');
                     loginSuccess();
                 } else {
@@ -1052,7 +1076,6 @@ Note: Your investment earnings will be automatically deposited into your account
             document.body.removeChild(textArea);
         }
 
-        // NEW: Dynamic Real Leaderboard Fetch
         async function renderLeaderboard() {
             const container = document.getElementById("lb-list");
             if (!container) return;

@@ -366,17 +366,15 @@ def health_check():
         "websocket_routes": ["/ws/{user_id}", "/ws/{user_id}/"]
     }
 
-# --- NEW: REAL LEADERBOARD ENDPOINT ---
+# --- LEADERBOARD ENDPOINT ---
 @app.get("/api/leaderboard")
 def get_leaderboard(db: Session = Depends(get_db)):
-    # Fetch top 10 users ordered by total_balance descending
     top_users = db.query(User, UserBalance).join(
         UserBalance, User.telegram_id == UserBalance.telegram_id
     ).order_by(desc(UserBalance.total_balance)).limit(10).all()
     
     results = []
     for u, b in top_users:
-        # Protect privacy: Use Telegram username if available, otherwise mask the ID
         display_name = u.telegram_username if u.telegram_username else f"User {str(u.telegram_id)[-4:]}"
         results.append({
             "name": display_name,
@@ -513,13 +511,17 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid phone number/username or password.")
     
     balance = db.query(UserBalance).filter(UserBalance.telegram_id == user.telegram_id).first()
+    
+    # FIX: Explicitly return all required balance fields for the frontend to update correctly
     return {
         "message": "Login successful",
         "telegram_id": user.telegram_id,
         "phone_number": user.phone_number,
         "telegram_username": user.telegram_username,
         "invitation_code": user.invitation_code,
-        "balance": balance.total_balance if balance else 0.0
+        "total_balance": balance.total_balance if balance else 0.0,
+        "daily_income_balance": balance.daily_income_balance if balance else 0.0,
+        "invite_income": balance.invitation_income if balance else 0.0
     }
 
 @app.post("/api/daily-checkin")

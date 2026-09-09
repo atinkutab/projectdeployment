@@ -32,9 +32,20 @@
         .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
         .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .settings-grid label { display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 14px; }
+
+        /* NEW: Toast Notification CSS */
+        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: var(--card-bg); color: var(--text); padding: 16px 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid var(--border); border-left: 5px solid var(--primary); font-size: 14px; font-weight: 500; text-align: center; animation: slideDown 0.3s ease; opacity: 1; transition: opacity 0.3s ease, transform 0.3s ease; }
+        .toast.success { border-left-color: var(--success); }
+        .toast.error { border-left-color: var(--danger); }
+        .toast.hide { opacity: 0; transform: translateY(-20px); }
+        @keyframes slideDown { from { transform: translateY(-100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
+    <!-- NEW: Toast Container -->
+    <div id="toast-container"></div>
+
     <div class="container">
         <h1>AssetCore Admin Panel</h1>
         
@@ -115,6 +126,16 @@
         const API_URL = "https://projectdeployment-1-yuwq.onrender.com";
         let token = localStorage.getItem("admin_token");
 
+        // NEW: Toast Notification Function
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.add('hide'); setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
         if (token) {
             document.getElementById("login-view").classList.add("hidden");
             document.getElementById("dashboard-view").classList.remove("hidden");
@@ -141,8 +162,8 @@
                     document.getElementById("login-view").classList.add("hidden");
                     document.getElementById("dashboard-view").classList.remove("hidden");
                     fetchAllData();
-                } else { alert("Login failed. Check credentials."); }
-            } catch (error) { alert("Network error connecting to server."); }
+                } else { showToast("Login failed. Check credentials.", "error"); }
+            } catch (error) { showToast("Network error connecting to server.", "error"); }
         }
 
         function logout() { localStorage.removeItem("admin_token"); token = null; location.reload(); }
@@ -210,27 +231,28 @@
             } catch (e) { console.error(e); }
         }
 
+        // FIX: Replaced all alert() calls with showToast()
         async function approveDeposit(id) {
             const res = await fetch(`${API_URL}/api/admin/approve-deposit/${id}`, { method: "POST", headers: authHeaders() });
-            if (res.ok) { alert("Deposit Approved"); } else { alert("Failed to approve deposit."); }
+            if (res.ok) { showToast("Deposit Approved Successfully", "success"); } else { showToast("Failed to approve deposit.", "error"); }
             fetchDeposits();
         }
 
         async function rejectDeposit(id) {
             const res = await fetch(`${API_URL}/api/admin/reject-deposit/${id}`, { method: "POST", headers: authHeaders() });
-            if (res.ok) { alert("Deposit Rejected"); } else { alert("Failed to reject deposit."); }
+            if (res.ok) { showToast("Deposit Rejected", "error"); } else { showToast("Failed to reject deposit.", "error"); }
             fetchDeposits();
         }
 
         async function approveWithdrawal(id) {
             const res = await fetch(`${API_URL}/api/admin/approve-withdrawal/${id}`, { method: "POST", headers: authHeaders() });
-            if (res.ok) { alert("Withdrawal Approved"); } else { alert("Failed to approve withdrawal."); }
+            if (res.ok) { showToast("Withdrawal Approved Successfully", "success"); } else { showToast("Failed to approve withdrawal.", "error"); }
             fetchWithdrawals();
         }
 
         async function rejectWithdrawal(id) {
             const res = await fetch(`${API_URL}/api/admin/reject-withdrawal/${id}`, { method: "POST", headers: authHeaders() });
-            if (res.ok) { alert("Withdrawal Rejected"); } else { alert("Failed to reject withdrawal."); }
+            if (res.ok) { showToast("Withdrawal Rejected", "error"); } else { showToast("Failed to reject withdrawal.", "error"); }
             fetchWithdrawals();
         }
 
@@ -241,7 +263,7 @@
                 deposit_account_pool: document.getElementById("set-pool").value
             };
             await fetch(`${API_URL}/api/admin/settings`, { method: "POST", headers: authHeaders(), body: JSON.stringify(payload) });
-            alert("Settings Saved!");
+            showToast("Settings Saved Successfully", "success");
         }
     </script>
 </body>

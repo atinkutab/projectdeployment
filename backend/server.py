@@ -31,7 +31,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, field_validator
 from sqlalchemy import (create_engine, Column, Integer, BigInteger, String,
-                       Float, Boolean, DateTime, ForeignKey, text, or_)
+                       Float, Boolean, DateTime, ForeignKey, text, or_, desc)
 from sqlalchemy.orm import declarative_base, sessionmaker, Session, relationship
 from sqlalchemy.engine import URL
 
@@ -351,7 +351,7 @@ def root():
         "service": "AssetCore Backend",
         "frontend": FRONTEND_BASE_URL,
         "docs": "/docs",
-        "endpoints": ["/api/status", "/api/health", "/api/register", "/api/login", "/ws/{user_id}"]
+        "endpoints": ["/api/status", "/api/health", "/api/register", "/api/login", "/api/leaderboard", "/ws/{user_id}"]
     }
 
 @app.get("/api/status")
@@ -365,6 +365,24 @@ def health_check():
         "websocket": "enabled",
         "websocket_routes": ["/ws/{user_id}", "/ws/{user_id}/"]
     }
+
+# --- NEW: REAL LEADERBOARD ENDPOINT ---
+@app.get("/api/leaderboard")
+def get_leaderboard(db: Session = Depends(get_db)):
+    # Fetch top 10 users ordered by total_balance descending
+    top_users = db.query(User, UserBalance).join(
+        UserBalance, User.telegram_id == UserBalance.telegram_id
+    ).order_by(desc(UserBalance.total_balance)).limit(10).all()
+    
+    results = []
+    for u, b in top_users:
+        # Protect privacy: Use Telegram username if available, otherwise mask the ID
+        display_name = u.telegram_username if u.telegram_username else f"User {str(u.telegram_id)[-4:]}"
+        results.append({
+            "name": display_name,
+            "amount": b.total_balance
+        })
+    return results
 
 # --- ADMIN AUTH ---
 async def get_current_admin(token: str = Depends(oauth2_scheme)):
@@ -574,7 +592,6 @@ def get_deposit_account(telegram_id: int, amount: float, method: str, db: Sessio
     if not accounts:
         raise HTTPException(status_code=404, detail=f"No {method} accounts configured for this amount")
     
-    # Check transactions in the last 3 hours
     three_hours_ago = datetime.utcnow() - timedelta(hours=3)
     recent_deposits = db.query(Deposit).filter(
         Deposit.created_at >= three_hours_ago,
@@ -592,7 +609,7 @@ def get_deposit_account(telegram_id: int, amount: float, method: str, db: Sessio
         acc_str = f"{acc['method']}, {acc['name']}, {acc['number']}"
         count = usage_counts.get(acc_str, 0)
         
-        limit = 2 # Default for Telebirr and CBE
+        limit = 2 
         if acc['method'].lower() in ["abyssinia", "bank of abysinia"]:
             limit = 4
             
@@ -603,7 +620,6 @@ def get_deposit_account(telegram_id: int, amount: float, method: str, db: Sessio
         chosen_acc = random.choice(available_accounts)
         return {"account_string": f"{chosen_acc['method']}, {chosen_acc['name']}, {chosen_acc['number']}", **chosen_acc}
 
-    # FIX: If all accounts are exhausted, block the deposit and ask the user to wait
     raise HTTPException(status_code=429, detail="Currently payment method unavailable, please wait while we update our accounts.")
 
 @app.post("/api/paynow-webhook")

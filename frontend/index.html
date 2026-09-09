@@ -25,7 +25,6 @@
         @keyframes slideDown { from { transform: translateY(-100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         #auth-view { padding: 2rem 1.5rem; display: flex; flex-direction: column; justify-content: center; min-height: 100vh; background: var(--bg); animation: fadeIn 0.5s ease; }
         
-        /* NEW: Clean Text-Based CSS Logo */
         .logo { text-align: center; font-size: 2.5rem; font-weight: 900; margin-bottom: 0.5rem; letter-spacing: -1px; color: var(--text); }
         .logo span { color: var(--primary); }
         .logo-sm { font-size: 1.2rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text); }
@@ -199,7 +198,6 @@
     <div id="toast-container"></div>
 
     <div id="auth-view">
-        <!-- NEW: Clean Text-Based CSS Logo -->
         <div class="logo">Asset<span>Core</span></div>
         <p class="welcome-text">Welcome! Please sign in or create an account.</p>
         <div id="signup-form">
@@ -227,7 +225,6 @@
         </div>
     </div>
 
-    <!-- NEW: Updated Terms and Agreement Modal -->
     <div id="terms-modal" class="modal-overlay hidden">
         <div class="modal-content" style="max-width: 450px; text-align: left;">
             <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem; text-align: center;">Terms and Agreement</h2>
@@ -248,7 +245,6 @@
 
     <div id="dashboard-view" class="hidden">
         <div id="view-home" class="app-view">
-            <!-- NEW: Added small logo to the header -->
             <div class="view-header">
                 <div class="view-title">Investment Products</div>
                 <div class="logo-sm">Asset<span>Core</span></div>
@@ -963,7 +959,6 @@ Note: Your investment earnings will be automatically deposited into your account
                     </div>
                     <button class="btn-primary" style="margin-top: 1.5rem;" onclick="closeInfoModal()">Close</button>`;
             } else if (type === 'about') {
-                // NEW: Injected the exact About Us text provided by the user
                 content = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">About Us</h2>
                     <div class="info-content" style="font-size: 0.9rem; line-height: 1.6;">
                         <p>Welcome to AssetCore, Ethiopia's premier digital asset management and investment platform! 🚀📈</p>
@@ -1057,30 +1052,44 @@ Note: Your investment earnings will be automatically deposited into your account
             document.body.removeChild(textArea);
         }
 
-        const mockLeaderboard = [
-            { rank: 1, name: "@user1", amount: 150000 }, { rank: 2, name: "@user2", amount: 95000 }, 
-            { rank: 3, name: "@user3", amount: 45000 }, { rank: 4, name: "@user4", amount: 12000 }, 
-            { rank: 5, name: "@user5", amount: 6000 }
-        ];
-
-        function renderLeaderboard() {
+        // NEW: Dynamic Real Leaderboard Fetch
+        async function renderLeaderboard() {
             const container = document.getElementById("lb-list");
-            if (!container) return; container.innerHTML = "";
-            mockLeaderboard.forEach(item => {
-                let rankClass = "";
-                if (item.rank === 1) rankClass = "gold";
-                else if (item.rank === 2) rankClass = "silver";
-                else if (item.rank === 3) rankClass = "bronze";
-                container.innerHTML += `
-                    <div class="lb-item">
-                        <div class="lb-rank ${rankClass}">${item.rank}</div>
-                        <div style="flex: 1;">
-                            <div style="font-weight: 700; font-size: 1rem; color: var(--text);">${item.name}</div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">Total Earnings</div>
-                        </div>
-                        <div style="font-weight: 800; font-size: 1.1rem; color: var(--success);">${item.amount.toLocaleString()} ETB</div>
-                    </div>`;
-            });
+            if (!container) return;
+            container.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding: 2rem 0;">Loading leaderboard...</p>`;
+            
+            try {
+                const res = await apiFetch('/api/leaderboard');
+                if (res.ok) {
+                    const data = await res.json();
+                    container.innerHTML = "";
+                    if (!data || data.length === 0) {
+                        container.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding: 2rem 0;">No top investors yet. Be the first!</p>`;
+                        return;
+                    }
+                    data.forEach((item, index) => {
+                        let rankClass = "";
+                        let rank = index + 1;
+                        if (rank === 1) rankClass = "gold";
+                        else if (rank === 2) rankClass = "silver";
+                        else if (rank === 3) rankClass = "bronze";
+
+                        container.innerHTML += `
+                            <div class="lb-item">
+                                <div class="lb-rank ${rankClass}">${rank}</div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 700; font-size: 1rem; color: var(--text);">${item.name}</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-muted);">Total Balance</div>
+                                </div>
+                                <div style="font-weight: 800; font-size: 1.1rem; color: var(--success);">${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} ETB</div>
+                            </div>`;
+                    });
+                } else {
+                    container.innerHTML = `<p style="text-align:center; color:var(--danger); padding: 2rem 0;">Failed to load leaderboard.</p>`;
+                }
+            } catch (e) {
+                container.innerHTML = `<p style="text-align:center; color:var(--danger); padding: 2rem 0;">Network error loading leaderboard.</p>`;
+            }
         }
 
         generateCaptcha();

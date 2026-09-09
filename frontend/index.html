@@ -14,7 +14,6 @@
             --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --text-muted: #94a3b8; --primary: #3b82f6; --success: #10b981; --danger: #ef4444; --border: #334155;
             --tg-bg: #0f172a; --tg-text: #f1f5f9; --tg-hint: #94a3b8; --tg-link: #3b82f6; --tg-button: #3b82f6; --tg-button-text: #ffffff; --tg-secondary-bg: #1e293b;
         }
-        /* FIX: Make it look like a mobile app on desktop */
         html { background-color: #020617; }
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; overflow-x: hidden; transition: background-color 0.3s ease, color 0.3s ease; padding-top: env(safe-area-inset-top); box-shadow: 0 0 30px rgba(0,0,0,0.5); }
         .hidden { display: none !important; }
@@ -32,11 +31,12 @@
         .logo-sm span { color: var(--primary); }
 
         .welcome-text { text-align: center; color: var(--text-muted); margin-bottom: 2.5rem; font-size: 1.1rem; font-weight: 500; }
-        .form-group { margin-bottom: 1.25rem; animation: slideUp 0.4s ease; }
+        .form-group { margin-bottom: 1.25rem; animation: slideUp 0.4s ease; width: 100%; }
         .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text); }
-        .input-field { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; }
+        /* FIX: Ensured inputs fit perfectly within borders */
+        .input-field { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; appearance: none; -webkit-appearance: none; box-sizing: border-box; margin: 0; }
         .input-field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
-        .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; }
+        .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; box-sizing: border-box; }
         .btn-primary:active { transform: scale(0.98); }
         .btn-primary:disabled { background: #475569; color: #cbd5e1; cursor: not-allowed; }
         .toggle-text { text-align: center; margin-top: 1.5rem; color: var(--text-muted); font-weight: 500; }
@@ -255,7 +255,6 @@
         <div id="view-deposit" class="app-view hidden">
             <div class="top-nav-bar">
                 <div class="nav-left-group"><button class="nav-back-btn" onclick="switchTab('home')">‹</button><div class="nav-title">Payment</div></div>
-                <!-- REMOVED: "i" icon button -->
             </div>
             <div id="dep-step-1" class="dep-step">
                 <h3 class="section-title">Payment amount (Minimum ETB 650)</h3>
@@ -306,7 +305,6 @@
                 </div>
             </div>
             <div class="mine-assets-grid">
-                <!-- CHANGED: "My Devices" to "My Products" -->
                 <div class="mine-asset-card clickable" onclick="openMyDevicesModal()">
                     <div class="mine-asset-label">My Products</div>
                     <div class="mine-asset-value" id="mine-device-count">0</div>
@@ -647,7 +645,6 @@ Note: Your investment earnings will be automatically deposited into your account
             document.getElementById("mine-income-sum").innerText = `ETB ${dailyIncomeSum.toLocaleString()}`;
         }
 
-        // UPDATED: Changed title to "My Investment Products" and added "Purchase Price"
         function openMyDevicesModal() {
             const body = document.getElementById('my-devices-modal-body');
             const products = userState.products || [];
@@ -899,7 +896,6 @@ Note: Your investment earnings will be automatically deposited into your account
             `;
         }
 
-        // UPDATED: Added "View Transaction History" button inside the modal
         function openWithdrawModal() {
             const body = document.getElementById("withdraw-modal-body");
             if (!withdrawalAccount) {
@@ -1033,29 +1029,29 @@ Note: Your investment earnings will be automatically deposited into your account
 
         function closeInfoModal() { document.getElementById('info-modal').classList.add("hidden"); }
 
+        // FIX: Removed Purchasing History and Txn ID column
         function openHistoryModal() {
             const body = document.getElementById('history-modal-body');
             const withdrawals = userState.transactions.filter(t => t.type === 'Withdrawal');
-            const purchases = userState.transactions.filter(t => t.type === 'Purchase');
-            let withdrawalHtml = '<tbody><tr><td colspan="5" style="text-align:center;">No history yet</td></tr></tbody>';
-            let purchaseHtml = '<tbody><tr><td colspan="4" style="text-align:center;">No history yet</td></tr></tbody>';
+            
+            let withdrawalHtml = '<tbody><tr><td colspan="4" style="text-align:center;">No history yet</td></tr></tbody>';
 
             if (withdrawals.length > 0) {
-                withdrawalHtml = '<tbody>' + withdrawals.map(w => `<tr><td>${w.timestamp}</td><td>${w.method}</td><td>${w.amount} ETB</td><td>${w.id}</td><td style="color: ${w.status === 'Approved' ? 'var(--success)' : 'var(--danger)'}; font-weight: 700;">${w.status}</td></tr>`).join('') + '</tbody>';
-            }
-            if (purchases.length > 0) {
-                purchaseHtml = '<tbody>' + purchases.map(p => `<tr><td>${p.timestamp}</td><td>${p.method}</td><td>${p.amount} ETB</td><td>${p.id}</td></tr>`).join('') + '</tbody>';
+                withdrawalHtml = '<tbody>' + withdrawals.map(w => `<tr><td>${w.timestamp}</td><td>${w.method}</td><td>${w.amount} ETB</td><td style="color: ${w.status === 'Approved' ? 'var(--success)' : 'var(--danger)'}; font-weight: 700;">${w.status}</td></tr>`).join('') + '</tbody>';
             }
 
             body.innerHTML = `
                 <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Transaction History</h2>
                 <div style="text-align: left; margin-bottom: 1.5rem;">
                     <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--text); font-weight: 700;">Withdrawal History</h3>
-                    <table class="history-table"><thead><tr><th>Timestamp</th><th>Method</th><th>Amount</th><th>Txn ID</th><th>Status</th></tr></thead>${withdrawalHtml}</table>
-                </div>
-                <div style="text-align: left; margin-bottom: 1.5rem;">
-                    <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--text); font-weight: 700;">Purchasing History</h3>
-                    <table class="history-table"><thead><tr><th>Timestamp</th><th>Method</th><th>Amount</th><th>Txn ID</th></tr></thead>${purchaseHtml}</table>
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th><th>Method</th><th>Amount</th><th>Status</th>
+                            </tr>
+                        </thead>
+                        ${withdrawalHtml}
+                    </table>
                 </div>
                 <button class="btn-primary" onclick="closeHistoryModal()">Close</button>`;
             document.getElementById('history-modal').classList.remove("hidden");

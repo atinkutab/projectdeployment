@@ -15,7 +15,8 @@
             --tg-bg: #0f172a; --tg-text: #f1f5f9; --tg-hint: #94a3b8; --tg-link: #3b82f6; --tg-button: #3b82f6; --tg-button-text: #ffffff; --tg-secondary-bg: #1e293b;
         }
         html { background-color: #020617; }
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; overflow-x: hidden; transition: background-color 0.3s ease, color 0.3s ease; padding-top: env(safe-area-inset-top); box-shadow: 0 0 30px rgba(0,0,0,0.5); }
+        /* FIX: 100dvh fixes mobile browser address bar hiding content */
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100dvh; position: relative; overflow-x: hidden; transition: background-color 0.3s ease, color 0.3s ease; padding-top: env(safe-area-inset-top); box-shadow: 0 0 30px rgba(0,0,0,0.5); }
         .hidden { display: none !important; }
         #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
         .toast { background: var(--card-bg); color: var(--text); padding: 16px 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid var(--border); border-left: 5px solid var(--primary); font-size: 14px; font-weight: 500; text-align: center; animation: slideDown 0.3s ease; opacity: 1; transition: opacity 0.3s ease, transform 0.3s ease; }
@@ -23,7 +24,7 @@
         .toast.error { border-left-color: var(--danger); }
         .toast.hide { opacity: 0; transform: translateY(-20px); }
         @keyframes slideDown { from { transform: translateY(-100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        #auth-view { padding: 2rem 1.5rem; display: flex; flex-direction: column; justify-content: center; min-height: 100vh; background: var(--bg); animation: fadeIn 0.5s ease; }
+        #auth-view { padding: 2rem 1.5rem; display: flex; flex-direction: column; justify-content: center; min-height: 100dvh; background: var(--bg); animation: fadeIn 0.5s ease; }
         
         .logo { text-align: center; font-size: 2.5rem; font-weight: 900; margin-bottom: 0.5rem; letter-spacing: -1px; color: var(--text); }
         .logo span { color: var(--primary); }
@@ -33,7 +34,6 @@
         .welcome-text { text-align: center; color: var(--text-muted); margin-bottom: 2.5rem; font-size: 1.1rem; font-weight: 500; }
         .form-group { margin-bottom: 1.25rem; animation: slideUp 0.4s ease; width: 100%; }
         .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text); }
-        /* FIX: Ensured inputs fit perfectly within borders */
         .input-field { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; appearance: none; -webkit-appearance: none; box-sizing: border-box; margin: 0; }
         .input-field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
         .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; box-sizing: border-box; }
@@ -154,7 +154,7 @@
         .nav-icon { font-size: 1.4rem; margin-bottom: 0.25rem; transition: transform 0.2s; }
         .nav-item.active .nav-icon { transform: translateY(-2px); }
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: flex-end; justify-content: center; z-index: 200; padding: 1rem; backdrop-filter: blur(5px); animation: fadeIn 0.2s ease; }
-        .modal-content { background: var(--card-bg); width: 100%; max-width: 480px; padding: 2rem; border-radius: 16px 16px 0 0; max-height: 90vh; overflow-y: auto; text-align: center; animation: slideUp 0.3s ease; color: var(--text); border-top: 1px solid var(--border); }
+        .modal-content { background: var(--card-bg); width: 100%; max-width: 480px; padding: 2rem; border-radius: 16px 16px 0 0; max-height: 90dvh; overflow-y: auto; text-align: center; animation: slideUp 0.3s ease; color: var(--text); border-top: 1px solid var(--border); }
         .loader-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; animation: fadeIn 0.2s ease; }
         #loader-1 { background-color: var(--bg); }
         .clock-spinner { position: relative; width: 56px; height: 56px; }
@@ -203,7 +203,7 @@
         <p class="welcome-text">Welcome! Please sign in or create an account.</p>
         <div id="signup-form">
             <div class="form-group"><label>Telegram Username</label><input type="text" id="su-username" class="input-field" placeholder="@username"></div>
-            <div class="form-group"><label>Phone Number</label><input type="tel" id="su-phone" class="input-field" value="+251" placeholder="+251 9..."></div>
+            <div class="form-group"><label>Phone Number</label><input type="tel" id="su-phone" class="input-field" value="+2519" placeholder="+2519..."></div>
             <div class="form-group"><label>Password</label><input type="password" id="su-pass" class="input-field" placeholder="********"></div>
             <div class="form-group"><label>Repeat Password</label><input type="password" id="su-pass2" class="input-field" placeholder="********"></div>
             <div class="form-group"><label>Captcha Code</label><div class="captcha-box" id="captcha-text" onclick="generateCaptcha()" title="Click to refresh">45be</div><input type="text" id="su-captcha" class="input-field" placeholder="Enter code above"></div>
@@ -218,7 +218,7 @@
             <p class="toggle-text">I already have an account, <span onclick="toggleAuth('signin')">Sign In</span></p>
         </div>
         <div id="signin-form" class="hidden">
-            <div class="form-group"><label>Phone Number</label><input type="tel" id="si-phone" class="input-field" value="+251" placeholder="+251 9..."></div>
+            <div class="form-group"><label>Phone Number</label><input type="tel" id="si-phone" class="input-field" value="+2519" placeholder="+2519..."></div>
             <div class="form-group"><label>Password</label><input type="password" id="si-pass" class="input-field" placeholder="********"></div>
             <div class="form-group" style="display: flex; align-items: center;"><input type="checkbox" id="si-remember" style="width: 20px; height: 20px; margin-right: 10px;"><label for="si-remember" style="margin: 0;">Remember password</label></div>
             <button class="btn-primary" onclick="handleSignIn()">Sign In</button>
@@ -524,14 +524,25 @@ Note: Your investment earnings will be automatically deposited into your account
             document.getElementById("signin-form").classList.toggle("hidden", view !== 'signin');
         }
 
+        // FIX: Strict phone format validation
+        function validatePhone(phone) {
+            const phoneRegex = /^\+2519\d{8}$/;
+            if (!phoneRegex.test(phone)) {
+                showToast("Invalid format! Phone number must start with +2519... (e.g., +251912345678)", 'error');
+                return false;
+            }
+            return true;
+        }
+
         async function handleSignUp() {
             const pass1 = document.getElementById("su-pass").value;
             const pass2 = document.getElementById("su-pass2").value;
             const captcha = document.getElementById("su-captcha").value;
             const username = document.getElementById("su-username").value;
-            const phone = document.getElementById("su-phone").value;
+            const phone = document.getElementById("su-phone").value.trim();
             const invite = document.getElementById("su-invite").value;
 
+            if (!validatePhone(phone)) return;
             if (pass1 !== pass2) return showToast("Passwords do not match!", 'error');
             if (captcha.toUpperCase() !== currentCaptcha) { generateCaptcha(); return showToast("Invalid Captcha code!", 'error'); }
             if (!username || !phone || !pass1) return showToast("Please fill all required fields.", 'error');
@@ -567,7 +578,8 @@ Note: Your investment earnings will be automatically deposited into your account
         async function handleSignIn() {
             const phone = document.getElementById("si-phone").value.trim();
             const pass = document.getElementById("si-pass").value;
-            if (!phone || !pass) return showToast("Please enter both phone number and password.", 'error');
+            if (!validatePhone(phone)) return;
+            if (!pass) return showToast("Please enter your password.", 'error');
 
             const rememberMe = document.getElementById("si-remember").checked;
 
@@ -587,6 +599,10 @@ Note: Your investment earnings will be automatically deposited into your account
                     userState.daily_income_balance = data.daily_income_balance || 0.00;
                     userState.invite_income = data.invite_income || 0.00;
                     
+                    // FIX: Sync products from backend on login
+                    userState.products = data.products || [];
+                    updateMineStats();
+
                     if (rememberMe) {
                         localStorage.setItem("ac_phone", phone);
                         localStorage.setItem("ac_pass", pass);
@@ -954,7 +970,6 @@ Note: Your investment earnings will be automatically deposited into your account
                 });
                 if (res.ok) {
                     showToast(`Withdrawal request of ${amount} ETB submitted!`, 'success');
-                    userState.transactions.push({ id: `WD_${Date.now()}`, type: 'Withdrawal', method: "CBE", amount: amount, status: 'Pending', timestamp: new Date().toLocaleString() });
                     userState.total_balance -= amount; updateBalances(); closeWithdrawModal();
                 } else {
                     const err = await res.json().catch(() => ({}));
@@ -1029,32 +1044,43 @@ Note: Your investment earnings will be automatically deposited into your account
 
         function closeInfoModal() { document.getElementById('info-modal').classList.add("hidden"); }
 
-        // FIX: Removed Purchasing History and Txn ID column
-        function openHistoryModal() {
+        // FIX: Fetch live history from backend
+        async function openHistoryModal() {
             const body = document.getElementById('history-modal-body');
-            const withdrawals = userState.transactions.filter(t => t.type === 'Withdrawal');
-            
-            let withdrawalHtml = '<tbody><tr><td colspan="4" style="text-align:center;">No history yet</td></tr></tbody>';
-
-            if (withdrawals.length > 0) {
-                withdrawalHtml = '<tbody>' + withdrawals.map(w => `<tr><td>${w.timestamp}</td><td>${w.method}</td><td>${w.amount} ETB</td><td style="color: ${w.status === 'Approved' ? 'var(--success)' : 'var(--danger)'}; font-weight: 700;">${w.status}</td></tr>`).join('') + '</tbody>';
-            }
-
-            body.innerHTML = `
-                <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Transaction History</h2>
-                <div style="text-align: left; margin-bottom: 1.5rem;">
-                    <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--text); font-weight: 700;">Withdrawal History</h3>
-                    <table class="history-table">
-                        <thead>
-                            <tr>
-                                <th>Timestamp</th><th>Method</th><th>Amount</th><th>Status</th>
-                            </tr>
-                        </thead>
-                        ${withdrawalHtml}
-                    </table>
-                </div>
-                <button class="btn-primary" onclick="closeHistoryModal()">Close</button>`;
             document.getElementById('history-modal').classList.remove("hidden");
+            body.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding: 2rem 0;">Loading history...</p>`;
+            
+            try {
+                const res = await apiFetch(`/api/user/transactions/${userState.telegram_id}`);
+                let transactions = [];
+                if (res.ok) {
+                    transactions = await res.json();
+                }
+                
+                const withdrawals = transactions.filter(t => t.type === 'Withdrawal');
+                let withdrawalHtml = '<tbody><tr><td colspan="4" style="text-align:center;">No history yet</td></tr></tbody>';
+
+                if (withdrawals.length > 0) {
+                    withdrawalHtml = '<tbody>' + withdrawals.map(w => `<tr><td>${new Date(w.date).toLocaleString()}</td><td>${w.method}</td><td>${w.amount} ETB</td><td style="color: ${w.status === 'Approved' ? 'var(--success)' : 'var(--danger)'}; font-weight: 700;">${w.status}</td></tr>`).join('') + '</tbody>';
+                }
+
+                body.innerHTML = `
+                    <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Transaction History</h2>
+                    <div style="text-align: left; margin-bottom: 1.5rem;">
+                        <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--text); font-weight: 700;">Withdrawal History</h3>
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th><th>Method</th><th>Amount</th><th>Status</th>
+                                </tr>
+                            </thead>
+                            ${withdrawalHtml}
+                        </table>
+                    </div>
+                    <button class="btn-primary" onclick="closeHistoryModal()">Close</button>`;
+            } catch (e) {
+                body.innerHTML = `<p style="text-align:center; color:var(--danger); padding: 2rem 0;">Failed to load history.</p>`;
+            }
         }
 
         function closeHistoryModal() { document.getElementById('history-modal').classList.add("hidden"); }

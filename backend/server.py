@@ -124,7 +124,7 @@ class UserBalance(Base):
     daily_income_balance = Column(Float, default=0.0)
     invitation_income = Column(Float, default=0.0)
     total_balance = Column(Float, default=0.0)
-    available_balance = Column(Float, default=0.0) # NEW: Tracks withdrawable funds
+    available_balance = Column(Float, default=0.0)
     last_checkin_at = Column(DateTime, nullable=True)
     user = relationship("User", back_populates="balance")
 
@@ -194,7 +194,6 @@ def init_db():
         except: pass
         db.commit()
 
-        # Initialize available_balance for existing users if it's 0
         db.execute(text("UPDATE user_balances SET available_balance = registration_bonus + daily_income_balance + invitation_income WHERE available_balance = 0;"))
         db.commit()
 
@@ -315,7 +314,7 @@ async def run_daily_yield_job():
                 if balance:
                     balance.daily_income_balance += product.daily_income
                     balance.total_balance += product.daily_income
-                    balance.available_balance += product.daily_income # NEW: Add yield to available
+                    balance.available_balance += product.daily_income
                     product.last_yield_claimed_at = now
                     db.commit()
                     notification = {
@@ -518,6 +517,20 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid phone number/username or password.")
     
     balance = db.query(UserBalance).filter(UserBalance.telegram_id == user.telegram_id).first()
+    
+    # NEW: Fetch user's purchased products to sync across devices
+    products_db = db.query(UserProduct).filter(UserProduct.telegram_id == user.telegram_id).all()
+    products_list = []
+    for p in products_db:
+        products_list.append({
+            "name": p.product_name,
+            "price": p.product_price,
+            "daily_income": p.daily_income,
+            "purchase_time": p.purchased_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "validity_days": 60,
+            "total_earning": p.daily_income * 60
+        })
+    
     return {
         "message": "Login successful",
         "telegram_id": user.telegram_id,
@@ -526,8 +539,22 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
         "invitation_code": user.invitation_code,
         "total_balance": balance.total_balance if balance else 0.0,
         "daily_income_balance": balance.daily_income_balance if balance else 0.0,
-        "invite_income": balance.invitation_income if balance else 0.0
+        "invite_income": balance.invitation_income if balance else 0.0,
+        "products": products_list
     }
+
+# NEW: Endpoint to fetch live transaction history
+@app.get("/api/user/transactions/{telegram_id}")
+def get_user_transactions(telegram_id: int, db: Session = Depends(get_db)):
+    deposits = db.query(Deposit).filter(Deposit.telegram_id == telegram_id).all()
+    withdrawals = db.query(Withdrawal).filter(Withdrawal.telegram_id == telegram_id).all()
+    history = []
+    for d in deposits:
+        history.append({"id": d.id, "type": "Deposit", "amount": d.amount_etb, "status": d.status, "date": d.created_at, "method": d.payment_method})
+    for w in withdrawals:
+        history.append({"id": w.id, "type": "Withdrawal", "amount": w.amount, "status": w.status, "date": w.created_at, "method": w.method})
+    history.sort(key=lambda x: x["date"], reverse=True)
+    return history
 
 @app.post("/api/daily-checkin")
 def daily_checkin(payload: DailyCheckinRequest, db: Session = Depends(get_db)):
@@ -542,7 +569,7 @@ def daily_checkin(payload: DailyCheckinRequest, db: Session = Depends(get_db)):
             raise HTTPException(status_code=400, detail=f"Daily check-in not available yet. Please wait {str(remaining).split('.')[0]}.")
     balance.daily_income_balance += 20.0
     balance.total_balance += 20.0
-    balance.available_balance += 20.0 # NEW
+    balance.available_balance += 20.0
     balance.last_checkin_at = now
     db.commit()
     return {"message": "Daily check-in successful! 20 ETB added to your balance.",
@@ -558,8 +585,6 @@ async def buy_product(payload: BuyProductRequest, db: Session = Depends(get_db))
         raise HTTPException(status_code=400, detail="Insufficient balance. Please deposit first.")
     
     balance.total_balance -= payload.product_price
-    # available_balance is NOT reduced, because the user is converting their capital into a product.
-    # The available_balance only goes up when yields are credited.
     
     db.add(UserProduct(telegram_id=payload.telegram_id, product_name=payload.product_name,
                        product_price=payload.product_price, daily_income=payload.daily_income,
@@ -667,7 +692,6 @@ def request_withdrawal(payload: WithdrawalRequest, db: Session = Depends(get_db)
     if not balance:
         raise HTTPException(status_code=400, detail="User balance not found.")
     
-    # FIX: Check against available_balance, not total_balance
     if payload.amount > balance.available_balance:
         raise HTTPException(status_code=400, detail="Withdrawal failed. You can only withdraw your registration bonus and earned income. Please purchase a product to activate daily income.")
     
@@ -675,7 +699,7 @@ def request_withdrawal(payload: WithdrawalRequest, db: Session = Depends(get_db)
     payout = payload.amount - fee
 
     balance.total_balance -= payload.amount
-    balance.available_balance -= payload.amount # NEW: Deduct from available
+    balance.available_balance -= payload.amount
     
     db.add(Withdrawal(
         telegram_id=payload.telegram_id, amount=payload.amount, 
@@ -728,7 +752,6 @@ async def approve_deposit(deposit_id: int, admin: str = Depends(get_current_admi
     if not user_balance: raise HTTPException(status_code=404, detail="User balance record not found.")
     
     user_balance.total_balance += deposit.amount_etb
-    # available_balance is NOT increased here, because deposited capital must be used to buy a product first.
     
     comm_setting = db.query(Setting).filter(Setting.key == "commission_rate").first()
     comm_rate = float(comm_setting.value) if comm_setting else 0.30
@@ -741,7 +764,7 @@ async def approve_deposit(deposit_id: int, admin: str = Depends(get_current_admi
         if inv_bal:
             inv_bal.invitation_income += commission
             inv_bal.total_balance += commission
-            inv_bal.available_balance += commission # NEW: Referral commission is withdrawable
+            inv_bal.available_balance += commission
     db.commit()
     notification = {"type": "deposit_approved", "amount": deposit.amount_etb, "new_balance": user_balance.total_balance}
     await manager.send_personal_message(json.dumps(notification), str(deposit.telegram_id))
@@ -776,7 +799,7 @@ async def reject_withdrawal(withdrawal_id: int, admin: str = Depends(get_current
     bal = db.query(UserBalance).filter(UserBalance.telegram_id == w.telegram_id).first()
     if bal: 
         bal.total_balance += w.amount
-        bal.available_balance += w.amount # NEW: Refund to available
+        bal.available_balance += w.amount
     db.commit()
     notification = {"type": "withdrawal_rejected", "amount": w.amount}
     await manager.send_personal_message(json.dumps(notification), str(w.telegram_id))

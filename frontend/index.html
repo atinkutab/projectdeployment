@@ -14,8 +14,9 @@
             --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --text-muted: #94a3b8; --primary: #3b82f6; --success: #10b981; --danger: #ef4444; --border: #334155;
             --tg-bg: #0f172a; --tg-text: #f1f5f9; --tg-hint: #94a3b8; --tg-link: #3b82f6; --tg-button: #3b82f6; --tg-button-text: #ffffff; --tg-secondary-bg: #1e293b;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; overflow-x: hidden; transition: background-color 0.3s ease, color 0.3s ease; padding-top: env(safe-area-inset-top); }
+        /* FIX: Make it look like a mobile app on desktop */
+        html { background-color: #020617; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; overflow-x: hidden; transition: background-color 0.3s ease, color 0.3s ease; padding-top: env(safe-area-inset-top); box-shadow: 0 0 30px rgba(0,0,0,0.5); }
         .hidden { display: none !important; }
         #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
         .toast { background: var(--card-bg); color: var(--text); padding: 16px 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid var(--border); border-left: 5px solid var(--primary); font-size: 14px; font-weight: 500; text-align: center; animation: slideDown 0.3s ease; opacity: 1; transition: opacity 0.3s ease, transform 0.3s ease; }
@@ -254,7 +255,7 @@
         <div id="view-deposit" class="app-view hidden">
             <div class="top-nav-bar">
                 <div class="nav-left-group"><button class="nav-back-btn" onclick="switchTab('home')">‹</button><div class="nav-title">Payment</div></div>
-                <button class="nav-info-btn" onclick="openHistoryModal()">i</button>
+                <!-- REMOVED: "i" icon button -->
             </div>
             <div id="dep-step-1" class="dep-step">
                 <h3 class="section-title">Payment amount (Minimum ETB 650)</h3>
@@ -305,8 +306,9 @@
                 </div>
             </div>
             <div class="mine-assets-grid">
+                <!-- CHANGED: "My Devices" to "My Products" -->
                 <div class="mine-asset-card clickable" onclick="openMyDevicesModal()">
-                    <div class="mine-asset-label">My Devices</div>
+                    <div class="mine-asset-label">My Products</div>
                     <div class="mine-asset-value" id="mine-device-count">0</div>
                 </div>
                 <div class="mine-asset-card">
@@ -314,7 +316,7 @@
                     <div class="mine-asset-value" id="mine-income-sum">ETB 0</div>
                 </div>
             </div>
-            <div class="no-shop-text">Click "My Devices" to view your active investments</div>
+            <div class="no-shop-text">Click "My Products" to view your active investments</div>
             <div class="action-card">
                 <h3 style="margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 700;">Referral Program</h3>
                 <p style="font-size: 0.9rem; color: var(--text-muted);">Earn 30% of your friend's entry price instantly! A flat single-level reward system.</p>
@@ -456,7 +458,6 @@ Note: Your investment earnings will be automatically deposited into your account
             total_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, has_checked_in: false, transactions: [], products: []
         };
 
-        // On page load, check for saved credentials
         window.onload = function() {
             const savedPhone = localStorage.getItem("ac_phone");
             const savedPass = localStorage.getItem("ac_pass");
@@ -581,7 +582,6 @@ Note: Your investment earnings will be automatically deposited into your account
                 if (res.ok) {
                     const data = await res.json();
                     userState.telegram_id = data.telegram_id || userState.telegram_id;
-                    // FIX: Correctly map backend response to userState
                     userState.total_balance = data.total_balance !== undefined ? data.total_balance : 300.00;
                     userState.telegram_username = data.telegram_username || phone;
                     userState.phone_number = phone;
@@ -589,7 +589,6 @@ Note: Your investment earnings will be automatically deposited into your account
                     userState.daily_income_balance = data.daily_income_balance || 0.00;
                     userState.invite_income = data.invite_income || 0.00;
                     
-                    // Remember Password Logic
                     if (rememberMe) {
                         localStorage.setItem("ac_phone", phone);
                         localStorage.setItem("ac_pass", pass);
@@ -648,17 +647,18 @@ Note: Your investment earnings will be automatically deposited into your account
             document.getElementById("mine-income-sum").innerText = `ETB ${dailyIncomeSum.toLocaleString()}`;
         }
 
+        // UPDATED: Changed title to "My Investment Products" and added "Purchase Price"
         function openMyDevicesModal() {
             const body = document.getElementById('my-devices-modal-body');
             const products = userState.products || [];
 
             if (products.length === 0) {
                 body.innerHTML = `
-                    <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">My Investment Devices</h2>
-                    <p style="text-align: center; color: var(--text-muted); margin-bottom: 2rem;">You have no active devices.<br>Go to the Home tab to invest and start earning!</p>
+                    <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">My Investment Products</h2>
+                    <p style="text-align: center; color: var(--text-muted); margin-bottom: 2rem;">You have no active products.<br>Go to the Home tab to invest and start earning!</p>
                     <button class="btn-primary" onclick="closeMyDevicesModal()">Close</button>`;
             } else {
-                let html = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">My Investment Devices (${products.length})</h2>`;
+                let html = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">My Investment Products (${products.length})</h2>`;
                 products.forEach(p => {
                     html += `
                         <div class="my-device-item">
@@ -671,12 +671,16 @@ Note: Your investment earnings will be automatically deposited into your account
                                 <span class="my-device-stat-value" style="color: var(--success)">${p.daily_income} ETB</span>
                             </div>
                             <div class="my-device-stat">
+                                <span class="my-device-stat-label">🏷️ Purchase Price:</span>
+                                <span class="my-device-stat-value">${p.price.toLocaleString()} ETB</span>
+                            </div>
+                            <div class="my-device-stat">
                                 <span class="my-device-stat-label">📅 Time of Purchase:</span>
                                 <span class="my-device-stat-value">${p.purchase_time}</span>
                             </div>
                             <div class="my-device-stat">
                                 <span class="my-device-stat-label">🚀 Total Expected Earning:</span>
-                                <span class="my-device-stat-value">${p.total_earning} ETB</span>
+                                <span class="my-device-stat-value">${p.total_earning.toLocaleString()} ETB</span>
                             </div>
                         </div>`;
                 });
@@ -895,12 +899,14 @@ Note: Your investment earnings will be automatically deposited into your account
             `;
         }
 
+        // UPDATED: Added "View Transaction History" button inside the modal
         function openWithdrawModal() {
             const body = document.getElementById("withdraw-modal-body");
             if (!withdrawalAccount) {
                 currentWdMethod = "CBE"; 
                 body.innerHTML = `
                     <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Add Withdrawal Account</h2>
+                    <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); margin-bottom: 15px;" onclick="closeWithdrawModal(); openHistoryModal();">View Transaction History</button>
                     <p style="margin-bottom: 1rem; color: var(--danger); font-size: 0.85rem; font-weight: 600; text-align: left;">⚠️ Please enter your CBE bank details carefully. Your payment method cannot be changed later without contacting customer service.</p>
                     <div class="form-group" style="text-align: left;"><label>CBE Account Name</label><input type="text" id="wd-name" class="input-field" placeholder="Enter account name"></div>
                     <div class="form-group" style="text-align: left;"><label>Account Number</label><input type="text" id="wd-number" class="input-field" placeholder="Enter account number"></div>
@@ -911,6 +917,7 @@ Note: Your investment earnings will be automatically deposited into your account
             } else {
                 body.innerHTML = `
                     <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Withdraw Funds</h2>
+                    <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); margin-bottom: 15px;" onclick="closeWithdrawModal(); openHistoryModal();">View Transaction History</button>
                     <div class="saved-account-box">
                         <div class="saved-account-label">Saved Payment Method:</div><div class="saved-account-name">${withdrawalAccount.method}</div>
                         <div style="margin-top: 0.5rem; font-size: 0.9rem;"><strong>${withdrawalAccount.name}</strong><br><span style="color: var(--text-muted);">${withdrawalAccount.number}</span></div>
@@ -1041,7 +1048,7 @@ Note: Your investment earnings will be automatically deposited into your account
             }
 
             body.innerHTML = `
-                <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">History</h2>
+                <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Transaction History</h2>
                 <div style="text-align: left; margin-bottom: 1.5rem;">
                     <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--text); font-weight: 700;">Withdrawal History</h3>
                     <table class="history-table"><thead><tr><th>Timestamp</th><th>Method</th><th>Amount</th><th>Txn ID</th><th>Status</th></tr></thead>${withdrawalHtml}</table>

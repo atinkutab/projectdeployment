@@ -488,7 +488,6 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
 
     bonus_setting = db.query(Setting).filter(Setting.key == "registration_bonus").first()
     bonus = float(bonus_setting.value) if bonus_setting else 300.0
-    # ISSUE 5: Registration bonus added to BOTH total_balance and available_balance
     db.add(UserBalance(telegram_id=new_user.telegram_id, registration_bonus=bonus, total_balance=bonus, available_balance=bonus))
 
     if payload.inviter_code:
@@ -519,7 +518,7 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
     
     balance = db.query(UserBalance).filter(UserBalance.telegram_id == user.telegram_id).first()
     
-    # Fetch user's purchased products to sync across devices
+    # NEW: Fetch user's purchased products to sync across devices
     products_db = db.query(UserProduct).filter(UserProduct.telegram_id == user.telegram_id).all()
     products_list = []
     for p in products_db:
@@ -539,23 +538,22 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
         "telegram_username": user.telegram_username,
         "invitation_code": user.invitation_code,
         "total_balance": balance.total_balance if balance else 0.0,
-        "available_balance": balance.available_balance if balance else 0.0,
         "daily_income_balance": balance.daily_income_balance if balance else 0.0,
         "invite_income": balance.invitation_income if balance else 0.0,
         "products": products_list
     }
 
-# ISSUE 7: Fetch live status directly from the database
+# NEW: Endpoint to fetch live transaction history
 @app.get("/api/user/transactions/{telegram_id}")
 def get_user_transactions(telegram_id: int, db: Session = Depends(get_db)):
     deposits = db.query(Deposit).filter(Deposit.telegram_id == telegram_id).all()
     withdrawals = db.query(Withdrawal).filter(Withdrawal.telegram_id == telegram_id).all()
     history = []
     for d in deposits:
-        history.append({"id": d.id, "type": "Deposit", "amount": d.amount_etb, "status": d.status, "date": d.created_at.isoformat() if d.created_at else None, "method": d.payment_method})
+        history.append({"id": d.id, "type": "Deposit", "amount": d.amount_etb, "status": d.status, "date": d.created_at, "method": d.payment_method})
     for w in withdrawals:
-        history.append({"id": w.id, "type": "Withdrawal", "amount": w.amount, "status": w.status, "date": w.created_at.isoformat() if w.created_at else None, "method": w.method})
-    history.sort(key=lambda x: x["date"] or "", reverse=True)
+        history.append({"id": w.id, "type": "Withdrawal", "amount": w.amount, "status": w.status, "date": w.created_at, "method": w.method})
+    history.sort(key=lambda x: x["date"], reverse=True)
     return history
 
 @app.post("/api/daily-checkin")
@@ -586,7 +584,6 @@ async def buy_product(payload: BuyProductRequest, db: Session = Depends(get_db))
     if balance.total_balance < payload.product_price:
         raise HTTPException(status_code=400, detail="Insufficient balance. Please deposit first.")
     
-    # ISSUE 5: Deduct from total_balance ONLY (do not touch available_balance)
     balance.total_balance -= payload.product_price
     
     db.add(UserProduct(telegram_id=payload.telegram_id, product_name=payload.product_name,
@@ -686,7 +683,6 @@ def paynow_webhook(payload: PaynowWebhookRequest, db: Session = Depends(get_db))
     db.commit()
     return {"message": f"Deposit status updated to {payload.status}."}
 
-# ISSUE 5: Withdrawal checks available_balance, NOT total_balance
 @app.post("/api/request-withdrawal")
 def request_withdrawal(payload: WithdrawalRequest, db: Session = Depends(get_db)):
     if payload.amount < 300:
@@ -697,7 +693,7 @@ def request_withdrawal(payload: WithdrawalRequest, db: Session = Depends(get_db)
         raise HTTPException(status_code=400, detail="User balance not found.")
     
     if payload.amount > balance.available_balance:
-        raise HTTPException(status_code=400, detail="You can only withdraw your registration bonus and earned income.")
+        raise HTTPException(status_code=400, detail="Withdrawal failed. You can only withdraw your registration bonus and earned income. Please purchase a product to activate daily income.")
     
     fee = payload.amount * 0.20
     payout = payload.amount - fee
@@ -755,7 +751,6 @@ async def approve_deposit(deposit_id: int, admin: str = Depends(get_current_admi
     user_balance = db.query(UserBalance).filter(UserBalance.telegram_id == deposit.telegram_id).first()
     if not user_balance: raise HTTPException(status_code=404, detail="User balance record not found.")
     
-    # ISSUE 5: Admin-approved deposit goes to total_balance ONLY (NOT available_balance)
     user_balance.total_balance += deposit.amount_etb
     
     comm_setting = db.query(Setting).filter(Setting.key == "commission_rate").first()

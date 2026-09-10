@@ -14,8 +14,8 @@
             --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --text-muted: #94a3b8; --primary: #3b82f6; --success: #10b981; --danger: #ef4444; --border: #334155;
             --tg-bg: #0f172a; --tg-text: #f1f5f9; --tg-hint: #94a3b8; --tg-link: #3b82f6; --tg-button: #3b82f6; --tg-button-text: #ffffff; --tg-secondary-bg: #1e293b;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; overflow-x: hidden; transition: background-color 0.3s ease, color 0.3s ease; padding-top: env(safe-area-inset-top); }
+        html { background-color: #020617; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100dvh; position: relative; overflow-x: hidden; transition: background-color 0.3s ease, color 0.3s ease; padding-top: env(safe-area-inset-top); box-shadow: 0 0 30px rgba(0,0,0,0.5); }
         .hidden { display: none !important; }
         #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
         .toast { background: var(--card-bg); color: var(--text); padding: 16px 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid var(--border); border-left: 5px solid var(--primary); font-size: 14px; font-weight: 500; text-align: center; animation: slideDown 0.3s ease; opacity: 1; transition: opacity 0.3s ease, transform 0.3s ease; }
@@ -23,7 +23,7 @@
         .toast.error { border-left-color: var(--danger); }
         .toast.hide { opacity: 0; transform: translateY(-20px); }
         @keyframes slideDown { from { transform: translateY(-100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        #auth-view { padding: 2rem 1.5rem; display: flex; flex-direction: column; justify-content: center; min-height: 100vh; background: var(--bg); animation: fadeIn 0.5s ease; }
+        #auth-view { padding: 2rem 1.5rem; display: flex; flex-direction: column; justify-content: center; min-height: 100dvh; background: var(--bg); animation: fadeIn 0.5s ease; }
         
         .logo { text-align: center; font-size: 2.5rem; font-weight: 900; margin-bottom: 0.5rem; letter-spacing: -1px; color: var(--text); }
         .logo span { color: var(--primary); }
@@ -31,11 +31,11 @@
         .logo-sm span { color: var(--primary); }
 
         .welcome-text { text-align: center; color: var(--text-muted); margin-bottom: 2.5rem; font-size: 1.1rem; font-weight: 500; }
-        .form-group { margin-bottom: 1.25rem; animation: slideUp 0.4s ease; }
+        .form-group { margin-bottom: 1.25rem; animation: slideUp 0.4s ease; width: 100%; }
         .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text); }
-        .input-field { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; }
+        .input-field { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; appearance: none; -webkit-appearance: none; box-sizing: border-box; margin: 0; }
         .input-field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
-        .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; }
+        .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; box-sizing: border-box; }
         .btn-primary:active { transform: scale(0.98); }
         .btn-primary:disabled { background: #475569; color: #cbd5e1; cursor: not-allowed; }
         .toggle-text { text-align: center; margin-top: 1.5rem; color: var(--text-muted); font-weight: 500; }
@@ -129,10 +129,13 @@
         .ref-val { font-weight: 700; font-size: 1rem; color: var(--text); }
         .btn-copy-sm { background: var(--danger); color: #fff; border: none; padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: transform 0.1s; }
         .btn-copy-sm:active { transform: scale(0.95); }
-        .commission-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+        
+        /* FIX: Cleaned up commission table for mobile */
+        .commission-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
         .commission-table th, .commission-table td { border: 1px solid var(--border); padding: 12px; text-align: center; }
         .commission-table th { background: var(--bg); color: var(--text-muted); font-weight: 600; }
         .commission-table td { color: var(--text); }
+        
         .stat-mini-row { display: flex; gap: 1rem; margin-top: 1rem; }
         .stat-mini { flex: 1; background: var(--bg); padding: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
         .stat-mini-val { font-weight: 800; font-size: 1.1rem; color: var(--text); }
@@ -153,7 +156,7 @@
         .nav-icon { font-size: 1.4rem; margin-bottom: 0.25rem; transition: transform 0.2s; }
         .nav-item.active .nav-icon { transform: translateY(-2px); }
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: flex-end; justify-content: center; z-index: 200; padding: 1rem; backdrop-filter: blur(5px); animation: fadeIn 0.2s ease; }
-        .modal-content { background: var(--card-bg); width: 100%; max-width: 480px; padding: 2rem; border-radius: 16px 16px 0 0; max-height: 90vh; overflow-y: auto; text-align: center; animation: slideUp 0.3s ease; color: var(--text); border-top: 1px solid var(--border); }
+        .modal-content { background: var(--card-bg); width: 100%; max-width: 480px; padding: 2rem; border-radius: 16px 16px 0 0; max-height: 90dvh; overflow-y: auto; text-align: center; animation: slideUp 0.3s ease; color: var(--text); border-top: 1px solid var(--border); }
         .loader-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; animation: fadeIn 0.2s ease; }
         #loader-1 { background-color: var(--bg); }
         .clock-spinner { position: relative; width: 56px; height: 56px; }
@@ -194,14 +197,15 @@
     </style>
 </head>
 <body>
-<div id="toast-container"></div>
+
+    <div id="toast-container"></div>
 
     <div id="auth-view">
         <div class="logo">Asset<span>Core</span></div>
         <p class="welcome-text">Welcome! Please sign in or create an account.</p>
         <div id="signup-form">
             <div class="form-group"><label>Telegram Username</label><input type="text" id="su-username" class="input-field" placeholder="@username"></div>
-            <div class="form-group"><label>Phone Number</label><input type="tel" id="su-phone" class="input-field" value="+251" placeholder="+2519..."></div>
+            <div class="form-group"><label>Phone Number</label><input type="tel" id="su-phone" class="input-field" value="+2519" placeholder="+2519..."></div>
             <div class="form-group"><label>Password</label><input type="password" id="su-pass" class="input-field" placeholder="********"></div>
             <div class="form-group"><label>Repeat Password</label><input type="password" id="su-pass2" class="input-field" placeholder="********"></div>
             <div class="form-group"><label>Captcha Code</label><div class="captcha-box" id="captcha-text" onclick="generateCaptcha()" title="Click to refresh">45be</div><input type="text" id="su-captcha" class="input-field" placeholder="Enter code above"></div>
@@ -216,7 +220,7 @@
             <p class="toggle-text">I already have an account, <span onclick="toggleAuth('signin')">Sign In</span></p>
         </div>
         <div id="signin-form" class="hidden">
-            <div class="form-group"><label>Phone Number</label><input type="tel" id="si-phone" class="input-field" value="+251" placeholder="+2519..."></div>
+            <div class="form-group"><label>Phone Number</label><input type="tel" id="si-phone" class="input-field" value="+2519" placeholder="+2519..."></div>
             <div class="form-group"><label>Password</label><input type="password" id="si-pass" class="input-field" placeholder="********"></div>
             <div class="form-group" style="display: flex; align-items: center;"><input type="checkbox" id="si-remember" style="width: 20px; height: 20px; margin-right: 10px;"><label for="si-remember" style="margin: 0;">Remember password</label></div>
             <button class="btn-primary" onclick="handleSignIn()">Sign In</button>
@@ -253,7 +257,6 @@
         <div id="view-deposit" class="app-view hidden">
             <div class="top-nav-bar">
                 <div class="nav-left-group"><button class="nav-back-btn" onclick="switchTab('home')">‹</button><div class="nav-title">Payment</div></div>
-                <!-- ISSUE 1: "i" icon removed entirely -->
             </div>
             <div id="dep-step-1" class="dep-step">
                 <h3 class="section-title">Payment amount (Minimum ETB 650)</h3>
@@ -273,8 +276,7 @@
             </div>
             <div id="dep-step-2" class="dep-step hidden">
                 <div class="invoice-header"><div style="color: var(--text-muted); font-size: 1rem; font-weight: 500;">Amount Due</div><div class="invoice-amt">Br <span id="inv-amount">0.00</span></div></div>
-                <!-- ISSUE 8: 15-minute countdown replaced with red warning text -->
-                <div class="timer-box" style="font-size: 1.1rem;">⚠️ DO NOT PAY WITHOUT MANAGER APPROVAL</div>
+                <div class="timer-box" id="deposit-timer">Account expires within 15:00</div>
                 <table class="invoice-table">
                     <tr><td class="inv-label">Account Name</td><td class="inv-val" id="inv-acc-name">Loading...</td></tr>
                     <tr><td class="inv-label">Bank Name</td><td class="inv-val" id="inv-bank-name">Loading...</td></tr>
@@ -305,7 +307,6 @@
                 </div>
             </div>
             <div class="mine-assets-grid">
-                <!-- ISSUE 3: "My Devices" renamed to "My Products" -->
                 <div class="mine-asset-card clickable" onclick="openMyDevicesModal()">
                     <div class="mine-asset-label">My Products</div>
                     <div class="mine-asset-value" id="mine-device-count">0</div>
@@ -315,7 +316,6 @@
                     <div class="mine-asset-value" id="mine-income-sum">ETB 0</div>
                 </div>
             </div>
-            <!-- ISSUE 3: "My Devices" renamed to "My Products" -->
             <div class="no-shop-text">Click "My Products" to view your active investments</div>
             <div class="action-card">
                 <h3 style="margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 700;">Referral Program</h3>
@@ -323,8 +323,23 @@
                 <div class="referral-box">
                     <div class="ref-row"><span class="ref-label">Invitation Code:</span><div class="ref-val-group"><strong id="user-invite-code">DEMO01</strong><button class="btn-copy-sm" onclick="copyText(document.getElementById('user-invite-code').innerText)">Copy</button></div></div>
                     <div class="ref-row"><span class="ref-label">Invitation Link:</span><div class="ref-val-group"><strong id="user-invite-link-display" style="font-size: 0.8rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">https://assetcore-et.vercel.app/?start=DEMO01</strong><button class="btn-copy-sm" onclick="copyReferralLink()">Copy</button></div></div>
-                    <!-- ISSUE 0: "Level" column removed from commission table -->
-                    <table class="commission-table"><thead><tr><th>Commission</th><th>Valid Users</th><th>Income</th></tr></thead><tbody><tr><td>30%</td><td>0</td><td>0 ETB</td></tr></tbody></table>
+                    
+                    <!-- FIX: Removed Level and Commission columns -->
+                    <table class="commission-table">
+                        <thead>
+                            <tr>
+                                <th>Valid Users</th>
+                                <th>Income</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>0</td>
+                                <td>0 ETB</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
                     <div class="stat-mini-row">
                         <div class="stat-mini"><div class="stat-mini-val">0</div><div class="stat-mini-lbl">Valid users</div></div>
                         <div class="stat-mini"><div class="stat-mini-val">0 ETB</div><div class="stat-mini-lbl">Invited income</div></div>
@@ -456,15 +471,9 @@ Note: Your investment earnings will be automatically deposited into your account
         
         let userState = {
             telegram_id: "123456789", telegram_username: "@assetcore_user", phone_number: "+251900000000", invite_code: "DEMO01",
-            total_balance: 300.00, available_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, has_checked_in: false, transactions: [], products: []
+            total_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, has_checked_in: false, transactions: [], products: []
         };
 
-        // ISSUE 6: Phone number format validation
-        function validatePhoneNumber(phone) {
-            return /^\+2519\d{8}$/.test(phone.trim());
-        }
-
-        // On page load, check for saved credentials
         window.onload = function() {
             const savedPhone = localStorage.getItem("ac_phone");
             const savedPass = localStorage.getItem("ac_pass");
@@ -491,7 +500,7 @@ Note: Your investment earnings will be automatically deposited into your account
             document.getElementById("captcha-text").innerText = currentCaptcha;
         }
 
-function initWebSocket(userId) {
+        function initWebSocket(userId) {
             if (socket) { try { socket.close(); } catch(e) {} socket = null; }
             if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
             const ws_url = `wss://projectdeployment-1-yuwq.onrender.com/ws/${userId}`;
@@ -504,20 +513,22 @@ function initWebSocket(userId) {
                     if (data.type === "deposit_approved") {
                         userState.total_balance = data.new_balance; updateBalances();
                         showToast(`✅ Deposit Approved! ${data.amount} ETB added.`, 'success');
+                        const tx = userState.transactions.find(t => t.type === 'Purchase' && t.status === 'Pending' && t.amount === data.amount);
+                        if (tx) tx.status = 'Approved';
                     } else if (data.type === "withdrawal_approved") {
                         showToast(`✅ Withdrawal Approved! ${data.amount} ETB sent.`, 'success');
+                        const tx = userState.transactions.find(t => t.type === 'Withdrawal' && t.status === 'Pending' && t.amount === data.amount);
+                        if (tx) tx.status = 'Approved';
                     } else if (data.type === "withdrawal_rejected") { 
-                        userState.total_balance += data.amount;
-                        userState.available_balance = (userState.available_balance || 0) + data.amount;
-                        updateBalances();
+                        userState.total_balance += data.amount; updateBalances();
                         showToast(`❌ Withdrawal Rejected! ${data.amount} ETB refunded.`, 'error');
+                        const tx = userState.transactions.find(t => t.type === 'Withdrawal' && t.status === 'Pending' && t.amount === data.amount);
+                        if (tx) tx.status = 'Rejected';
                     } else if (data.type === "product_purchased") {
                         userState.total_balance = data.new_balance; updateBalances();
                         showToast(`✅ ${data.name} activated!`, 'success');
                     } else if (data.type === "yield_credited") {
-                        userState.total_balance = data.new_balance; userState.daily_income_balance += data.amount;
-                        userState.available_balance = (userState.available_balance || 0) + data.amount;
-                        updateBalances();
+                        userState.total_balance = data.new_balance; userState.daily_income_balance += data.amount; updateBalances();
                         showToast(`💰 Daily Income: +${data.amount} ETB from ${data.product}.`, 'success');
                     }
                 } catch (err) {}
@@ -531,18 +542,24 @@ function initWebSocket(userId) {
             document.getElementById("signin-form").classList.toggle("hidden", view !== 'signin');
         }
 
+        function validatePhone(phone) {
+            const phoneRegex = /^\+2519\d{8}$/;
+            if (!phoneRegex.test(phone)) {
+                showToast("Invalid format! Phone number must start with +2519... (e.g., +251912345678)", 'error');
+                return false;
+            }
+            return true;
+        }
+
         async function handleSignUp() {
             const pass1 = document.getElementById("su-pass").value;
             const pass2 = document.getElementById("su-pass2").value;
             const captcha = document.getElementById("su-captcha").value;
             const username = document.getElementById("su-username").value;
-            const phone = document.getElementById("su-phone").value;
+            const phone = document.getElementById("su-phone").value.trim();
             const invite = document.getElementById("su-invite").value;
 
-            // ISSUE 6: Phone number format validation
-            if (!validatePhoneNumber(phone)) {
-                return showToast("Invalid format! Phone number must start with +2519...", 'error');
-            }
+            if (!validatePhone(phone)) return;
             if (pass1 !== pass2) return showToast("Passwords do not match!", 'error');
             if (captcha.toUpperCase() !== currentCaptcha) { generateCaptcha(); return showToast("Invalid Captcha code!", 'error'); }
             if (!username || !phone || !pass1) return showToast("Please fill all required fields.", 'error');
@@ -559,7 +576,6 @@ function initWebSocket(userId) {
                     const data = await res.json();
                     userState.telegram_id = data.telegram_id;
                     userState.total_balance = data.registration_bonus;
-                    userState.available_balance = data.registration_bonus;
                     userState.telegram_username = username;
                     userState.phone_number = phone;
                     userState.invite_code = data.invitation_code; 
@@ -579,12 +595,8 @@ function initWebSocket(userId) {
         async function handleSignIn() {
             const phone = document.getElementById("si-phone").value.trim();
             const pass = document.getElementById("si-pass").value;
-
-            // ISSUE 6: Phone number format validation
-            if (!validatePhoneNumber(phone)) {
-                return showToast("Invalid format! Phone number must start with +2519...", 'error');
-            }
-            if (!phone || !pass) return showToast("Please enter both phone number and password.", 'error');
+            if (!validatePhone(phone)) return;
+            if (!pass) return showToast("Please enter your password.", 'error');
 
             const rememberMe = document.getElementById("si-remember").checked;
 
@@ -598,15 +610,15 @@ function initWebSocket(userId) {
                     const data = await res.json();
                     userState.telegram_id = data.telegram_id || userState.telegram_id;
                     userState.total_balance = data.total_balance !== undefined ? data.total_balance : 300.00;
-                    userState.available_balance = data.available_balance !== undefined ? data.available_balance : userState.total_balance;
                     userState.telegram_username = data.telegram_username || phone;
                     userState.phone_number = phone;
                     userState.invite_code = data.invitation_code || "DEMO01";
                     userState.daily_income_balance = data.daily_income_balance || 0.00;
                     userState.invite_income = data.invite_income || 0.00;
-                    userState.products = data.products || [];
                     
-                    // Remember Password Logic
+                    userState.products = data.products || [];
+                    updateMineStats();
+
                     if (rememberMe) {
                         localStorage.setItem("ac_phone", phone);
                         localStorage.setItem("ac_pass", pass);
@@ -687,14 +699,9 @@ function initWebSocket(userId) {
                                 <span class="my-device-stat-label">💰 Daily Income:</span>
                                 <span class="my-device-stat-value" style="color: var(--success)">${p.daily_income} ETB</span>
                             </div>
-                            <!-- ISSUE 4: Product Name and Purchase Price added below Daily Income -->
                             <div class="my-device-stat">
-                                <span class="my-device-stat-label">📦 Product Name:</span>
-                                <span class="my-device-stat-value">${p.name}</span>
-                            </div>
-                            <div class="my-device-stat">
-                                <span class="my-device-stat-label">💵 Purchase Price:</span>
-                                <span class="my-device-stat-value">${p.price} ETB</span>
+                                <span class="my-device-stat-label">🏷️ Purchase Price:</span>
+                                <span class="my-device-stat-value">${p.price.toLocaleString()} ETB</span>
                             </div>
                             <div class="my-device-stat">
                                 <span class="my-device-stat-label">📅 Time of Purchase:</span>
@@ -702,7 +709,7 @@ function initWebSocket(userId) {
                             </div>
                             <div class="my-device-stat">
                                 <span class="my-device-stat-label">🚀 Total Expected Earning:</span>
-                                <span class="my-device-stat-value">${p.total_earning} ETB</span>
+                                <span class="my-device-stat-value">${p.total_earning.toLocaleString()} ETB</span>
                             </div>
                         </div>`;
                 });
@@ -859,7 +866,7 @@ function initWebSocket(userId) {
                     
                     document.getElementById("dep-step-1").classList.add("hidden");
                     document.getElementById("dep-step-2").classList.remove("hidden");
-                    // ISSUE 8: Countdown timer removed, no startTimer() call
+                    startTimer();
                 } else {
                     const err = await res.json().catch(() => ({}));
                     const errorMsg = extractErrorMessage(err, "Failed to get payment account.");
@@ -870,6 +877,17 @@ function initWebSocket(userId) {
                 showToast("Network error fetching account.", 'error');
                 switchTab('home');
             }
+        }
+
+        function startTimer() {
+            clearInterval(countdownInterval);
+            let timeLeft = 15 * 60; const timerEl = document.getElementById("deposit-timer");
+            countdownInterval = setInterval(() => {
+                if (timeLeft <= 0) { clearInterval(countdownInterval); showToast("Session expired.", 'error'); switchTab('home'); return; }
+                timeLeft--;
+                const m = Math.floor(timeLeft / 60).toString().padStart(2, '0'); const s = (timeLeft % 60).toString().padStart(2, '0');
+                timerEl.innerText = `Account expires within ${m}:${s}`;
+            }, 1000);
         }
 
         function openConfirmModal() { document.getElementById("confirm-transfer-modal").classList.remove("hidden"); }
@@ -889,6 +907,7 @@ function initWebSocket(userId) {
                 });
                 if (res.ok) {
                     showToast("Submitted successfully! Waiting for admin approval.", 'success');
+                    userState.transactions.push({ id: txId, type: 'Purchase', method: currentPaymentMethod, amount: currentProductAmount, status: 'Pending', timestamp: new Date().toLocaleString() });
                     closeConfirmModal(); clearInterval(countdownInterval); document.getElementById("tx-id").value = "";
                     document.getElementById("dep-step-1").classList.remove("hidden"); document.getElementById("dep-step-2").classList.add("hidden");
                     switchTab('home');
@@ -915,8 +934,7 @@ function initWebSocket(userId) {
                 currentWdMethod = "CBE"; 
                 body.innerHTML = `
                     <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Add Withdrawal Account</h2>
-                    <!-- ISSUE 1: Withdrawal History button added -->
-                    <button class="btn-upload-voucher" style="margin-bottom: 1rem;" onclick="closeWithdrawModal(); openHistoryModal();">Withdrawal History</button>
+                    <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); margin-bottom: 15px;" onclick="closeWithdrawModal(); openHistoryModal();">View Transaction History</button>
                     <p style="margin-bottom: 1rem; color: var(--danger); font-size: 0.85rem; font-weight: 600; text-align: left;">⚠️ Please enter your CBE bank details carefully. Your payment method cannot be changed later without contacting customer service.</p>
                     <div class="form-group" style="text-align: left;"><label>CBE Account Name</label><input type="text" id="wd-name" class="input-field" placeholder="Enter account name"></div>
                     <div class="form-group" style="text-align: left;"><label>Account Number</label><input type="text" id="wd-number" class="input-field" placeholder="Enter account number"></div>
@@ -927,8 +945,7 @@ function initWebSocket(userId) {
             } else {
                 body.innerHTML = `
                     <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Withdraw Funds</h2>
-                    <!-- ISSUE 1: Withdrawal History button added -->
-                    <button class="btn-upload-voucher" style="margin-bottom: 1rem;" onclick="closeWithdrawModal(); openHistoryModal();">Withdrawal History</button>
+                    <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); margin-bottom: 15px;" onclick="closeWithdrawModal(); openHistoryModal();">View Transaction History</button>
                     <div class="saved-account-box">
                         <div class="saved-account-label">Saved Payment Method:</div><div class="saved-account-name">${withdrawalAccount.method}</div>
                         <div style="margin-top: 0.5rem; font-size: 0.9rem;"><strong>${withdrawalAccount.name}</strong><br><span style="color: var(--text-muted);">${withdrawalAccount.number}</span></div>
@@ -961,8 +978,7 @@ function initWebSocket(userId) {
         async function handleWithdraw() {
             const amount = parseFloat(document.getElementById("withdraw-amount").value);
             if (isNaN(amount) || amount < 300) return showToast("Minimum withdrawal is 300 ETB.", 'error');
-            const availableBal = userState.available_balance !== undefined ? userState.available_balance : userState.total_balance;
-            if (amount > availableBal) return showToast("Insufficient balance. You can only withdraw your registration bonus and earned income.", 'error');
+            if (amount > userState.total_balance) return showToast("Insufficient balance.", 'error');
             try {
                 const res = await apiFetch('/api/request-withdrawal', {
                     method: "POST", headers: { "Content-Type": "application/json" },
@@ -970,9 +986,7 @@ function initWebSocket(userId) {
                 });
                 if (res.ok) {
                     showToast(`Withdrawal request of ${amount} ETB submitted!`, 'success');
-                    userState.total_balance -= amount;
-                    userState.available_balance = (userState.available_balance || 0) - amount;
-                    updateBalances(); closeWithdrawModal();
+                    userState.total_balance -= amount; updateBalances(); closeWithdrawModal();
                 } else {
                     const err = await res.json().catch(() => ({}));
                     showToast(extractErrorMessage(err, "Withdrawal failed."), 'error');
@@ -1046,42 +1060,41 @@ function initWebSocket(userId) {
 
         function closeInfoModal() { document.getElementById('info-modal').classList.add("hidden"); }
 
-        // ISSUE 7: Fetch live status from backend endpoint
         async function openHistoryModal() {
             const body = document.getElementById('history-modal-body');
-            body.innerHTML = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Loading...</h2>`;
             document.getElementById('history-modal').classList.remove("hidden");
+            body.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding: 2rem 0;">Loading history...</p>`;
             
             try {
-                const res = await apiFetch(`/api/user/transactions/${parseInt(userState.telegram_id)}`);
-                if (!res.ok) throw new Error('Failed to fetch');
-                const data = await res.json();
-                
-                // ISSUE 1: Only show Withdrawal History (Purchasing History removed)
-                const withdrawals = data.filter(t => t.type === 'Withdrawal');
-                
-                let withdrawalHtml = '<tbody><tr><td colspan="4" style="text-align:center;">No history yet</td></tr></tbody>';
-                
-                if (withdrawals.length > 0) {
-                    // ISSUE 1: Txn ID column removed from Withdrawal History
-                    withdrawalHtml = '<tbody>' + withdrawals.map(w => {
-                        const dateStr = w.date ? new Date(w.date).toLocaleString() : 'N/A';
-                        const statusColor = w.status === 'Approved' ? 'var(--success)' : (w.status === 'Rejected' ? 'var(--danger)' : 'var(--text-muted)');
-                        return `<tr><td>${dateStr}</td><td>${w.method}</td><td>${w.amount} ETB</td><td style="color: ${statusColor}; font-weight: 700;">${w.status}</td></tr>`;
-                    }).join('') + '</tbody>';
+                const res = await apiFetch(`/api/user/transactions/${userState.telegram_id}`);
+                let transactions = [];
+                if (res.ok) {
+                    transactions = await res.json();
                 }
                 
+                const withdrawals = transactions.filter(t => t.type === 'Withdrawal');
+                let withdrawalHtml = '<tbody><tr><td colspan="4" style="text-align:center;">No history yet</td></tr></tbody>';
+
+                if (withdrawals.length > 0) {
+                    withdrawalHtml = '<tbody>' + withdrawals.map(w => `<tr><td>${new Date(w.date).toLocaleString()}</td><td>${w.method}</td><td>${w.amount} ETB</td><td style="color: ${w.status === 'Approved' ? 'var(--success)' : 'var(--danger)'}; font-weight: 700;">${w.status}</td></tr>`).join('') + '</tbody>';
+                }
+
                 body.innerHTML = `
-                    <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Withdrawal History</h2>
+                    <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Transaction History</h2>
                     <div style="text-align: left; margin-bottom: 1.5rem;">
-                        <table class="history-table"><thead><tr><th>Timestamp</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead>${withdrawalHtml}</table>
+                        <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--text); font-weight: 700;">Withdrawal History</h3>
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th><th>Method</th><th>Amount</th><th>Status</th>
+                                </tr>
+                            </thead>
+                            ${withdrawalHtml}
+                        </table>
                     </div>
                     <button class="btn-primary" onclick="closeHistoryModal()">Close</button>`;
             } catch (e) {
-                body.innerHTML = `
-                    <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Withdrawal History</h2>
-                    <p style="text-align: center; color: var(--text-muted); margin-bottom: 1.5rem;">Failed to load history. Please try again.</p>
-                    <button class="btn-primary" onclick="closeHistoryModal()">Close</button>`;
+                body.innerHTML = `<p style="text-align:center; color:var(--danger); padding: 2rem 0;">Failed to load history.</p>`;
             }
         }
 

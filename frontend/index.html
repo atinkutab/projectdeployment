@@ -14,14 +14,8 @@
             --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --text-muted: #94a3b8; --primary: #3b82f6; --success: #10b981; --danger: #ef4444; --border: #334155;
             --tg-bg: #0f172a; --tg-text: #f1f5f9; --tg-hint: #94a3b8; --tg-link: #3b82f6; --tg-button: #3b82f6; --tg-button-text: #ffffff; --tg-secondary-bg: #1e293b;
         }
-        html, body { height: 100%; margin: 0; padding: 0; }
-        html { background-color: #020617; }
-        body { 
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background-color: var(--bg); color: var(--text); 
-            max-width: 480px; margin: 0 auto; 
-            display: flex; flex-direction: column; height: 100dvh; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.5); 
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; overflow-x: hidden; transition: background-color 0.3s ease, color 0.3s ease; padding-top: env(safe-area-inset-top); }
         .hidden { display: none !important; }
         #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
         .toast { background: var(--card-bg); color: var(--text); padding: 16px 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid var(--border); border-left: 5px solid var(--primary); font-size: 14px; font-weight: 500; text-align: center; animation: slideDown 0.3s ease; opacity: 1; transition: opacity 0.3s ease, transform 0.3s ease; }
@@ -29,18 +23,19 @@
         .toast.error { border-left-color: var(--danger); }
         .toast.hide { opacity: 0; transform: translateY(-20px); }
         @keyframes slideDown { from { transform: translateY(-100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        #auth-view { padding: 2rem 1.5rem; display: flex; flex-direction: column; justify-content: center; min-height: 100vh; background: var(--bg); animation: fadeIn 0.5s ease; }
         
-        #auth-view { flex: 1; overflow-y: auto; padding: 2rem 1.5rem; display: flex; flex-direction: column; justify-content: center; background: var(--bg); animation: fadeIn 0.5s ease; }
         .logo { text-align: center; font-size: 2.5rem; font-weight: 900; margin-bottom: 0.5rem; letter-spacing: -1px; color: var(--text); }
         .logo span { color: var(--primary); }
         .logo-sm { font-size: 1.2rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text); }
         .logo-sm span { color: var(--primary); }
+
         .welcome-text { text-align: center; color: var(--text-muted); margin-bottom: 2.5rem; font-size: 1.1rem; font-weight: 500; }
-        .form-group { margin-bottom: 1.25rem; animation: slideUp 0.4s ease; width: 100%; }
+        .form-group { margin-bottom: 1.25rem; animation: slideUp 0.4s ease; }
         .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text); }
-        .input-field { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; -webkit-appearance: none; appearance: none; box-sizing: border-box; margin: 0; }
+        .input-field { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; }
         .input-field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
-        .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; box-sizing: border-box; }
+        .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; }
         .btn-primary:active { transform: scale(0.98); }
         .btn-primary:disabled { background: #475569; color: #cbd5e1; cursor: not-allowed; }
         .toggle-text { text-align: center; margin-top: 1.5rem; color: var(--text-muted); font-weight: 500; }
@@ -51,9 +46,7 @@
         .terms-group label { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
         .terms-group label span { color: var(--primary); font-weight: 700; cursor: pointer; }
 
-        #dashboard-view { flex: 1; display: flex; flex-direction: column; overflow: hidden; animation: fadeIn 0.4s ease; }
-        .app-view { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 1rem; }
-        
+        #dashboard-view { padding-bottom: calc(90px + env(safe-area-inset-bottom)); animation: fadeIn 0.4s ease; }
         .view-header { background: var(--card-bg); padding: 1.5rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; }
         .view-title { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
         .top-nav-bar { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; background: var(--card-bg); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
@@ -61,7 +54,9 @@
         .nav-back-btn { font-size: 1.5rem; background: none; border: none; color: var(--text); cursor: pointer; line-height: 1; padding: 0.5rem; transition: transform 0.2s; }
         .nav-back-btn:active { transform: scale(1.2); }
         .nav-title { font-size: 1.2rem; font-weight: 700; color: var(--text); }
-        .product-card { background: var(--card-bg); margin: 1.5rem; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; transition: transform 0.3s ease; animation: slideUp 0.4s ease; }
+        .nav-info-btn { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: #fff; border: none; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; font-style: italic; cursor: pointer; line-height: 1; transition: transform 0.2s; }
+        .nav-info-btn:active { transform: scale(0.9); }
+        .product-card { background: var(--card-bg); margin: 1.5rem 1.5rem; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; transition: transform 0.3s ease; animation: slideUp 0.4s ease; }
         .product-card:active { transform: translateY(-2px); }
         .product-img { width: 100%; height: 200px; object-fit: cover; display: block; background-color: var(--bg); }
         .product-header { background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%); color: #fff; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
@@ -71,8 +66,7 @@
         .product-price { font-size: 1.4rem; font-weight: 800; white-space: nowrap; align-self: center; }
         .product-body { padding: 1.5rem; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
-        .stat-item { display: flex; flex-direction: column; }
-        .stat-item .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 500; }
+        .stat-item { display: flex; flex-direction: column; }.stat-item .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 500; }
         .stat-item .stat-value { font-size: 1.15rem; font-weight: 700; color: var(--text); }
         .stat-item .stat-value.highlight { color: var(--success); }
         .btn-buy { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; }
@@ -103,7 +97,7 @@
         .btn-copy-inline { background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; color: var(--text-muted); transition: transform 0.1s; }
         .btn-copy-inline:active { transform: scale(0.95); }
         .warning-notes { background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2); color: #fbbf24; padding: 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 1.5rem; }
-        .balance-container { background: radial-gradient(circle at top right, #1e293b, #0f172a); color: #fff; padding: 2.5rem 1.5rem 2rem; border-radius: 1.5rem; margin: 1.5rem; position: relative; overflow: hidden; box-shadow: inset 0 0 40px rgba(16, 185, 129, 0.05); }
+        .balance-container { background: radial-gradient(circle at top right, #1e293b, #0f172a); color: #fff; padding: 2.5rem 1.5rem 2rem; border-bottom-left-radius: 2.5rem; border-bottom-right-radius: 2.5rem; margin-bottom: 1.5rem; position: relative; overflow: hidden; box-shadow: inset 0 0 40px rgba(16, 185, 129, 0.05); }
         .candlestick-bg { position: absolute; bottom: 0; left: 0; width: 100%; height: 70%; display: flex; align-items: flex-end; justify-content: space-around; padding: 0 10px; z-index: 0; pointer-events: none; }
         .candle { width: 6px; background: linear-gradient(to top, rgba(59, 130, 246, 0.1), #3b82f6); border-radius: 4px 4px 0 0; animation: pulse-candle 2.5s ease-in-out infinite; box-shadow: 0 0 8px rgba(59, 130, 246, 0.4); }
         .candle.green { background: linear-gradient(to top, rgba(16, 185, 129, 0.1), #10b981); box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
@@ -119,7 +113,7 @@
         .sub-bals { display: flex; justify-content: space-between; position: relative; z-index: 1; }
         .sub-bal-item { text-align: left; }
         .sub-bal-item:last-child { text-align: right; }
-        .mine-assets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 0 1.5rem 1.5rem; }
+        .mine-assets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem; }
         .mine-asset-card { background: var(--card-bg); padding: 1.5rem 1rem; border-radius: 12px; border: 1px solid var(--border); text-align: center; transition: transform 0.2s; }
         .mine-asset-card:active { transform: scale(0.98); }
         .mine-asset-card.clickable { cursor: pointer; border-color: var(--primary); }
@@ -135,17 +129,14 @@
         .ref-val { font-weight: 700; font-size: 1rem; color: var(--text); }
         .btn-copy-sm { background: var(--danger); color: #fff; border: none; padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: transform 0.1s; }
         .btn-copy-sm:active { transform: scale(0.95); }
-        
-        /* FIX: Added table-layout: fixed and width: 100% to keep columns perfectly inside the box */
-        .commission-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.8rem; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); table-layout: fixed; }
-        .commission-table th, .commission-table td { border: 1px solid var(--border); padding: 8px; text-align: center; word-wrap: break-word; }
+        .commission-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+        .commission-table th, .commission-table td { border: 1px solid var(--border); padding: 12px; text-align: center; }
         .commission-table th { background: var(--bg); color: var(--text-muted); font-weight: 600; }
         .commission-table td { color: var(--text); }
-        
-        .stat-mini-row { display: flex; gap: 1rem; margin-top: 1.5rem; }
-        .stat-mini { flex: 1; background: var(--bg); padding: 1.25rem 1rem; border-radius: 12px; text-align: center; border: 1px solid var(--primary); }
-        .stat-mini-val { font-weight: 800; font-size: 1.6rem; color: var(--success); margin-bottom: 0.25rem; }
-        .stat-mini-lbl { font-size: 0.9rem; color: var(--text-muted); font-weight: 600; }
+        .stat-mini-row { display: flex; gap: 1rem; margin-top: 1rem; }
+        .stat-mini { flex: 1; background: var(--bg); padding: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
+        .stat-mini-val { font-weight: 800; font-size: 1.1rem; color: var(--text); }
+        .stat-mini-lbl { font-size: 0.75rem; color: var(--text-muted); }
         .menu-list { margin: 0 1.5rem 1.5rem; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
         .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border); font-weight: 600; cursor: pointer; transition: background 0.2s; color: var(--text); }
         .menu-item:active { background: var(--bg); }
@@ -156,13 +147,13 @@
         .lb-rank { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--bg); border-radius: 50%; font-weight: 800; margin-right: 1.25rem; color: var(--text); }
         .lb-rank.gold { background: #fef08a; color: #854d0e; }.lb-rank.silver { background: #e2e8f0; color: #475569; }
         .lb-rank.bronze { background: #fed7aa; color: #9a3412; }
-        .bottom-nav { flex-shrink: 0; background: var(--card-bg); display: flex; justify-content: space-around; border-top: 1px solid var(--border); padding: 0.75rem 0; padding-bottom: env(safe-area-inset-bottom, 0); z-index: 100; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto; background: var(--card-bg); display: flex; justify-content: space-around; border-top: 1px solid var(--border); padding: 0.75rem 0; padding-bottom: env(safe-area-inset-bottom, 0); z-index: 100; }
         .nav-item { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--text-muted); font-size: 0.7rem; font-weight: 600; cursor: pointer; padding: 0.5rem; flex: 1; transition: color 0.2s; font-family: 'Inter', sans-serif; }
         .nav-item.active { color: var(--primary); }
         .nav-icon { font-size: 1.4rem; margin-bottom: 0.25rem; transition: transform 0.2s; }
         .nav-item.active .nav-icon { transform: translateY(-2px); }
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: flex-end; justify-content: center; z-index: 200; padding: 1rem; backdrop-filter: blur(5px); animation: fadeIn 0.2s ease; }
-        .modal-content { background: var(--card-bg); width: 100%; max-width: 480px; padding: 2rem; border-radius: 16px 16px 0 0; max-height: 90dvh; overflow-y: auto; text-align: center; animation: slideUp 0.3s ease; color: var(--text); border-top: 1px solid var(--border); }
+        .modal-content { background: var(--card-bg); width: 100%; max-width: 480px; padding: 2rem; border-radius: 16px 16px 0 0; max-height: 90vh; overflow-y: auto; text-align: center; animation: slideUp 0.3s ease; color: var(--text); border-top: 1px solid var(--border); }
         .loader-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; animation: fadeIn 0.2s ease; }
         #loader-1 { background-color: var(--bg); }
         .clock-spinner { position: relative; width: 56px; height: 56px; }
@@ -210,22 +201,23 @@
         <div class="logo">Asset<span>Core</span></div>
         <p class="welcome-text">Welcome! Please sign in or create an account.</p>
         <div id="signup-form">
-            <!-- RESTORED: Telegram Username Input Field -->
             <div class="form-group"><label>Telegram Username</label><input type="text" id="su-username" class="input-field" placeholder="@username"></div>
-            <div class="form-group"><label>Phone Number</label><input type="tel" id="su-phone" class="input-field" value="+2519" placeholder="+2519..."></div>
+            <div class="form-group"><label>Phone Number</label><input type="tel" id="su-phone" class="input-field" value="+251" placeholder="+251 9..."></div>
             <div class="form-group"><label>Password</label><input type="password" id="su-pass" class="input-field" placeholder="********"></div>
             <div class="form-group"><label>Repeat Password</label><input type="password" id="su-pass2" class="input-field" placeholder="********"></div>
             <div class="form-group"><label>Captcha Code</label><div class="captcha-box" id="captcha-text" onclick="generateCaptcha()" title="Click to refresh">45be</div><input type="text" id="su-captcha" class="input-field" placeholder="Enter code above"></div>
             <div class="form-group"><label>Invitation Code (Optional)</label><input type="text" id="su-invite" class="input-field" placeholder="Enter referral code"></div>
+            
             <div class="terms-group">
                 <input type="checkbox" id="terms-agree" onclick="toggleSignUpButton()">
                 <label for="terms-agree">I have read and agree to the <span onclick="openTermsModal()">Terms & Agreement</span></label>
             </div>
+
             <button class="btn-primary" id="signup-btn" disabled onclick="handleSignUp()">Sign Up</button>
             <p class="toggle-text">I already have an account, <span onclick="toggleAuth('signin')">Sign In</span></p>
         </div>
         <div id="signin-form" class="hidden">
-            <div class="form-group"><label>Phone Number</label><input type="tel" id="si-phone" class="input-field" value="+2519" placeholder="+2519..."></div>
+            <div class="form-group"><label>Phone Number</label><input type="tel" id="si-phone" class="input-field" value="+251" placeholder="+251 9..."></div>
             <div class="form-group"><label>Password</label><input type="password" id="si-pass" class="input-field" placeholder="********"></div>
             <div class="form-group" style="display: flex; align-items: center;"><input type="checkbox" id="si-remember" style="width: 20px; height: 20px; margin-right: 10px;"><label for="si-remember" style="margin: 0;">Remember password</label></div>
             <button class="btn-primary" onclick="handleSignIn()">Sign In</button>
@@ -262,6 +254,7 @@
         <div id="view-deposit" class="app-view hidden">
             <div class="top-nav-bar">
                 <div class="nav-left-group"><button class="nav-back-btn" onclick="switchTab('home')">‹</button><div class="nav-title">Payment</div></div>
+                <button class="nav-info-btn" onclick="openHistoryModal()">i</button>
             </div>
             <div id="dep-step-1" class="dep-step">
                 <h3 class="section-title">Payment amount (Minimum ETB 650)</h3>
@@ -313,7 +306,7 @@
             </div>
             <div class="mine-assets-grid">
                 <div class="mine-asset-card clickable" onclick="openMyDevicesModal()">
-                    <div class="mine-asset-label">My Products</div>
+                    <div class="mine-asset-label">My Devices</div>
                     <div class="mine-asset-value" id="mine-device-count">0</div>
                 </div>
                 <div class="mine-asset-card">
@@ -321,23 +314,17 @@
                     <div class="mine-asset-value" id="mine-income-sum">ETB 0</div>
                 </div>
             </div>
-            <div class="no-shop-text">Click "My Products" to view your active investments</div>
+            <div class="no-shop-text">Click "My Devices" to view your active investments</div>
             <div class="action-card">
                 <h3 style="margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 700;">Referral Program</h3>
                 <p style="font-size: 0.9rem; color: var(--text-muted);">Earn 30% of your friend's entry price instantly! A flat single-level reward system.</p>
                 <div class="referral-box">
                     <div class="ref-row"><span class="ref-label">Invitation Code:</span><div class="ref-val-group"><strong id="user-invite-code">DEMO01</strong><button class="btn-copy-sm" onclick="copyText(document.getElementById('user-invite-code').innerText)">Copy</button></div></div>
                     <div class="ref-row"><span class="ref-label">Invitation Link:</span><div class="ref-val-group"><strong id="user-invite-link-display" style="font-size: 0.8rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">https://assetcore-et.vercel.app/?start=DEMO01</strong><button class="btn-copy-sm" onclick="copyReferralLink()">Copy</button></div></div>
-                    <table class="commission-table"><thead><tr><th>Level</th><th>Commission</th><th>Valid Users</th><th>Income</th></tr></thead><tbody><tr><td>Level 1</td><td>30%</td><td id="comm-valid-users">0</td><td id="comm-invited-income">0 ETB</td></tr></tbody></table>
+                    <table class="commission-table"><thead><tr><th>Level</th><th>Commission</th><th>Valid Users</th><th>Income</th></tr></thead><tbody><tr><td>Level 1</td><td>30%</td><td>0</td><td>0 ETB</td></tr></tbody></table>
                     <div class="stat-mini-row">
-                        <div class="stat-mini">
-                            <div class="stat-mini-val" id="stat-valid-users">0</div>
-                            <div class="stat-mini-lbl">Valid Users</div>
-                        </div>
-                        <div class="stat-mini">
-                            <div class="stat-mini-val" id="stat-invited-income">0 ETB</div>
-                            <div class="stat-mini-lbl">Invited Income</div>
-                        </div>
+                        <div class="stat-mini"><div class="stat-mini-val">0</div><div class="stat-mini-lbl">Valid users</div></div>
+                        <div class="stat-mini"><div class="stat-mini-val">0 ETB</div><div class="stat-mini-lbl">Invited income</div></div>
                     </div>
                 </div> 
             </div>
@@ -466,9 +453,10 @@ Note: Your investment earnings will be automatically deposited into your account
         
         let userState = {
             telegram_id: "123456789", telegram_username: "@assetcore_user", phone_number: "+251900000000", invite_code: "DEMO01",
-            total_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, valid_users: 0, has_checked_in: false, transactions: [], products: []
+            total_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, has_checked_in: false, transactions: [], products: []
         };
 
+        // On page load, check for saved credentials
         window.onload = function() {
             const savedPhone = localStorage.getItem("ac_phone");
             const savedPass = localStorage.getItem("ac_pass");
@@ -537,24 +525,14 @@ Note: Your investment earnings will be automatically deposited into your account
             document.getElementById("signin-form").classList.toggle("hidden", view !== 'signin');
         }
 
-        function validatePhone(phone) {
-            const phoneRegex = /^\+2519\d{8}$/;
-            if (!phoneRegex.test(phone)) {
-                showToast("Invalid format! Phone number must start with +2519... (e.g., +251912345678)", 'error');
-                return false;
-            }
-            return true;
-        }
-
         async function handleSignUp() {
             const pass1 = document.getElementById("su-pass").value;
             const pass2 = document.getElementById("su-pass2").value;
             const captcha = document.getElementById("su-captcha").value;
             const username = document.getElementById("su-username").value;
-            const phone = document.getElementById("su-phone").value.trim();
+            const phone = document.getElementById("su-phone").value;
             const invite = document.getElementById("su-invite").value;
 
-            if (!validatePhone(phone)) return;
             if (pass1 !== pass2) return showToast("Passwords do not match!", 'error');
             if (captcha.toUpperCase() !== currentCaptcha) { generateCaptcha(); return showToast("Invalid Captcha code!", 'error'); }
             if (!username || !phone || !pass1) return showToast("Please fill all required fields.", 'error');
@@ -574,7 +552,6 @@ Note: Your investment earnings will be automatically deposited into your account
                     userState.telegram_username = username;
                     userState.phone_number = phone;
                     userState.invite_code = data.invitation_code; 
-                    userState.valid_users = 0;
                     showToast("300 ETB Registration Bonus Awarded!", 'success');
                     loginSuccess();
                 } else {
@@ -591,8 +568,7 @@ Note: Your investment earnings will be automatically deposited into your account
         async function handleSignIn() {
             const phone = document.getElementById("si-phone").value.trim();
             const pass = document.getElementById("si-pass").value;
-            if (!validatePhone(phone)) return;
-            if (!pass) return showToast("Please enter your password.", 'error');
+            if (!phone || !pass) return showToast("Please enter both phone number and password.", 'error');
 
             const rememberMe = document.getElementById("si-remember").checked;
 
@@ -605,16 +581,15 @@ Note: Your investment earnings will be automatically deposited into your account
                 if (res.ok) {
                     const data = await res.json();
                     userState.telegram_id = data.telegram_id || userState.telegram_id;
+                    // FIX: Correctly map backend response to userState
                     userState.total_balance = data.total_balance !== undefined ? data.total_balance : 300.00;
                     userState.telegram_username = data.telegram_username || phone;
                     userState.phone_number = phone;
                     userState.invite_code = data.invitation_code || "DEMO01";
                     userState.daily_income_balance = data.daily_income_balance || 0.00;
                     userState.invite_income = data.invite_income || 0.00;
-                    userState.valid_users = data.valid_users || 0;
-                    userState.products = data.products || [];
-                    updateMineStats();
-
+                    
+                    // Remember Password Logic
                     if (rememberMe) {
                         localStorage.setItem("ac_phone", phone);
                         localStorage.setItem("ac_pass", pass);
@@ -679,11 +654,11 @@ Note: Your investment earnings will be automatically deposited into your account
 
             if (products.length === 0) {
                 body.innerHTML = `
-                    <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">My Investment Products</h2>
-                    <p style="text-align: center; color: var(--text-muted); margin-bottom: 2rem;">You have no active products.<br>Go to the Home tab to invest and start earning!</p>
+                    <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">My Investment Devices</h2>
+                    <p style="text-align: center; color: var(--text-muted); margin-bottom: 2rem;">You have no active devices.<br>Go to the Home tab to invest and start earning!</p>
                     <button class="btn-primary" onclick="closeMyDevicesModal()">Close</button>`;
             } else {
-                let html = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">My Investment Products (${products.length})</h2>`;
+                let html = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">My Investment Devices (${products.length})</h2>`;
                 products.forEach(p => {
                     html += `
                         <div class="my-device-item">
@@ -696,16 +671,12 @@ Note: Your investment earnings will be automatically deposited into your account
                                 <span class="my-device-stat-value" style="color: var(--success)">${p.daily_income} ETB</span>
                             </div>
                             <div class="my-device-stat">
-                                <span class="my-device-stat-label">🏷️ Purchase Price:</span>
-                                <span class="my-device-stat-value">${p.price.toLocaleString()} ETB</span>
-                            </div>
-                            <div class="my-device-stat">
                                 <span class="my-device-stat-label">📅 Time of Purchase:</span>
                                 <span class="my-device-stat-value">${p.purchase_time}</span>
                             </div>
                             <div class="my-device-stat">
                                 <span class="my-device-stat-label">🚀 Total Expected Earning:</span>
-                                <span class="my-device-stat-value">${p.total_earning.toLocaleString()} ETB</span>
+                                <span class="my-device-stat-value">${p.total_earning} ETB</span>
                             </div>
                         </div>`;
                 });
@@ -930,7 +901,6 @@ Note: Your investment earnings will be automatically deposited into your account
                 currentWdMethod = "CBE"; 
                 body.innerHTML = `
                     <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Add Withdrawal Account</h2>
-                    <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); margin-bottom: 15px;" onclick="closeWithdrawModal(); openHistoryModal();">View Transaction History</button>
                     <p style="margin-bottom: 1rem; color: var(--danger); font-size: 0.85rem; font-weight: 600; text-align: left;">⚠️ Please enter your CBE bank details carefully. Your payment method cannot be changed later without contacting customer service.</p>
                     <div class="form-group" style="text-align: left;"><label>CBE Account Name</label><input type="text" id="wd-name" class="input-field" placeholder="Enter account name"></div>
                     <div class="form-group" style="text-align: left;"><label>Account Number</label><input type="text" id="wd-number" class="input-field" placeholder="Enter account number"></div>
@@ -941,7 +911,6 @@ Note: Your investment earnings will be automatically deposited into your account
             } else {
                 body.innerHTML = `
                     <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Withdraw Funds</h2>
-                    <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); margin-bottom: 15px;" onclick="closeWithdrawModal(); openHistoryModal();">View Transaction History</button>
                     <div class="saved-account-box">
                         <div class="saved-account-label">Saved Payment Method:</div><div class="saved-account-name">${withdrawalAccount.method}</div>
                         <div style="margin-top: 0.5rem; font-size: 0.9rem;"><strong>${withdrawalAccount.name}</strong><br><span style="color: var(--text-muted);">${withdrawalAccount.number}</span></div>
@@ -982,6 +951,7 @@ Note: Your investment earnings will be automatically deposited into your account
                 });
                 if (res.ok) {
                     showToast(`Withdrawal request of ${amount} ETB submitted!`, 'success');
+                    userState.transactions.push({ id: `WD_${Date.now()}`, type: 'Withdrawal', method: "CBE", amount: amount, status: 'Pending', timestamp: new Date().toLocaleString() });
                     userState.total_balance -= amount; updateBalances(); closeWithdrawModal();
                 } else {
                     const err = await res.json().catch(() => ({}));
@@ -1056,42 +1026,32 @@ Note: Your investment earnings will be automatically deposited into your account
 
         function closeInfoModal() { document.getElementById('info-modal').classList.add("hidden"); }
 
-        async function openHistoryModal() {
+        function openHistoryModal() {
             const body = document.getElementById('history-modal-body');
-            document.getElementById('history-modal').classList.remove("hidden");
-            body.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding: 2rem 0;">Loading history...</p>`;
-            
-            try {
-                const res = await apiFetch(`/api/user/transactions/${userState.telegram_id}`);
-                let transactions = [];
-                if (res.ok) {
-                    transactions = await res.json();
-                }
-                
-                const withdrawals = transactions.filter(t => t.type === 'Withdrawal');
-                let withdrawalHtml = '<tbody><tr><td colspan="4" style="text-align:center;">No history yet</td></tr></tbody>';
+            const withdrawals = userState.transactions.filter(t => t.type === 'Withdrawal');
+            const purchases = userState.transactions.filter(t => t.type === 'Purchase');
+            let withdrawalHtml = '<tbody><tr><td colspan="5" style="text-align:center;">No history yet</td></tr></tbody>';
+            let purchaseHtml = '<tbody><tr><td colspan="4" style="text-align:center;">No history yet</td></tr></tbody>';
 
-                if (withdrawals.length > 0) {
-                    withdrawalHtml = '<tbody>' + withdrawals.map(w => `<tr><td>${new Date(w.date).toLocaleString()}</td><td>${w.method}</td><td>${w.amount} ETB</td><td style="color: ${w.status === 'Approved' ? 'var(--success)' : 'var(--danger)'}; font-weight: 700;">${w.status}</td></tr>`).join('') + '</tbody>';
-                }
-
-                body.innerHTML = `
-                    <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Transaction History</h2>
-                    <div style="text-align: left; margin-bottom: 1.5rem;">
-                        <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--text); font-weight: 700;">Withdrawal History</h3>
-                        <table class="history-table">
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th><th>Method</th><th>Amount</th><th>Status</th>
-                                </tr>
-                            </thead>
-                            ${withdrawalHtml}
-                        </table>
-                    </div>
-                    <button class="btn-primary" onclick="closeHistoryModal()">Close</button>`;
-            } catch (e) {
-                body.innerHTML = `<p style="text-align:center; color:var(--danger); padding: 2rem 0;">Failed to load history.</p>`;
+            if (withdrawals.length > 0) {
+                withdrawalHtml = '<tbody>' + withdrawals.map(w => `<tr><td>${w.timestamp}</td><td>${w.method}</td><td>${w.amount} ETB</td><td>${w.id}</td><td style="color: ${w.status === 'Approved' ? 'var(--success)' : 'var(--danger)'}; font-weight: 700;">${w.status}</td></tr>`).join('') + '</tbody>';
             }
+            if (purchases.length > 0) {
+                purchaseHtml = '<tbody>' + purchases.map(p => `<tr><td>${p.timestamp}</td><td>${p.method}</td><td>${p.amount} ETB</td><td>${p.id}</td></tr>`).join('') + '</tbody>';
+            }
+
+            body.innerHTML = `
+                <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">History</h2>
+                <div style="text-align: left; margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--text); font-weight: 700;">Withdrawal History</h3>
+                    <table class="history-table"><thead><tr><th>Timestamp</th><th>Method</th><th>Amount</th><th>Txn ID</th><th>Status</th></tr></thead>${withdrawalHtml}</table>
+                </div>
+                <div style="text-align: left; margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--text); font-weight: 700;">Purchasing History</h3>
+                    <table class="history-table"><thead><tr><th>Timestamp</th><th>Method</th><th>Amount</th><th>Txn ID</th></tr></thead>${purchaseHtml}</table>
+                </div>
+                <button class="btn-primary" onclick="closeHistoryModal()">Close</button>`;
+            document.getElementById('history-modal').classList.remove("hidden");
         }
 
         function closeHistoryModal() { document.getElementById('history-modal').classList.add("hidden"); }
@@ -1100,12 +1060,6 @@ Note: Your investment earnings will be automatically deposited into your account
             document.getElementById("bal-total").innerText = userState.total_balance.toFixed(2);
             document.getElementById("bal-daily").innerText = (userState.daily_income_balance || 0).toFixed(2);
             document.getElementById("bal-invite").innerText = (userState.invite_income || 0).toFixed(2);
-            
-            document.getElementById("comm-valid-users").innerText = userState.valid_users || 0;
-            document.getElementById("comm-invited-income").innerText = `${(userState.invite_income || 0).toFixed(2)} ETB`;
-            
-            document.getElementById("stat-valid-users").innerText = userState.valid_users || 0;
-            document.getElementById("stat-invited-income").innerText = `${(userState.invite_income || 0).toFixed(2)} ETB`;
         }
 
         function copyText(text) {

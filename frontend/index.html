@@ -35,7 +35,7 @@
         .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text); }
         .input-field { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; appearance: none; -webkit-appearance: none; box-sizing: border-box; margin: 0; }
         .input-field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
-        .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; box-sizing: border-box; }
+        .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .btn-primary:active { transform: scale(0.98); }
         .btn-primary:disabled { background: #475569; color: #cbd5e1; cursor: not-allowed; }
         .toggle-text { text-align: center; margin-top: 1.5rem; color: var(--text-muted); font-weight: 500; }
@@ -45,6 +45,25 @@
         .terms-group input { width: 20px; height: 20px; margin-top: 2px; cursor: pointer; accent-color: var(--primary); }
         .terms-group label { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
         .terms-group label span { color: var(--primary); font-weight: 700; cursor: pointer; }
+
+        /* NEW: Button Loading Spinner */
+        .btn-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            display: inline-block;
+            animation: btn-spin 0.8s linear infinite;
+        }
+        @keyframes btn-spin { to { transform: rotate(360deg); } }
+
+        /* NEW: Red Warning Box for Sign Up */
+        .warning-banner {
+            color: var(--danger); font-weight: 700; font-size: 0.85rem; text-align: center; 
+            margin-top: 1.5rem; border: 1px solid var(--danger); padding: 10px; border-radius: 6px; 
+            background: rgba(239, 68, 68, 0.05);
+        }
 
         #dashboard-view { padding-bottom: calc(90px + env(safe-area-inset-bottom)); animation: fadeIn 0.4s ease; }
         .view-header { background: var(--card-bg); padding: 1.5rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; }
@@ -89,7 +108,6 @@
         .payment-notes p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0.5rem; }
         .invoice-header { text-align: center; margin: 1.5rem 0; }
         .invoice-amt { font-size: 3.5rem; font-weight: 900; color: var(--text); letter-spacing: -1px; }
-        /* REMOVED timer-box styling, replaced with warning-box */
         .warning-box { text-align: center; background: rgba(239, 68, 68, 0.1); color: var(--danger); padding: 0.85rem; margin: 0 0 1.5rem 0; border-radius: 8px; font-weight: 800; font-size: 1rem; border: 2px solid var(--danger); }
         .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; background: var(--card-bg); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
         .invoice-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
@@ -215,13 +233,17 @@
             </div>
 
             <button class="btn-primary" id="signup-btn" disabled onclick="handleSignUp()">Sign Up</button>
+            
+            <!-- NEW: Red Warning Banner -->
+            <div class="warning-banner">⚠️ DO NOT PAY WITHOUT MANAGER APPROVAL OR YOU WILL LOSE YOUR FUNDS!</div>
+            
             <p class="toggle-text">I already have an account, <span onclick="toggleAuth('signin')">Sign In</span></p>
         </div>
         <div id="signin-form" class="hidden">
             <div class="form-group"><label>Phone Number</label><input type="tel" id="si-phone" class="input-field" value="+2519" placeholder="+2519..."></div>
             <div class="form-group"><label>Password</label><input type="password" id="si-pass" class="input-field" placeholder="********"></div>
             <div class="form-group" style="display: flex; align-items: center;"><input type="checkbox" id="si-remember" style="width: 20px; height: 20px; margin-right: 10px;"><label for="si-remember" style="margin: 0;">Remember password</label></div>
-            <button class="btn-primary" onclick="handleSignIn()">Sign In</button>
+            <button class="btn-primary" id="signin-btn" onclick="handleSignIn()">Sign In</button>
             <p class="toggle-text">Don't have an account? <span onclick="toggleAuth('signup')">Sign Up</span></p>
         </div>
     </div>
@@ -239,6 +261,8 @@
                 <p>7. I understand that if we find my personal information is inaccurate or fake and I make transactions with it, inevitably my funds will be gone.</p>
                 <p>8. I understand that ruining the company's reputation is strictly not allowed. If I have any questions or confusion, I can have a conversation with customer support.</p>
                 <p style="color: var(--danger); font-family: 'Courier New', Courier, monospace; font-weight: 800; text-transform: uppercase; border: 2px solid var(--danger); padding: 10px; border-radius: 6px; text-align: center; margin-top: 1rem;">9. REMEMBER THE RULE WILL BE APPLIED REGARDLESS OF WHO YOU ARE. WE ARE NOT RESPONSIBLE FOR THE CONSEQUENCES YOU ENCOUNTER DUE TO THE VIOLATION OF ANY ONE OF OUR "TERMS AND SERVICE".</p>
+                <!-- NEW: Rule 10 -->
+                <p style="color: var(--danger); font-weight: 700; margin-top: 1rem;">10. I understand that I must NOT make any payments without manager approval. If I dare to do so, I acknowledge that I will permanently lose my funds.</p>
             </div>
             <button class="btn-primary" style="margin-top: 2rem; width: 100%;" onclick="closeTermsModal()">I Understand</button>
         </div>
@@ -274,7 +298,6 @@
             </div>
             <div id="dep-step-2" class="dep-step hidden">
                 <div class="invoice-header"><div style="color: var(--text-muted); font-size: 1rem; font-weight: 500;">Amount Due</div><div class="invoice-amt">Br <span id="inv-amount">0.00</span></div></div>
-                <!-- REPLACED timer-box with warning-box -->
                 <div class="warning-box">⚠️ DO NOT PAY WITHOUT MANAGER APPROVAL</div>
                 <table class="invoice-table">
                     <tr><td class="inv-label">Account Name</td><td class="inv-val" id="inv-acc-name">Loading...</td></tr>
@@ -470,7 +493,6 @@ Note: Your investment earnings will be automatically deposited into your account
             total_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, has_checked_in: false, transactions: [], products: []
         };
 
-        // FIX 1: Persistent Login on Refresh
         window.onload = function() {
             const savedUser = localStorage.getItem("ac_user_state");
             if (savedUser) {
@@ -578,6 +600,11 @@ Note: Your investment earnings will be automatically deposited into your account
             if (captcha.toUpperCase() !== currentCaptcha) { generateCaptcha(); return showToast("Invalid Captcha code!", 'error'); }
             if (!username || !phone || !pass1) return showToast("Please fill all required fields.", 'error');
 
+            // NEW: Button Loading State
+            const signupBtn = document.getElementById("signup-btn");
+            signupBtn.disabled = true;
+            signupBtn.innerHTML = 'Processing... <span class="btn-spinner"></span>';
+
             const randomTelegramId = Math.floor(Math.random() * 1000000000) + 100000000;
 
             try {
@@ -602,8 +629,15 @@ Note: Your investment earnings will be automatically deposited into your account
                         showToast("You already have an account! Please sign in.", 'error');
                         toggleAuth('signin');
                     } else { showToast(errorMsg, 'error'); }
+                    // Revert button
+                    signupBtn.innerHTML = 'Sign Up';
+                    signupBtn.disabled = !document.getElementById("terms-agree").checked;
                 }
-            } catch (error) { showToast("Network error.", 'error'); }
+            } catch (error) { 
+                showToast("Network error. Server is waking up, please try again in 30 seconds.", 'error');
+                signupBtn.innerHTML = 'Sign Up';
+                signupBtn.disabled = !document.getElementById("terms-agree").checked;
+            }
         }
 
         async function handleSignIn() {
@@ -611,6 +645,11 @@ Note: Your investment earnings will be automatically deposited into your account
             const pass = document.getElementById("si-pass").value;
             if (!validatePhone(phone)) return;
             if (!pass) return showToast("Please enter your password.", 'error');
+
+            // NEW: Button Loading State
+            const signinBtn = document.getElementById("signin-btn");
+            signinBtn.disabled = true;
+            signinBtn.innerHTML = 'Processing... <span class="btn-spinner"></span>';
 
             const rememberMe = document.getElementById("si-remember").checked;
 
@@ -631,7 +670,6 @@ Note: Your investment earnings will be automatically deposited into your account
                     userState.invite_income = data.invite_income || 0.00;
                     userState.products = data.products || [];
                     
-                    // FIX 3: Sync withdrawal account from backend
                     if (data.wd_method) {
                         userState.wd_method = data.wd_method;
                         userState.wd_account_name = data.wd_account_name;
@@ -652,11 +690,13 @@ Note: Your investment earnings will be automatically deposited into your account
                 } else {
                     const err = await res.json().catch(() => ({}));
                     showToast(extractErrorMessage(err, "Invalid phone number or password."), 'error');
+                    signinBtn.innerHTML = 'Sign In';
+                    signinBtn.disabled = false;
                 }
             } catch (error) { 
-                userState.phone_number = phone;
-                showToast("Signed in successfully!", 'success');
-                loginSuccess();
+                showToast("Network error. Server is waking up, please try again in 30 seconds.", 'error');
+                signinBtn.innerHTML = 'Sign In';
+                signinBtn.disabled = false;
             }
         }
 
@@ -677,7 +717,7 @@ Note: Your investment earnings will be automatically deposited into your account
         function confirmLogout() {
             if (socket) socket.close();
             closeLogoutModal();
-            localStorage.removeItem("ac_user_state"); // Clear persistent login
+            localStorage.removeItem("ac_user_state");
             document.getElementById("dashboard-view").classList.add("hidden");
             document.getElementById("auth-view").classList.remove("hidden");
         }
@@ -889,7 +929,6 @@ Note: Your investment earnings will be automatically deposited into your account
                     
                     document.getElementById("dep-step-1").classList.add("hidden");
                     document.getElementById("dep-step-2").classList.remove("hidden");
-                    // startTimer() removed
                 } else {
                     const err = await res.json().catch(() => ({}));
                     const errorMsg = extractErrorMessage(err, "Failed to get payment account.");

@@ -109,7 +109,6 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     invitation_code = Column(String, unique=True, nullable=False)
     invitation_link = Column(String, nullable=False)
-    # NEW: Synced withdrawal account
     wd_method = Column(String, nullable=True)
     wd_account_name = Column(String, nullable=True)
     wd_account_number = Column(String, nullable=True)
@@ -196,7 +195,6 @@ def init_db():
         except: pass
         try: db.execute(text("ALTER TABLE user_balances ADD COLUMN IF NOT EXISTS available_balance FLOAT DEFAULT 0;"))
         except: pass
-        # NEW: Add withdrawal account columns to users table
         try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS wd_method VARCHAR;"))
         except: pass
         try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS wd_account_name VARCHAR;"))
@@ -315,38 +313,43 @@ def create_access_token(data: dict):
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 # --- BACKGROUND JOB ---
+async def process_yields():
+    db = SessionLocal()
+    try:
+        now = datetime.utcnow()
+        ready_products = db.query(UserProduct).filter(
+            (UserProduct.last_yield_claimed_at.is_(None)) |
+            (UserProduct.last_yield_claimed_at <= now - timedelta(hours=24))
+        ).all()
+        for product in ready_products:
+            balance = db.query(UserBalance).filter(UserBalance.telegram_id == product.telegram_id).first()
+            if balance:
+                balance.daily_income_balance += product.daily_income
+                balance.total_balance += product.daily_income
+                balance.available_balance += product.daily_income
+                product.last_yield_claimed_at = now
+                db.commit()
+                notification = {
+                    "type": "yield_credited",
+                    "amount": product.daily_income,
+                    "new_balance": balance.total_balance,
+                    "product": product.product_name
+                }
+                await manager.send_personal_message(json.dumps(notification), str(product.telegram_id))
+    except Exception as e:
+        print(f"Yield processing error: {e}")
+    finally:
+        db.close()
+
 async def run_daily_yield_job():
     while True:
         await asyncio.sleep(60)
-        db = SessionLocal()
-        try:
-            now = datetime.utcnow()
-            ready_products = db.query(UserProduct).filter(
-                (UserProduct.last_yield_claimed_at == None) |
-                (UserProduct.last_yield_claimed_at <= now - timedelta(hours=24))
-            ).all()
-            for product in ready_products:
-                balance = db.query(UserBalance).filter(UserBalance.telegram_id == product.telegram_id).first()
-                if balance:
-                    balance.daily_income_balance += product.daily_income
-                    balance.total_balance += product.daily_income
-                    balance.available_balance += product.daily_income
-                    product.last_yield_claimed_at = now
-                    db.commit()
-                    notification = {
-                        "type": "yield_credited",
-                        "amount": product.daily_income,
-                        "new_balance": balance.total_balance,
-                        "product": product.product_name
-                    }
-                    await manager.send_personal_message(json.dumps(notification), str(product.telegram_id))
-        except Exception:
-            pass
-        finally:
-            db.close()
+        await process_yields()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Run immediately on startup in case server was asleep and missed yields
+    await process_yields()
     yield_task = asyncio.create_task(run_daily_yield_job())
     yield
     yield_task.cancel()
@@ -546,7 +549,6 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
             "total_earning": p.daily_income * 60
         })
     
-    # NEW: Return withdrawal account info for cross-device sync
     return {
         "message": "Login successful",
         "telegram_id": user.telegram_id,
@@ -562,7 +564,6 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
         "wd_account_number": user.wd_account_number
     }
 
-# NEW: Endpoint to save withdrawal account to database
 @app.post("/api/save-withdrawal-account")
 def save_withdrawal_account(payload: SaveWdAccountRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.telegram_id == payload.telegram_id).first()

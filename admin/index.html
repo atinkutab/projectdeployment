@@ -27,13 +27,12 @@
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
         th { color: var(--text-muted); font-weight: 600; }
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
         .tab-btn { padding: 10px 20px; background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; font-weight: 600; border-bottom: 2px solid transparent; }
         .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
         .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .settings-grid label { display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 14px; }
 
-        /* NEW: Toast Notification CSS */
         #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
         .toast { background: var(--card-bg); color: var(--text); padding: 16px 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid var(--border); border-left: 5px solid var(--primary); font-size: 14px; font-weight: 500; text-align: center; animation: slideDown 0.3s ease; opacity: 1; transition: opacity 0.3s ease, transform 0.3s ease; }
         .toast.success { border-left-color: var(--success); }
@@ -43,7 +42,6 @@
     </style>
 </head>
 <body>
-    <!-- NEW: Toast Container -->
     <div id="toast-container"></div>
 
     <div class="container">
@@ -62,6 +60,7 @@
                 <button class="tab-btn" onclick="showTab('withdrawals', event)">Pending Withdrawals</button>
                 <button class="tab-btn" onclick="showTab('history', event)">Transaction History</button>
                 <button class="tab-btn" onclick="showTab('settings', event)">Settings</button>
+                <button class="tab-btn" onclick="showTab('system', event)">System</button>
                 <button class="tab-btn" onclick="logout()" style="margin-left: auto; color: var(--danger);">Logout</button>
             </div>
 
@@ -119,6 +118,13 @@
                 </div>
                 <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
             </div>
+
+            <!-- NEW: System Tab -->
+            <div id="tab-system" class="card hidden">
+                <h2>System Controls</h2>
+                <p style="margin-bottom: 20px; color: var(--text-muted);">If the daily yield balance hasn't increased for users after 24 hours (due to server sleep), click the button below to manually trigger the yield processing.</p>
+                <button class="btn btn-success" onclick="processYieldsManually()">Process Missing Yields Now</button>
+            </div>
         </div>
     </div>
 
@@ -126,7 +132,6 @@
         const API_URL = "https://projectdeployment-1-yuwq.onrender.com";
         let token = localStorage.getItem("admin_token");
 
-        // NEW: Toast Notification Function
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -231,7 +236,6 @@
             } catch (e) { console.error(e); }
         }
 
-        // FIX: Replaced all alert() calls with showToast()
         async function approveDeposit(id) {
             const res = await fetch(`${API_URL}/api/admin/approve-deposit/${id}`, { method: "POST", headers: authHeaders() });
             if (res.ok) { showToast("Deposit Approved Successfully", "success"); } else { showToast("Failed to approve deposit.", "error"); }
@@ -264,6 +268,20 @@
             };
             await fetch(`${API_URL}/api/admin/settings`, { method: "POST", headers: authHeaders(), body: JSON.stringify(payload) });
             showToast("Settings Saved Successfully", "success");
+        }
+
+        // NEW: Manual Yield Processing
+        async function processYieldsManually() {
+            try {
+                const res = await fetch(`${API_URL}/api/admin/process-yields`, { method: "POST", headers: authHeaders() });
+                if (res.ok) {
+                    showToast("Yield processing triggered successfully!", "success");
+                } else {
+                    showToast("Failed to trigger yields.", "error");
+                }
+            } catch (e) {
+                showToast("Network error.", "error");
+            }
         }
     </script>
 </body>

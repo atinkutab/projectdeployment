@@ -109,6 +109,10 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     invitation_code = Column(String, unique=True, nullable=False)
     invitation_link = Column(String, nullable=False)
+    # NEW: Synced withdrawal account
+    wd_method = Column(String, nullable=True)
+    wd_account_name = Column(String, nullable=True)
+    wd_account_number = Column(String, nullable=True)
 
     balance = relationship("UserBalance", uselist=False, back_populates="user", cascade="all, delete-orphan")
     products = relationship("UserProduct", back_populates="user", cascade="all, delete-orphan")
@@ -192,6 +196,13 @@ def init_db():
         except: pass
         try: db.execute(text("ALTER TABLE user_balances ADD COLUMN IF NOT EXISTS available_balance FLOAT DEFAULT 0;"))
         except: pass
+        # NEW: Add withdrawal account columns to users table
+        try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS wd_method VARCHAR;"))
+        except: pass
+        try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS wd_account_name VARCHAR;"))
+        except: pass
+        try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS wd_account_number VARCHAR;"))
+        except: pass
         db.commit()
 
         db.execute(text("UPDATE user_balances SET available_balance = registration_bonus + daily_income_balance + invitation_income WHERE available_balance = 0;"))
@@ -256,6 +267,11 @@ class WithdrawalRequest(BaseModel):
     amount: float
     method: str
     account_details: str
+
+class SaveWdAccountRequest(BaseModel):
+    telegram_id: int
+    name: str
+    number: str
 
 class SystemSettingsUpdate(BaseModel):
     registration_bonus: Optional[float] = None
@@ -518,7 +534,6 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
     
     balance = db.query(UserBalance).filter(UserBalance.telegram_id == user.telegram_id).first()
     
-    # NEW: Fetch user's purchased products to sync across devices
     products_db = db.query(UserProduct).filter(UserProduct.telegram_id == user.telegram_id).all()
     products_list = []
     for p in products_db:
@@ -531,6 +546,7 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
             "total_earning": p.daily_income * 60
         })
     
+    # NEW: Return withdrawal account info for cross-device sync
     return {
         "message": "Login successful",
         "telegram_id": user.telegram_id,
@@ -540,10 +556,25 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
         "total_balance": balance.total_balance if balance else 0.0,
         "daily_income_balance": balance.daily_income_balance if balance else 0.0,
         "invite_income": balance.invitation_income if balance else 0.0,
-        "products": products_list
+        "products": products_list,
+        "wd_method": user.wd_method,
+        "wd_account_name": user.wd_account_name,
+        "wd_account_number": user.wd_account_number
     }
 
-# NEW: Endpoint to fetch live transaction history
+# NEW: Endpoint to save withdrawal account to database
+@app.post("/api/save-withdrawal-account")
+def save_withdrawal_account(payload: SaveWdAccountRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.telegram_id == payload.telegram_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.wd_method = "CBE"
+    user.wd_account_name = payload.name
+    user.wd_account_number = payload.number
+    db.commit()
+    return {"message": "Withdrawal account saved successfully."}
+
 @app.get("/api/user/transactions/{telegram_id}")
 def get_user_transactions(telegram_id: int, db: Session = Depends(get_db)):
     deposits = db.query(Deposit).filter(Deposit.telegram_id == telegram_id).all()

@@ -89,7 +89,8 @@
         .payment-notes p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0.5rem; }
         .invoice-header { text-align: center; margin: 1.5rem 0; }
         .invoice-amt { font-size: 3.5rem; font-weight: 900; color: var(--text); letter-spacing: -1px; }
-        .timer-box { text-align: center; background: rgba(239, 68, 68, 0.1); color: var(--danger); padding: 0.85rem; margin: 0 0 1.5rem 0; border-radius: 8px; font-weight: 700; font-size: 1rem; border: 1px solid rgba(239, 68, 68, 0.2); }
+        /* REMOVED timer-box styling, replaced with warning-box */
+        .warning-box { text-align: center; background: rgba(239, 68, 68, 0.1); color: var(--danger); padding: 0.85rem; margin: 0 0 1.5rem 0; border-radius: 8px; font-weight: 800; font-size: 1rem; border: 2px solid var(--danger); }
         .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; background: var(--card-bg); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
         .invoice-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
         .invoice-table tr:last-child td { border-bottom: none; } .inv-label { color: var(--text-muted); width: 40%; font-weight: 500; }
@@ -129,13 +130,10 @@
         .ref-val { font-weight: 700; font-size: 1rem; color: var(--text); }
         .btn-copy-sm { background: var(--danger); color: #fff; border: none; padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: transform 0.1s; }
         .btn-copy-sm:active { transform: scale(0.95); }
-        
-        /* FIX: Cleaned up commission table for mobile */
         .commission-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
         .commission-table th, .commission-table td { border: 1px solid var(--border); padding: 12px; text-align: center; }
         .commission-table th { background: var(--bg); color: var(--text-muted); font-weight: 600; }
         .commission-table td { color: var(--text); }
-        
         .stat-mini-row { display: flex; gap: 1rem; margin-top: 1rem; }
         .stat-mini { flex: 1; background: var(--bg); padding: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
         .stat-mini-val { font-weight: 800; font-size: 1.1rem; color: var(--text); }
@@ -276,7 +274,8 @@
             </div>
             <div id="dep-step-2" class="dep-step hidden">
                 <div class="invoice-header"><div style="color: var(--text-muted); font-size: 1rem; font-weight: 500;">Amount Due</div><div class="invoice-amt">Br <span id="inv-amount">0.00</span></div></div>
-                <div class="timer-box" id="deposit-timer">Account expires within 15:00</div>
+                <!-- REPLACED timer-box with warning-box -->
+                <div class="warning-box">⚠️ DO NOT PAY WITHOUT MANAGER APPROVAL</div>
                 <table class="invoice-table">
                     <tr><td class="inv-label">Account Name</td><td class="inv-val" id="inv-acc-name">Loading...</td></tr>
                     <tr><td class="inv-label">Bank Name</td><td class="inv-val" id="inv-bank-name">Loading...</td></tr>
@@ -323,8 +322,6 @@
                 <div class="referral-box">
                     <div class="ref-row"><span class="ref-label">Invitation Code:</span><div class="ref-val-group"><strong id="user-invite-code">DEMO01</strong><button class="btn-copy-sm" onclick="copyText(document.getElementById('user-invite-code').innerText)">Copy</button></div></div>
                     <div class="ref-row"><span class="ref-label">Invitation Link:</span><div class="ref-val-group"><strong id="user-invite-link-display" style="font-size: 0.8rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">https://assetcore-et.vercel.app/?start=DEMO01</strong><button class="btn-copy-sm" onclick="copyReferralLink()">Copy</button></div></div>
-                    
-                    <!-- FIX: Removed Level and Commission columns -->
                     <table class="commission-table">
                         <thead>
                             <tr>
@@ -339,7 +336,6 @@
                             </tr>
                         </tbody>
                     </table>
-                    
                     <div class="stat-mini-row">
                         <div class="stat-mini"><div class="stat-mini-val">0</div><div class="stat-mini-lbl">Valid users</div></div>
                         <div class="stat-mini"><div class="stat-mini-val">0 ETB</div><div class="stat-mini-lbl">Invited income</div></div>
@@ -474,13 +470,31 @@ Note: Your investment earnings will be automatically deposited into your account
             total_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, has_checked_in: false, transactions: [], products: []
         };
 
+        // FIX 1: Persistent Login on Refresh
         window.onload = function() {
+            const savedUser = localStorage.getItem("ac_user_state");
+            if (savedUser) {
+                try {
+                    const parsed = JSON.parse(savedUser);
+                    userState = parsed;
+                    if (parsed.wd_method) {
+                        withdrawalAccount = { method: parsed.wd_method, name: parsed.wd_account_name, number: parsed.wd_account_number };
+                    }
+                    loginSuccess();
+                } catch (e) {
+                    localStorage.removeItem("ac_user_state");
+                }
+            }
+
             const savedPhone = localStorage.getItem("ac_phone");
             const savedPass = localStorage.getItem("ac_pass");
             if (savedPhone && savedPass) {
-                document.getElementById("si-phone").value = savedPhone;
-                document.getElementById("si-pass").value = savedPass;
-                document.getElementById("si-remember").checked = true;
+                const siPhone = document.getElementById("si-phone");
+                const siPass = document.getElementById("si-pass");
+                if (siPhone) siPhone.value = savedPhone;
+                if (siPass) siPass.value = savedPass;
+                const siRemember = document.getElementById("si-remember");
+                if (siRemember) siRemember.checked = true;
             }
         };
 
@@ -615,9 +629,15 @@ Note: Your investment earnings will be automatically deposited into your account
                     userState.invite_code = data.invitation_code || "DEMO01";
                     userState.daily_income_balance = data.daily_income_balance || 0.00;
                     userState.invite_income = data.invite_income || 0.00;
-                    
                     userState.products = data.products || [];
-                    updateMineStats();
+                    
+                    // FIX 3: Sync withdrawal account from backend
+                    if (data.wd_method) {
+                        userState.wd_method = data.wd_method;
+                        userState.wd_account_name = data.wd_account_name;
+                        userState.wd_account_number = data.wd_account_number;
+                        withdrawalAccount = { method: data.wd_method, name: data.wd_account_name, number: data.wd_account_number };
+                    }
 
                     if (rememberMe) {
                         localStorage.setItem("ac_phone", phone);
@@ -648,6 +668,7 @@ Note: Your investment earnings will be automatically deposited into your account
             initApp();
             document.getElementById("login-promo-modal").classList.remove("hidden");
             initWebSocket(userState.telegram_id);
+            localStorage.setItem("ac_user_state", JSON.stringify(userState));
         }
 
         function closePromoModal() { document.getElementById("login-promo-modal").classList.add("hidden"); }
@@ -656,6 +677,7 @@ Note: Your investment earnings will be automatically deposited into your account
         function confirmLogout() {
             if (socket) socket.close();
             closeLogoutModal();
+            localStorage.removeItem("ac_user_state"); // Clear persistent login
             document.getElementById("dashboard-view").classList.add("hidden");
             document.getElementById("auth-view").classList.remove("hidden");
         }
@@ -728,7 +750,7 @@ Note: Your investment earnings will be automatically deposited into your account
             document.getElementById(`view-${viewName}`).classList.remove("hidden");
             document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("active"));
             document.querySelector(`.nav-item[data-view="${viewName}"]`).classList.add("active");
-            if (viewName !== 'deposit') { clearInterval(countdownInterval); document.getElementById("dep-step-1").classList.remove("hidden"); document.getElementById("dep-step-2").classList.add("hidden"); }
+            if (viewName !== 'deposit') { document.getElementById("dep-step-1").classList.remove("hidden"); document.getElementById("dep-step-2").classList.add("hidden"); }
         }
 
         const products = [
@@ -790,6 +812,7 @@ Note: Your investment earnings will be automatically deposited into your account
                         total_earning: total
                     });
                     updateMineStats(); 
+                    localStorage.setItem("ac_user_state", JSON.stringify(userState));
 
                     showToast(`${name} activated successfully! Income will be credited automatically every 24h.`, 'success');
                     switchTab('mine');
@@ -866,7 +889,7 @@ Note: Your investment earnings will be automatically deposited into your account
                     
                     document.getElementById("dep-step-1").classList.add("hidden");
                     document.getElementById("dep-step-2").classList.remove("hidden");
-                    startTimer();
+                    // startTimer() removed
                 } else {
                     const err = await res.json().catch(() => ({}));
                     const errorMsg = extractErrorMessage(err, "Failed to get payment account.");
@@ -877,17 +900,6 @@ Note: Your investment earnings will be automatically deposited into your account
                 showToast("Network error fetching account.", 'error');
                 switchTab('home');
             }
-        }
-
-        function startTimer() {
-            clearInterval(countdownInterval);
-            let timeLeft = 15 * 60; const timerEl = document.getElementById("deposit-timer");
-            countdownInterval = setInterval(() => {
-                if (timeLeft <= 0) { clearInterval(countdownInterval); showToast("Session expired.", 'error'); switchTab('home'); return; }
-                timeLeft--;
-                const m = Math.floor(timeLeft / 60).toString().padStart(2, '0'); const s = (timeLeft % 60).toString().padStart(2, '0');
-                timerEl.innerText = `Account expires within ${m}:${s}`;
-            }, 1000);
         }
 
         function openConfirmModal() { document.getElementById("confirm-transfer-modal").classList.remove("hidden"); }
@@ -908,7 +920,7 @@ Note: Your investment earnings will be automatically deposited into your account
                 if (res.ok) {
                     showToast("Submitted successfully! Waiting for admin approval.", 'success');
                     userState.transactions.push({ id: txId, type: 'Purchase', method: currentPaymentMethod, amount: currentProductAmount, status: 'Pending', timestamp: new Date().toLocaleString() });
-                    closeConfirmModal(); clearInterval(countdownInterval); document.getElementById("tx-id").value = "";
+                    closeConfirmModal(); document.getElementById("tx-id").value = "";
                     document.getElementById("dep-step-1").classList.remove("hidden"); document.getElementById("dep-step-2").classList.add("hidden");
                     switchTab('home');
                 } else {
@@ -966,13 +978,30 @@ Note: Your investment earnings will be automatically deposited into your account
 
         function closeWithdrawModal() { document.getElementById("withdraw-modal").classList.add("hidden"); }
 
-        function saveWithdrawalAccount() {
+        async function saveWithdrawalAccount() {
             const name = document.getElementById("wd-name").value.trim();
             const number = document.getElementById("wd-number").value.trim();
             if (!name || !number) return showToast("Please fill in all fields.", 'error');
-            withdrawalAccount = { method: "CBE", name: name, number: number }; 
-            showToast("Account saved successfully! You can now withdraw funds.", 'success');
-            openWithdrawModal(); 
+            
+            try {
+                const res = await apiFetch('/api/save-withdrawal-account', {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ telegram_id: parseInt(userState.telegram_id), name: name, number: number })
+                });
+                if (res.ok) {
+                    withdrawalAccount = { method: "CBE", name: name, number: number }; 
+                    userState.wd_method = "CBE";
+                    userState.wd_account_name = name;
+                    userState.wd_account_number = number;
+                    localStorage.setItem("ac_user_state", JSON.stringify(userState));
+                    showToast("Account saved successfully! You can now withdraw funds.", 'success');
+                    openWithdrawModal(); 
+                } else {
+                    showToast("Failed to save account.", 'error');
+                }
+            } catch (e) {
+                showToast("Network error.", 'error');
+            }
         }
 
         async function handleWithdraw() {
@@ -987,6 +1016,7 @@ Note: Your investment earnings will be automatically deposited into your account
                 if (res.ok) {
                     showToast(`Withdrawal request of ${amount} ETB submitted!`, 'success');
                     userState.total_balance -= amount; updateBalances(); closeWithdrawModal();
+                    localStorage.setItem("ac_user_state", JSON.stringify(userState));
                 } else {
                     const err = await res.json().catch(() => ({}));
                     showToast(extractErrorMessage(err, "Withdrawal failed."), 'error');

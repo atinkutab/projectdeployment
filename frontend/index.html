@@ -33,7 +33,7 @@
         .welcome-text { text-align: center; color: var(--text-muted); margin-bottom: 2.5rem; font-size: 1.1rem; font-weight: 500; }
         .form-group { margin-bottom: 1.25rem; animation: slideUp 0.4s ease; width: 100%; }
         .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text); }
-        .input-field { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; -webkit-appearance: none; appearance: none; box-sizing: border-box; margin: 0; }
+        .input-field { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; appearance: none; -webkit-appearance: none; box-sizing: border-box; margin: 0; }
         .input-field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
         .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .btn-primary:active { transform: scale(0.98); }
@@ -218,12 +218,12 @@
         <div class="logo">Asset<span>Core</span></div>
         <p class="welcome-text">Welcome! Please sign in or create an account.</p>
         <div id="signup-form">
-            <div class="form-group"><label>Telegram Username</label><input type="text" id="su-username" class="input-field" placeholder="@username"></div>
+            <div class="form-group"><label>Telegram Username</label><input type="text" id="su-username" class="input-field" placeholder="@username" onchange="validateUsername(this.value)"></div>
             <div class="form-group"><label>Phone Number</label><input type="tel" id="su-phone" class="input-field" value="+2519" placeholder="+2519..."></div>
-            <div class="form-group"><label>Password</label><input type="password" id="su-pass" class="input-field" placeholder="********"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="su-pass" class="input-field" placeholder="Min 6 characters"></div>
             <div class="form-group"><label>Repeat Password</label><input type="password" id="su-pass2" class="input-field" placeholder="********"></div>
             <div class="form-group"><label>Captcha Code</label><div class="captcha-box" id="captcha-text" onclick="generateCaptcha()" title="Click to refresh">45be</div><input type="text" id="su-captcha" class="input-field" placeholder="Enter code above"></div>
-            <div class="form-group"><label>Invitation Code (Optional)</label><input type="text" id="su-invite" class="input-field" placeholder="Enter referral code"></div>
+            <div class="form-group"><label>Invitation Code (Optional)</label><input type="text" id="su-invite" class="input-field" placeholder="6-character code"></div>
             
             <div class="terms-group">
                 <input type="checkbox" id="terms-agree" onclick="toggleSignUpButton()">
@@ -489,7 +489,6 @@ Note: Your investment earnings will be automatically deposited into your account
             total_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, has_checked_in: false, transactions: [], products: []
         };
 
-        // FIX 3: Use sessionStorage for auto-login on refresh, but clear on fresh open
         window.onload = function() {
             const savedUser = sessionStorage.getItem("ac_user_state");
             if (savedUser) {
@@ -584,18 +583,37 @@ Note: Your investment earnings will be automatically deposited into your account
             return true;
         }
 
+        function validateUsername(username) {
+            const clean = username.trim().replace(/^@+/, '');
+            if (clean.length < 5 || clean.length > 32) {
+                showToast("Username must be 5-32 characters long.", 'error');
+                return false;
+            }
+            if (/^\d+$/.test(clean)) {
+                showToast("Username cannot be a phone number.", 'error');
+                return false;
+            }
+            if (!/^[a-zA-Z0-9_]{5,32}$/.test(clean)) {
+                showToast("Invalid Telegram username. Use letters, numbers, and underscores only.", 'error');
+                return false;
+            }
+            return true;
+        }
+
         async function handleSignUp() {
             const pass1 = document.getElementById("su-pass").value;
             const pass2 = document.getElementById("su-pass2").value;
             const captcha = document.getElementById("su-captcha").value;
-            const username = document.getElementById("su-username").value;
+            const username = document.getElementById("su-username").value.trim();
             const phone = document.getElementById("su-phone").value.trim();
-            const invite = document.getElementById("su-invite").value;
+            const invite = document.getElementById("su-invite").value.trim();
 
             if (!validatePhone(phone)) return;
+            if (!validateUsername(username)) return;
+            if (pass1.length < 6) { return showToast("Password must be at least 6 characters.", 'error'); }
             if (pass1 !== pass2) return showToast("Passwords do not match!", 'error');
             if (captcha.toUpperCase() !== currentCaptcha) { generateCaptcha(); return showToast("Invalid Captcha code!", 'error'); }
-            if (!username || !phone || !pass1) return showToast("Please fill all required fields.", 'error');
+            if (invite && (invite.length !== 6 || !/^[A-Z0-9]{6}$/.test(invite.toUpperCase()))) { return showToast("Invalid invitation code format.", 'error'); }
 
             const signupBtn = document.getElementById("signup-btn");
             signupBtn.disabled = true;
@@ -713,7 +731,6 @@ Note: Your investment earnings will be automatically deposited into your account
             closeLogoutModal();
             sessionStorage.removeItem("ac_user_state");
             
-            // FIX 1: Reset button states
             const signinBtn = document.getElementById("signin-btn");
             if(signinBtn) { signinBtn.innerHTML = 'Sign In'; signinBtn.disabled = false; }
             const signupBtn = document.getElementById("signup-btn");

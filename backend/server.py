@@ -239,6 +239,21 @@ class RegisterRequest(BaseModel):
             raise ValueError("Phone number must contain numbers only.")
         return clean
 
+    # NEW: Strict username validation
+    @field_validator("telegram_username")
+    @classmethod
+    def validate_username_format(cls, v: str) -> str:
+        if v is None:
+            return v
+        clean = v.strip().lstrip('@')
+        if not clean:
+            return None
+        if clean.isdigit():
+            raise ValueError("Username cannot be a phone number. Please enter a valid Telegram username (e.g., @username).")
+        if not re.match(r"^[a-zA-Z0-9_]{5,32}$", clean):
+            raise ValueError("Invalid Telegram username. Use 5-32 characters (letters, numbers, underscores).")
+        return clean
+
 class LoginRequest(BaseModel):
     phone_number: str
     password: str
@@ -348,7 +363,6 @@ async def run_daily_yield_job():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Run immediately on startup in case server was asleep and missed yields
     await process_yields()
     yield_task = asyncio.create_task(run_daily_yield_job())
     yield
@@ -773,6 +787,12 @@ def get_all_transactions(admin: str = Depends(get_current_admin), db: Session = 
         history.append({"id": w.id, "type": "Withdrawal", "user": w.telegram_id, "amount": w.amount,
                         "status": w.status, "date": w.created_at, "method": w.method})
     return history
+
+# NEW: Admin endpoint to force process yields (completely cheat-proof)
+@app.post("/api/admin/process-yields")
+async def admin_process_yields(admin: str = Depends(get_current_admin)):
+    await process_yields()
+    return {"message": "Yield processing triggered. Only eligible users (24h passed) have been credited. Users who already received yields are ignored."}
 
 @app.post("/api/admin/approve-deposit/{deposit_id}")
 async def approve_deposit(deposit_id: int, admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):

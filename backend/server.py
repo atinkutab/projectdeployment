@@ -239,7 +239,6 @@ class RegisterRequest(BaseModel):
             raise ValueError("Phone number must contain numbers only.")
         return clean
 
-    # NEW: Strict username validation
     @field_validator("telegram_username")
     @classmethod
     def validate_username_format(cls, v: str) -> str:
@@ -493,6 +492,15 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
     if db.query(User).filter(User.phone_number == clean_phone).first():
         raise HTTPException(status_code=400, detail="An account with this phone number is already registered.")
 
+    # NEW: Check for duplicate Telegram Username
+    raw_user = payload.telegram_username.strip() if payload.telegram_username else ""
+    formatted_username = f"@{raw_user.lstrip('@')}" if raw_user else None
+    
+    if formatted_username:
+        existing_username = db.query(User).filter(User.telegram_username == formatted_username).first()
+        if existing_username:
+            raise HTTPException(status_code=400, detail="This Telegram username is already registered. Please log in or use a different username.")
+
     target_tg_id = payload.telegram_id
     if target_tg_id:
         if db.query(User).filter(User.telegram_id == target_tg_id).first():
@@ -505,9 +513,6 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
     new_code = generate_invitation_code()
     while db.query(User).filter(User.invitation_code == new_code).first():
         new_code = generate_invitation_code()
-
-    raw_user = payload.telegram_username.strip() if payload.telegram_username else ""
-    formatted_username = f"@{raw_user.lstrip('@')}" if raw_user else None
 
     invitation_link = f"{FRONTEND_BASE_URL}/register?invite={new_code}"
 
@@ -558,7 +563,7 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
             "name": p.product_name,
             "price": p.product_price,
             "daily_income": p.daily_income,
-            "purchase_time": p.purchased_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "purchase_time": p.purchased_at.isoformat() + "Z", # FIX APPLIED HERE FOR TIMESTAMP
             "validity_days": 60,
             "total_earning": p.daily_income * 60
         })
@@ -788,7 +793,6 @@ def get_all_transactions(admin: str = Depends(get_current_admin), db: Session = 
                         "status": w.status, "date": w.created_at, "method": w.method})
     return history
 
-# NEW: Admin endpoint to force process yields (completely cheat-proof)
 @app.post("/api/admin/process-yields")
 async def admin_process_yields(admin: str = Depends(get_current_admin)):
     await process_yields()

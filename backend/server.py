@@ -492,7 +492,6 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
     if db.query(User).filter(User.phone_number == clean_phone).first():
         raise HTTPException(status_code=400, detail="An account with this phone number is already registered.")
 
-    # NEW: Check for duplicate Telegram Username
     raw_user = payload.telegram_username.strip() if payload.telegram_username else ""
     formatted_username = f"@{raw_user.lstrip('@')}" if raw_user else None
     
@@ -559,11 +558,13 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
     products_db = db.query(UserProduct).filter(UserProduct.telegram_id == user.telegram_id).all()
     products_list = []
     for p in products_db:
+        # FIX: Convert to Ethiopian Local Time (UTC+3) before sending to frontend
+        eth_time = p.purchased_at + timedelta(hours=3)
         products_list.append({
             "name": p.product_name,
             "price": p.product_price,
             "daily_income": p.daily_income,
-            "purchase_time": p.purchased_at.isoformat() + "Z", # FIX APPLIED HERE FOR TIMESTAMP
+            "purchase_time": eth_time.strftime("%Y-%m-%d %H:%M:%S"),
             "validity_days": 60,
             "total_earning": p.daily_income * 60
         })

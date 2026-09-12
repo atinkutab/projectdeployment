@@ -584,7 +584,7 @@ Note: Your investment earnings will be automatically deposited into your account
         }
 
         function validateUsername(username) {
-            const clean = username.trim().replace(/^@+/, '');
+            const clean = username.trim().replace(/^@/, "");
             if (clean.length < 5 || clean.length > 32) {
                 showToast("Username must be 5-32 characters long.", 'error');
                 return false;
@@ -861,11 +861,18 @@ Note: Your investment earnings will be automatically deposited into your account
                     userState.total_balance = data.new_balance; updateBalances();
                     
                     if (!userState.products) userState.products = [];
+                    
+                    // FIX: Convert current time to Ethiopian Local Time (UTC+3) string
+                    const now = new Date();
+                    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+                    const eatDate = new Date(utc + (3 * 3600000));
+                    const eatString = eatDate.toISOString().slice(0, 19).replace('T', ' ');
+
                     userState.products.push({
                         name: name,
                         price: price,
                         daily_income: daily,
-                        purchase_time: new Date().toLocaleString(),
+                        purchase_time: eatString,
                         validity_days: days,
                         total_earning: total
                     });

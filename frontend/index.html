@@ -362,7 +362,6 @@
             </div>
             <div class="menu-list">
                 <div class="menu-item" onclick="openInfoModal('account')"><span>Account details</span><span class="menu-arrow">›</span></div>
-                <div class="menu-item" onclick="openInfoModal('rules')"><span>Platform rules</span><span class="menu-arrow">›</span></div>
                 <div class="menu-item" onclick="openInfoModal('service')"><span>Customer service</span><span class="menu-arrow">›</span></div>
                 <div class="menu-item" onclick="openInfoModal('about')"><span>About us</span><span class="menu-arrow">›</span></div>
                 <div class="menu-item" onclick="handleLogout()" style="color: var(--danger);"><span>Secure exit</span><span class="menu-arrow">›</span></div>
@@ -859,7 +858,6 @@ Note: Your investment earnings will be automatically deposited into your account
                     
                     if (!userState.products) userState.products = [];
                     
-                    // Convert current time to Ethiopian Local Time (UTC+3) string
                     const now = new Date();
                     const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
                     const eatDate = new Date(utc + (3 * 3600000));
@@ -1094,10 +1092,6 @@ Note: Your investment earnings will be automatically deposited into your account
                 content = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Account Details</h2>
                     <div class="info-content"><p><strong>Payment Method:</strong> ${method}</p><p><strong>Account Holder Name:</strong> ${accName}</p><p><strong>Account Number/Phone:</strong> ${accNum}</p>
                     <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--danger);">⚠️ To change these details, please contact customer service.</p></div>
-                    <button class="btn-primary" style="margin-top: 1.5rem;" onclick="closeInfoModal()">Close</button>`;
-            } else if (type === 'rules') {
-                content = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Platform Rules</h2>
-                    <div class="info-content"><p>• Minimum investment: 650 ETB</p><p>• Invitation reward: 30%</p><p>• Minimum withdrawal: 300 ETB</p><p>• Withdrawal time: 9 AM to 9 PM (once a day)</p><p>• Product purchase: 24/7</p><p>• Withdrawal fee: 20%</p></div>
                     <button class="btn-primary" style="margin-top: 1.5rem;" onclick="closeInfoModal()">Close</button>`;
             } else if (type === 'service') {
                 content = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Customer Service</h2>

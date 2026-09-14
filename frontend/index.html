@@ -35,7 +35,13 @@
         .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text); }
         .input-field { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; -webkit-appearance: none; appearance: none; box-sizing: border-box; margin: 0; }
         .input-field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
-        .input-field.input-error { border-color: var(--danger); box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2); }
+        /* NEW: Strong, highly visible red border for errors */
+        .input-field.input-error, .input-prefix-group.input-error {
+            border-color: var(--danger) !important;
+            border-width: 2px !important;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.4) !important;
+            background-color: rgba(239, 68, 68, 0.05);
+        }
         .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .btn-primary:active { transform: scale(0.98); }
         .btn-primary:disabled { background: #475569; color: #cbd5e1; cursor: not-allowed; }
@@ -47,9 +53,7 @@
         .terms-group label { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
         .terms-group label span { color: var(--primary); font-weight: 700; cursor: pointer; }
 
-        .btn-spinner {
-            width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: btn-spin 0.8s linear infinite;
-        }
+        .btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: btn-spin 0.8s linear infinite; }
         @keyframes btn-spin { to { transform: rotate(360deg); } }
 
         .warning-banner { color: var(--danger); font-weight: 700; font-size: 0.85rem; text-align: center; margin-top: 1.5rem; border: 1px solid var(--danger); padding: 10px; border-radius: 6px; background: rgba(239, 68, 68, 0.05); }
@@ -90,7 +94,7 @@
         .quick-amounts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
         .btn-quick-amt { padding: 12px 0; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; color: var(--text); font-family: 'Inter', sans-serif; }
         .btn-quick-amt.active { border-color: var(--primary); color: var(--primary); background: rgba(59, 130, 246, 0.1); }
-        .input-prefix-group { display: flex; align-items: center; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0 16px; margin-bottom: 1.5rem; }
+        .input-prefix-group { display: flex; align-items: center; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0 16px; margin-bottom: 1.5rem; transition: all 0.2s; }
         .input-prefix { font-weight: 700; margin-right: 0.75rem; color: var(--text-muted); }
         .input-prefix-group input { border: none; padding: 12px 0; flex: 1; font-size: 1rem; background: transparent; color: var(--text); font-family: 'Inter', sans-serif; }
         .input-prefix-group input:focus { outline: none; }
@@ -214,16 +218,16 @@
         <div class="logo">Asset<span>Core</span></div>
         <p class="welcome-text">Welcome! Please sign in or create an account.</p>
         <div id="signup-form">
-            <div class="form-group"><label>Telegram Username</label><input type="text" id="su-username" class="input-field" placeholder="@username" oninput="this.classList.remove('input-error')"></div>
+            <div class="form-group"><label>Telegram Username</label><input type="text" id="su-username" class="input-field" placeholder="@username" oninput="validateUsernameLive(this.value)"></div>
             <div class="form-group"><label>Phone Number</label>
-                <div class="input-prefix-group">
+                <div class="input-prefix-group" id="su-phone-group">
                     <span class="input-prefix">+251</span>
-                    <input type="tel" id="su-phone" class="input-field" placeholder="9XXXXXXXX" maxlength="9" oninput="this.classList.remove('input-error')">
+                    <input type="tel" id="su-phone" class="input-field" placeholder="9XXXXXXXX" maxlength="9" oninput="validatePhoneLive(this.value, 'su-phone', 'su-phone-group')">
                 </div>
             </div>
-            <div class="form-group"><label>Password</label><input type="password" id="su-pass" class="input-field" placeholder="Min 6 characters" oninput="this.classList.remove('input-error')"></div>
-            <div class="form-group"><label>Repeat Password</label><input type="password" id="su-pass2" class="input-field" placeholder="********" oninput="this.classList.remove('input-error')"></div>
-            <div class="form-group"><label>Captcha Code</label><div class="captcha-box" id="captcha-text" onclick="generateCaptcha()" title="Click to refresh">45be</div><input type="text" id="su-captcha" class="input-field" placeholder="Enter code above" oninput="this.classList.remove('input-error')"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="su-pass" class="input-field" placeholder="Min 6 characters" oninput="checkPasswordLive()"></div>
+            <div class="form-group"><label>Repeat Password</label><input type="password" id="su-pass2" class="input-field" placeholder="********" oninput="checkPasswordLive()"></div>
+            <div class="form-group"><label>Captcha Code</label><div class="captcha-box" id="captcha-text" onclick="generateCaptcha()" title="Click to refresh">45be</div><input type="text" id="su-captcha" class="input-field" placeholder="Enter code above" oninput="checkCaptchaLive(this.value)"></div>
             
             <div class="terms-group">
                 <input type="checkbox" id="terms-agree" onclick="toggleSignUpButton()">
@@ -238,9 +242,9 @@
         </div>
         <div id="signin-form" class="hidden">
             <div class="form-group"><label>Phone Number</label>
-                <div class="input-prefix-group">
+                <div class="input-prefix-group" id="si-phone-group">
                     <span class="input-prefix">+251</span>
-                    <input type="tel" id="si-phone" class="input-field" placeholder="9XXXXXXXX" maxlength="9" oninput="this.classList.remove('input-error')">
+                    <input type="tel" id="si-phone" class="input-field" placeholder="9XXXXXXXX" maxlength="9" oninput="validatePhoneLive(this.value, 'si-phone', 'si-phone-group')">
                 </div>
             </div>
             <div class="form-group"><label>Password</label><input type="password" id="si-pass" class="input-field" placeholder="********" oninput="this.classList.remove('input-error')"></div>
@@ -542,6 +546,69 @@ Note: Your investment earnings will be automatically deposited into your account
                 currentCaptcha += chars.charAt(Math.floor(Math.random() * chars.length));
             }
             document.getElementById("captcha-text").innerText = currentCaptcha;
+            document.getElementById("su-captcha").classList.remove('input-error');
+        }
+
+        // NEW: Live Validation Functions
+        function validateUsernameLive(val) {
+            const input = document.getElementById('su-username');
+            const clean = val.trim().replace(/^@/, "");
+            if (clean.length === 0) {
+                input.classList.remove('input-error');
+                return false;
+            }
+            if (clean.length < 5 || clean.length > 32 || /^\d+$/.test(clean) || !/^[a-zA-Z0-9_]{5,32}$/.test(clean)) {
+                input.classList.add('input-error');
+                return false;
+            }
+            input.classList.remove('input-error');
+            return true;
+        }
+
+        function validatePhoneLive(val, inputId, groupId) {
+            const input = document.getElementById(inputId);
+            const group = document.getElementById(groupId);
+            const digits = val.replace(/\D/g, '').replace(/^251/, '');
+            
+            if (digits.length === 0) {
+                input.classList.remove('input-error');
+                if(group) group.classList.remove('input-error');
+                return false;
+            }
+            if (digits.length !== 9 || digits[0] !== '9') {
+                input.classList.add('input-error');
+                if(group) group.classList.add('input-error');
+                return false;
+            }
+            input.classList.remove('input-error');
+            if(group) group.classList.remove('input-error');
+            return true;
+        }
+
+        function checkPasswordLive() {
+            const p1 = document.getElementById("su-pass");
+            const p2 = document.getElementById("su-pass2");
+            if (p1.value.length > 0 && p2.value.length > 0 && p1.value !== p2.value) {
+                p1.classList.add('input-error');
+                p2.classList.add('input-error');
+            } else {
+                p1.classList.remove('input-error');
+                p2.classList.remove('input-error');
+            }
+        }
+
+        function checkCaptchaLive(val) {
+            const input = document.getElementById("su-captcha");
+            if (val.length === 0) {
+                input.classList.remove('input-error');
+                return false;
+            }
+            if (val.toUpperCase() !== currentCaptcha) {
+                input.classList.add('input-error');
+                return false;
+            }
+            input.classList.remove('input-error');
+            return true;
         }
 
         function initWebSocket(userId) {
@@ -586,35 +653,6 @@ Note: Your investment earnings will be automatically deposited into your account
             document.getElementById("signin-form").classList.toggle("hidden", view !== 'signin');
         }
 
-        function validatePhone(phoneDigits, inputId) {
-            const input = document.getElementById(inputId);
-            if (phoneDigits.length !== 9 || phoneDigits[0] !== '9') {
-                input.classList.add('input-error');
-                return false;
-            }
-            input.classList.remove('input-error');
-            return true;
-        }
-
-        function validateUsername(username, inputId) {
-            const input = document.getElementById(inputId);
-            const clean = username.trim().replace(/^@/, "");
-            if (clean.length < 5 || clean.length > 32) {
-                input.classList.add('input-error');
-                return false;
-            }
-            if (/^\d+$/.test(clean)) {
-                input.classList.add('input-error');
-                return false;
-            }
-            if (!/^[a-zA-Z0-9_]{5,32}$/.test(clean)) {
-                input.classList.add('input-error');
-                return false;
-            }
-            input.classList.remove('input-error');
-            return true;
-        }
-
         async function handleSignUp() {
             const pass1 = document.getElementById("su-pass").value;
             const pass2 = document.getElementById("su-pass2").value;
@@ -623,22 +661,11 @@ Note: Your investment earnings will be automatically deposited into your account
             const phoneRaw = document.getElementById("su-phone").value;
             const phoneDigits = phoneRaw.replace(/\D/g, '').replace(/^251/, '');
             
-            if (!validatePhone(phoneDigits, 'su-phone')) return;
-            if (!validateUsername(username, 'su-username')) return;
-            if (pass1.length < 6) { 
-                document.getElementById("su-pass").classList.add('input-error'); 
-                return; 
-            }
-            if (pass1 !== pass2) { 
-                document.getElementById("su-pass").classList.add('input-error');
-                document.getElementById("su-pass2").classList.add('input-error');
-                return; 
-            }
-            if (captcha.toUpperCase() !== currentCaptcha) { 
-                generateCaptcha(); 
-                document.getElementById("su-captcha").classList.add('input-error'); 
-                return; 
-            }
+            if (!validatePhoneLive(phoneRaw, 'su-phone', 'su-phone-group')) { showCenterMessage("Invalid phone number format.", 'error'); return; }
+            if (!validateUsernameLive(username)) { showCenterMessage("Invalid username format.", 'error'); return; }
+            if (pass1.length < 6) { document.getElementById("su-pass").classList.add('input-error'); showCenterMessage("Password must be at least 6 characters.", 'error'); return; }
+            if (pass1 !== pass2) { showCenterMessage("Passwords do not match.", 'error'); return; }
+            if (!checkCaptchaLive(captcha)) { showCenterMessage("Invalid or missing captcha.", 'error'); return; }
 
             const phone = "+251" + phoneDigits;
             const signupBtn = document.getElementById("signup-btn");
@@ -668,13 +695,14 @@ Note: Your investment earnings will be automatically deposited into your account
                     if (res.status === 400 || res.status === 409 || errorMsg.toLowerCase().includes("already") || errorMsg.toLowerCase().includes("exist")) {
                         showCenterMessage("You already have an account! Please sign in.", 'error');
                         document.getElementById("su-phone").classList.add('input-error');
+                        document.getElementById("su-phone-group").classList.add('input-error');
                         toggleAuth('signin');
                     } else { showCenterMessage(errorMsg, 'error'); }
                     signupBtn.innerHTML = 'Sign Up';
                     signupBtn.disabled = !document.getElementById("terms-agree").checked;
                 }
             } catch (error) { 
-                showCenterMessage("Network error. Server is waking up, please try again in 30 seconds.", 'error');
+                showCenterMessage("Network error. Server is waking up.", 'error');
                 signupBtn.innerHTML = 'Sign Up';
                 signupBtn.disabled = !document.getElementById("terms-agree").checked;
             }
@@ -685,9 +713,10 @@ Note: Your investment earnings will be automatically deposited into your account
             const phoneDigits = phoneRaw.replace(/\D/g, '').replace(/^251/, '');
             const pass = document.getElementById("si-pass").value;
             
-            if (!validatePhone(phoneDigits, 'si-phone')) return;
+            if (!validatePhoneLive(phoneRaw, 'si-phone', 'si-phone-group')) { showCenterMessage("Invalid phone number format.", 'error'); return; }
             if (!pass) { 
                 document.getElementById("si-pass").classList.add('input-error'); 
+                showCenterMessage("Please enter your password.", 'error');
                 return; 
             }
 
@@ -737,11 +766,12 @@ Note: Your investment earnings will be automatically deposited into your account
                     showCenterMessage(extractErrorMessage(err, "Invalid phone number or password."), 'error');
                     document.getElementById("si-pass").classList.add('input-error');
                     document.getElementById("si-phone").classList.add('input-error');
+                    document.getElementById("si-phone-group").classList.add('input-error');
                     signinBtn.innerHTML = 'Sign In';
                     signinBtn.disabled = false;
                 }
             } catch (error) { 
-                showCenterMessage("Network error. Server is waking up, please try again in 30 seconds.", 'error');
+                showCenterMessage("Network error. Server is waking up.", 'error');
                 signinBtn.innerHTML = 'Sign In';
                 signinBtn.disabled = false;
             }

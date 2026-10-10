@@ -326,6 +326,14 @@ def create_access_token(data: dict):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
+# --- NEW HELPER: Convert UTC datetime to Ethiopian local time (UTC+3) in 24-hour format ---
+def to_ethiopian_24h_str(dt: Optional[datetime]) -> str:
+    """Convert a naive UTC datetime to Ethiopian local time (UTC+3) and format as 24-hour string."""
+    if dt is None:
+        return ""
+    eth_time = dt + timedelta(hours=3)
+    return eth_time.strftime("%Y-%m-%d %H:%M:%S")
+
 # --- BACKGROUND JOB ---
 async def process_yields():
     db = SessionLocal()
@@ -527,6 +535,7 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
     bonus = float(bonus_setting.value) if bonus_setting else 300.0
     db.add(UserBalance(telegram_id=new_user.telegram_id, registration_bonus=bonus, total_balance=bonus, available_balance=bonus))
 
+    # Referral creation — relies on frontend passing inviter_code from URL (?start= or ?invite=)
     if payload.inviter_code:
         inviter = db.query(User).filter(User.invitation_code == payload.inviter_code).first()
         if inviter and inviter.telegram_id != new_user.telegram_id:
@@ -558,7 +567,6 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
     products_db = db.query(UserProduct).filter(UserProduct.telegram_id == user.telegram_id).all()
     products_list = []
     for p in products_db:
-        # FIX: Convert to Ethiopian Local Time (UTC+3) before sending to frontend
         eth_time = p.purchased_at + timedelta(hours=3)
         products_list.append({
             "name": p.product_name,
@@ -569,6 +577,12 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
             "total_earning": p.daily_income * 60
         })
     
+    # NEW: Count valid referrals (invitees whose first deposit has been approved) for the inviter
+    valid_referrals_count = db.query(TeamReferral).filter(
+        TeamReferral.inviter_id == user.telegram_id,
+        TeamReferral.is_valid_depositor == True
+    ).count()
+    
     return {
         "message": "Login successful",
         "telegram_id": user.telegram_id,
@@ -578,6 +592,7 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
         "total_balance": balance.total_balance if balance else 0.0,
         "daily_income_balance": balance.daily_income_balance if balance else 0.0,
         "invite_income": balance.invitation_income if balance else 0.0,
+        "valid_referrals": valid_referrals_count,
         "products": products_list,
         "wd_method": user.wd_method,
         "wd_account_name": user.wd_account_name,
@@ -602,9 +617,10 @@ def get_user_transactions(telegram_id: int, db: Session = Depends(get_db)):
     withdrawals = db.query(Withdrawal).filter(Withdrawal.telegram_id == telegram_id).all()
     history = []
     for d in deposits:
-        history.append({"id": d.id, "type": "Deposit", "amount": d.amount_etb, "status": d.status, "date": d.created_at, "method": d.payment_method})
+        # FIX: withdrawal/deposit timestamp now returned as Ethiopian local time (UTC+3) in 24-hour format
+        history.append({"id": d.id, "type": "Deposit", "amount": d.amount_etb, "status": d.status, "date": to_ethiopian_24h_str(d.created_at), "method": d.payment_method})
     for w in withdrawals:
-        history.append({"id": w.id, "type": "Withdrawal", "amount": w.amount, "status": w.status, "date": w.created_at, "method": w.method})
+        history.append({"id": w.id, "type": "Withdrawal", "amount": w.amount, "status": w.status, "date": to_ethiopian_24h_str(w.created_at), "method": w.method})
     history.sort(key=lambda x: x["date"], reverse=True)
     return history
 
@@ -822,6 +838,14 @@ async def approve_deposit(deposit_id: int, admin: str = Depends(get_current_admi
             inv_bal.invitation_income += commission
             inv_bal.total_balance += commission
             inv_bal.available_balance += commission
+            # NEW: Notify the inviter in real time that they earned commission from a referral's first deposit
+            inv_notification = {
+                "type": "commission_earned",
+                "amount": commission,
+                "new_balance": inv_bal.total_balance,
+                "invitee_id": deposit.telegram_id
+            }
+            await manager.send_personal_message(json.dumps(inv_notification), str(ref.inviter_id))
     db.commit()
     notification = {"type": "deposit_approved", "amount": deposit.amount_etb, "new_balance": user_balance.total_balance}
     await manager.send_personal_message(json.dumps(notification), str(deposit.telegram_id))

@@ -1,901 +1,1352 @@
-try:
-    from jose import JWTError, jwt
-except ImportError:
-    import jwt as _pyjwt
-    try:
-        JWTError = _pyjwt.exceptions.PyJWTError
-    except Exception:
-        class JWTError(Exception): pass
-    jwt = _pyjwt
-
-import json
-import asyncio
-import os
-import re
-import random
-import string
-import hashlib
-import importlib
-from datetime import datetime, timedelta
-from contextlib import asynccontextmanager
-from typing import Dict, Optional
-
-try:
-    bcrypt = importlib.import_module("bcrypt")
-except ImportError:
-    bcrypt = None
-
-from fastapi import (FastAPI, Depends, HTTPException, status, WebSocket,
-                     WebSocketDisconnect, Query)
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel, field_validator
-from sqlalchemy import (create_engine, Column, Integer, BigInteger, String,
-                       Float, Boolean, DateTime, ForeignKey, text, or_, desc)
-from sqlalchemy.orm import declarative_base, sessionmaker, Session, relationship
-from sqlalchemy.engine import URL
-
-# --- SYSTEM CONFIGURATION ---
-SECRET_KEY = os.environ["SECRET_KEY"]
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 1440
-
-ADMIN_USERNAME = os.environ["ADMIN_USERNAME"]
-ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
-ADMIN_PASSWORD_HASH = hashlib.sha256(ADMIN_PASSWORD.encode()).hexdigest()
-
-FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "https://assetcore-et.vercel.app")
-
-DEFAULT_ORIGINS = [
-    "https://assetcore-et.vercel.app",
-    "https://projectdeployment-1-yuwq.onrender.com",
-    "https://web.telegram.org",
-]
-ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", ",".join(DEFAULT_ORIGINS)).split(",") if o.strip()]
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/admin/login")
-
-DB_HOST = os.environ["DB_HOST"]
-DB_PORT = int(os.environ["DB_PORT"])
-DB_NAME = os.environ["DB_NAME"]
-DB_USER = os.environ["DB_USER"]
-DB_PASSWORD = os.environ["DB_PASSWORD"]
-
-SQLALCHEMY_DATABASE_URL = URL.create(
-    drivername="postgresql+psycopg2",
-    username=DB_USER,
-    password=DB_PASSWORD,
-    host=DB_HOST,
-    port=DB_PORT,
-    database=DB_NAME,
-)
-
-engine = create_engine(SQLALCHEMY_DATABASE_URL, pool_pre_ping=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-
-# --- WEBSOCKET CONNECTION MANAGER ---
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: Dict[str, WebSocket] = {}
-
-    async def connect(self, websocket: WebSocket, user_id: str):
-        await websocket.accept()
-        key = str(user_id)
-        old = self.active_connections.get(key)
-        if old is not None:
-            try: await old.close(code=1000, reason="Replaced by new connection")
-            except Exception: pass
-        self.active_connections[key] = websocket
-
-    def disconnect(self, user_id: str):
-        self.active_connections.pop(str(user_id), None)
-
-    async def send_personal_message(self, message: str, user_id: str):
-        key = str(user_id)
-        ws = self.active_connections.get(key)
-        if ws is None: return
-        try: await ws.send_text(message)
-        except Exception: self.disconnect(key)
-
-manager = ConnectionManager()
-
-# --- DATABASE MODELS ---
-class User(Base):
-    __tablename__ = "users"
-    telegram_id = Column(BigInteger, primary_key=True, index=True)
-    telegram_username = Column(String, nullable=True)
-    phone_number = Column(String, unique=True, nullable=True)
-    password_hash = Column(String, nullable=False)
-    invitation_code = Column(String, unique=True, nullable=False)
-    invitation_link = Column(String, nullable=False)
-    wd_method = Column(String, nullable=True)
-    wd_account_name = Column(String, nullable=True)
-    wd_account_number = Column(String, nullable=True)
-
-    balance = relationship("UserBalance", uselist=False, back_populates="user", cascade="all, delete-orphan")
-    products = relationship("UserProduct", back_populates="user", cascade="all, delete-orphan")
-    deposits = relationship("Deposit", back_populates="user", cascade="all, delete-orphan")
-    withdrawals = relationship("Withdrawal", back_populates="user", cascade="all, delete-orphan")
-    referrals = relationship("TeamReferral", foreign_keys="TeamReferral.telegram_id", back_populates="user", cascade="all, delete-orphan")
-    inviter_referrals = relationship("TeamReferral", foreign_keys="TeamReferral.inviter_id", back_populates="inviter", cascade="all, delete-orphan")
-
-class UserBalance(Base):
-    __tablename__ = "user_balances"
-    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), primary_key=True)
-    registration_bonus = Column(Float, default=0.0)
-    daily_income_balance = Column(Float, default=0.0)
-    invitation_income = Column(Float, default=0.0)
-    total_balance = Column(Float, default=0.0)
-    available_balance = Column(Float, default=0.0)
-    last_checkin_at = Column(DateTime, nullable=True)
-    user = relationship("User", back_populates="balance")
-
-class TeamReferral(Base):
-    __tablename__ = "team_referrals"
-    id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False)
-    inviter_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False)
-    commission_earned = Column(Float, default=0.0)
-    is_valid_depositor = Column(Boolean, default=False)
-    user = relationship("User", foreign_keys=[telegram_id], back_populates="referrals")
-    inviter = relationship("User", foreign_keys=[inviter_id], back_populates="inviter_referrals")
-
-class UserProduct(Base):
-    __tablename__ = "user_products"
-    id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False)
-    product_name = Column(String, nullable=False)
-    product_price = Column(Float, nullable=False)
-    daily_income = Column(Float, nullable=False)
-    purchased_at = Column(DateTime, default=datetime.utcnow)
-    last_yield_claimed_at = Column(DateTime, nullable=True)
-    user = relationship("User", back_populates="products")
-
-class Deposit(Base):
-    __tablename__ = "deposits"
-    id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False)
-    transaction_id = Column(String, unique=True, index=True, nullable=False)
-    amount_etb = Column(Float, nullable=False)
-    status = Column(String, default="Pending")
-    payment_method = Column(String, default="CBE")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    assigned_account = Column(String, nullable=True)
-    user = relationship("User", back_populates="deposits")
-
-class Withdrawal(Base):
-    __tablename__ = "withdrawals"
-    id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False)
-    amount = Column(Float, nullable=False)
-    fee = Column(Float, default=0.0)
-    payout_amount = Column(Float, default=0.0)
-    method = Column(String, nullable=False)
-    account_details = Column(String, nullable=False)
-    status = Column(String, default="Pending")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    user = relationship("User", back_populates="withdrawals")
-
-class Setting(Base):
-    __tablename__ = "settings"
-    key = Column(String, primary_key=True)
-    value = Column(String, nullable=False)
-
-Base.metadata.create_all(bind=engine)
-
-def init_db():
-    db = SessionLocal()
-    try:
-        try: db.execute(text("ALTER TABLE deposits ADD COLUMN IF NOT EXISTS assigned_account VARCHAR;"))
-        except: pass
-        try: db.execute(text("ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS fee FLOAT DEFAULT 0;"))
-        except: pass
-        try: db.execute(text("ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS payout_amount FLOAT DEFAULT 0;"))
-        except: pass
-        try: db.execute(text("ALTER TABLE user_balances ADD COLUMN IF NOT EXISTS available_balance FLOAT DEFAULT 0;"))
-        except: pass
-        try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS wd_method VARCHAR;"))
-        except: pass
-        try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS wd_account_name VARCHAR;"))
-        except: pass
-        try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS wd_account_number VARCHAR;"))
-        except: pass
-        db.commit()
-
-        db.execute(text("UPDATE user_balances SET available_balance = registration_bonus + daily_income_balance + invitation_income WHERE available_balance = 0;"))
-        db.commit()
-
-        if not db.query(Setting).filter(Setting.key == "deposit_account_pool").first():
-            db.add(Setting(key="deposit_account_pool", value="CBE, Platform Admin, 1000123456789\nTelebirr, John Doe, 0911223344\nAbyssinia, Jane Doe, 1000987654321"))
-            db.commit()
-
-        if not db.query(Setting).filter(Setting.key == "registration_bonus").first():
-            db.add(Setting(key="registration_bonus", value="300.0"))
-            db.add(Setting(key="commission_rate", value="0.30"))
-            db.commit()
-    except Exception as e:
-        print(f"DB Init Error: {e}")
-        db.rollback()
-    finally:
-        db.close()
-
-init_db()
-
-# --- PYDANTIC SCHEMAS ---
-class RegisterRequest(BaseModel):
-    telegram_id: Optional[int] = None
-    telegram_username: Optional[str] = None
-    phone_number: str
-    password: str
-    inviter_code: Optional[str] = None
-
-    @field_validator("phone_number")
-    @classmethod
-    def validate_phone_digits(cls, v: str) -> str:
-        clean = v.strip()
-        digits = clean.lstrip("+")
-        if not digits.isdigit():
-            raise ValueError("Phone number must contain numbers only.")
-        return clean
-
-    @field_validator("telegram_username")
-    @classmethod
-    def validate_username_format(cls, v: str) -> str:
-        if v is None:
-            return v
-        clean = v.strip().lstrip('@')
-        if not clean:
-            return None
-        if clean.isdigit():
-            raise ValueError("Username cannot be a phone number. Please enter a valid Telegram username (e.g., @username).")
-        if not re.match(r"^[a-zA-Z0-9_]{5,32}$", clean):
-            raise ValueError("Invalid Telegram username. Use 5-32 characters (letters, numbers, underscores).")
-        return clean
-
-class LoginRequest(BaseModel):
-    phone_number: str
-    password: str
-
-class DailyCheckinRequest(BaseModel):
-    telegram_id: int
-
-class PaynowWebhookRequest(BaseModel):
-    reference: str
-    status: str
-    amount: float
-    telegram_id: int
-    payment_method: str = "CBE"
-    assigned_account: Optional[str] = None
-
-class BuyProductRequest(BaseModel):
-    telegram_id: int
-    product_name: str
-    product_price: float
-    daily_income: float
-
-class WithdrawalRequest(BaseModel):
-    telegram_id: int
-    amount: float
-    method: str
-    account_details: str
-
-class SaveWdAccountRequest(BaseModel):
-    telegram_id: int
-    name: str
-    number: str
-
-class SystemSettingsUpdate(BaseModel):
-    registration_bonus: Optional[float] = None
-    commission_rate: Optional[float] = None
-    deposit_account_pool: Optional[str] = None
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-# --- HELPERS ---
-def hash_password(password: str) -> str:
-    if bcrypt is None:
-        return hashlib.sha256(password.encode('utf-8')).hexdigest()
-    pwd_bytes = password.encode('utf-8')
-    salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(pwd_bytes, salt)
-    return hashed.decode('utf-8')
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    if bcrypt is not None and hashed_password.startswith('$2'):
-        try: return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
-        except Exception: return False
-    else:
-        return hashlib.sha256(plain_password.encode()).hexdigest() == hashed_password
-
-def init_admin_hash():
-    global ADMIN_PASSWORD_HASH
-    ADMIN_PASSWORD_HASH = hash_password(ADMIN_PASSWORD)
-
-init_admin_hash()
-
-def generate_invitation_code() -> str:
-    chars = string.ascii_uppercase + string.digits
-    return "".join(random.choices(chars, k=6))
-
-def create_access_token(data: dict):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-# --- NEW HELPER: Convert UTC datetime to Ethiopian local time (UTC+3) in 24-hour format ---
-def to_ethiopian_24h_str(dt: Optional[datetime]) -> str:
-    """Convert a naive UTC datetime to Ethiopian local time (UTC+3) and format as 24-hour string."""
-    if dt is None:
-        return ""
-    eth_time = dt + timedelta(hours=3)
-    return eth_time.strftime("%Y-%m-%d %H:%M:%S")
-
-# --- BACKGROUND JOB ---
-async def process_yields():
-    db = SessionLocal()
-    try:
-        now = datetime.utcnow()
-        ready_products = db.query(UserProduct).filter(
-            (UserProduct.last_yield_claimed_at.is_(None)) |
-            (UserProduct.last_yield_claimed_at <= now - timedelta(hours=24))
-        ).all()
-        for product in ready_products:
-            balance = db.query(UserBalance).filter(UserBalance.telegram_id == product.telegram_id).first()
-            if balance:
-                balance.daily_income_balance += product.daily_income
-                balance.total_balance += product.daily_income
-                balance.available_balance += product.daily_income
-                product.last_yield_claimed_at = now
-                db.commit()
-                notification = {
-                    "type": "yield_credited",
-                    "amount": product.daily_income,
-                    "new_balance": balance.total_balance,
-                    "product": product.product_name
-                }
-                await manager.send_personal_message(json.dumps(notification), str(product.telegram_id))
-    except Exception as e:
-        print(f"Yield processing error: {e}")
-    finally:
-        db.close()
-
-async def run_daily_yield_job():
-    while True:
-        await asyncio.sleep(60)
-        await process_yields()
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await process_yields()
-    yield_task = asyncio.create_task(run_daily_yield_job())
-    yield
-    yield_task.cancel()
-
-# --- APP ---
-app = FastAPI(title="AssetCore Backend", version="1.0", lifespan=lifespan, redirect_slashes=False)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-def get_db():
-    db = SessionLocal()
-    try: yield db
-    finally: db.close()
-
-@app.get("/")
-def root():
-    return {
-        "status": "ok",
-        "service": "AssetCore Backend",
-        "frontend": FRONTEND_BASE_URL,
-        "docs": "/docs",
-        "endpoints": ["/api/status", "/api/health", "/api/register", "/api/login", "/api/leaderboard", "/ws/{user_id}"]
-    }
-
-@app.get("/api/status")
-def api_status():
-    return {"status": "ok", "message": "AssetCore Backend is running"}
-
-@app.get("/api/health")
-def health_check():
-    return {
-        "status": "ok",
-        "websocket": "enabled",
-        "websocket_routes": ["/ws/{user_id}", "/ws/{user_id}/"]
-    }
-
-@app.get("/api/leaderboard")
-def get_leaderboard(db: Session = Depends(get_db)):
-    top_users = db.query(User, UserBalance).join(
-        UserBalance, User.telegram_id == UserBalance.telegram_id
-    ).order_by(desc(UserBalance.total_balance)).limit(10).all()
-    
-    results = []
-    for u, b in top_users:
-        display_name = u.telegram_username if u.telegram_username else f"User {str(u.telegram_id)[-4:]}"
-        results.append({
-            "name": display_name,
-            "amount": b.total_balance
-        })
-    return results
-
-# --- ADMIN AUTH ---
-async def get_current_admin(token: str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None or username != ADMIN_USERNAME:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-    return username
-
-@app.post("/api/admin/login", response_model=Token)
-def admin_login(form_data: OAuth2PasswordRequestForm = Depends()):
-    if form_data.username != ADMIN_USERNAME or not verify_password(form_data.password, ADMIN_PASSWORD_HASH):
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
-    access_token = create_access_token(data={"sub": ADMIN_USERNAME})
-    return {"access_token": access_token, "token_type": "bearer"}
-
-# --- WEBSOCKET ---
-def _normalize_user_id(raw: str) -> Optional[str]:
-    if raw is None: return None
-    cleaned = raw.strip().rstrip("/")
-    if not re.match(r"^\d+$", cleaned): return None
-    return cleaned
-
-async def _websocket_handler(websocket: WebSocket, user_id: str):
-    try: await manager.connect(websocket, user_id)
-    except Exception:
-        try: await websocket.close(code=1011, reason="Internal server error")
-        except Exception: pass
-        return
-    try:
-        await websocket.send_text(json.dumps({"type": "connected", "user_id": int(user_id)}))
-        while True:
-            try: await websocket.receive_text()
-            except WebSocketDisconnect: break
-            except Exception: break
-    except WebSocketDisconnect: pass
-    except Exception: pass
-    finally: manager.disconnect(user_id)
-
-@app.websocket("/ws/{user_id}")
-async def websocket_endpoint(websocket: WebSocket, user_id: str):
-    clean_id = _normalize_user_id(user_id)
-    if clean_id is None:
-        await websocket.close(code=1008, reason="Invalid user_id format")
-        return
-    await _websocket_handler(websocket, clean_id)
-
-@app.websocket("/ws/{user_id}/")
-async def websocket_endpoint_trailing_slash(websocket: WebSocket, user_id: str):
-    clean_id = _normalize_user_id(user_id)
-    if clean_id is None:
-        await websocket.close(code=1008, reason="Invalid user_id format")
-        return
-    await _websocket_handler(websocket, clean_id)
-
-# --- CORE ENDPOINTS ---
-@app.post("/api/register", status_code=status.HTTP_201_CREATED)
-def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
-    clean_phone = payload.phone_number.strip()
-    if not clean_phone.lstrip("+").isdigit():
-        raise HTTPException(status_code=400, detail="Phone number must contain numbers only.")
-
-    if db.query(User).filter(User.phone_number == clean_phone).first():
-        raise HTTPException(status_code=400, detail="An account with this phone number is already registered.")
-
-    raw_user = payload.telegram_username.strip() if payload.telegram_username else ""
-    formatted_username = f"@{raw_user.lstrip('@')}" if raw_user else None
-    
-    if formatted_username:
-        existing_username = db.query(User).filter(User.telegram_username == formatted_username).first()
-        if existing_username:
-            raise HTTPException(status_code=400, detail="This Telegram username is already registered. Please log in or use a different username.")
-
-    target_tg_id = payload.telegram_id
-    if target_tg_id:
-        if db.query(User).filter(User.telegram_id == target_tg_id).first():
-            raise HTTPException(status_code=400, detail="This Telegram ID is already registered.")
-    else:
-        target_tg_id = random.randint(100000000, 999999999)
-        while db.query(User).filter(User.telegram_id == target_tg_id).first():
-            target_tg_id = random.randint(100000000, 999999999)
-
-    new_code = generate_invitation_code()
-    while db.query(User).filter(User.invitation_code == new_code).first():
-        new_code = generate_invitation_code()
-
-    invitation_link = f"{FRONTEND_BASE_URL}/register?invite={new_code}"
-
-    new_user = User(
-        telegram_id=target_tg_id, telegram_username=formatted_username, phone_number=clean_phone,
-        password_hash=hash_password(payload.password), invitation_code=new_code,
-        invitation_link=invitation_link
-    )
-    db.add(new_user)
-    db.flush()
-
-    bonus_setting = db.query(Setting).filter(Setting.key == "registration_bonus").first()
-    bonus = float(bonus_setting.value) if bonus_setting else 300.0
-    db.add(UserBalance(telegram_id=new_user.telegram_id, registration_bonus=bonus, total_balance=bonus, available_balance=bonus))
-
-    # Referral creation — relies on frontend passing inviter_code from URL (?start= or ?invite=)
-    if payload.inviter_code:
-        inviter = db.query(User).filter(User.invitation_code == payload.inviter_code).first()
-        if inviter and inviter.telegram_id != new_user.telegram_id:
-            db.add(TeamReferral(telegram_id=new_user.telegram_id, inviter_id=inviter.telegram_id, is_valid_depositor=False))
-
-    db.commit()
-    return {
-        "message": "User registered successfully",
-        "telegram_id": new_user.telegram_id,
-        "phone_number": new_user.phone_number,
-        "invitation_code": new_user.invitation_code,
-        "invitation_link": new_user.invitation_link,
-        "registration_bonus": bonus,
-    }
-
-@app.post("/api/login")
-def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
-    identifier = payload.phone_number.strip()
-    formatted_username = f"@{identifier.lstrip('@')}"
-    user = db.query(User).filter(
-        or_(User.phone_number == identifier, User.telegram_username == identifier, User.telegram_username == formatted_username)
-    ).first()
-    
-    if not user or not verify_password(payload.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid phone number/username or password.")
-    
-    balance = db.query(UserBalance).filter(UserBalance.telegram_id == user.telegram_id).first()
-    
-    products_db = db.query(UserProduct).filter(UserProduct.telegram_id == user.telegram_id).all()
-    products_list = []
-    for p in products_db:
-        eth_time = p.purchased_at + timedelta(hours=3)
-        products_list.append({
-            "name": p.product_name,
-            "price": p.product_price,
-            "daily_income": p.daily_income,
-            "purchase_time": eth_time.strftime("%Y-%m-%d %H:%M:%S"),
-            "validity_days": 60,
-            "total_earning": p.daily_income * 60
-        })
-    
-    # NEW: Count valid referrals (invitees whose first deposit has been approved) for the inviter
-    valid_referrals_count = db.query(TeamReferral).filter(
-        TeamReferral.inviter_id == user.telegram_id,
-        TeamReferral.is_valid_depositor == True
-    ).count()
-    
-    return {
-        "message": "Login successful",
-        "telegram_id": user.telegram_id,
-        "phone_number": user.phone_number,
-        "telegram_username": user.telegram_username,
-        "invitation_code": user.invitation_code,
-        "total_balance": balance.total_balance if balance else 0.0,
-        "daily_income_balance": balance.daily_income_balance if balance else 0.0,
-        "invite_income": balance.invitation_income if balance else 0.0,
-        "valid_referrals": valid_referrals_count,
-        "products": products_list,
-        "wd_method": user.wd_method,
-        "wd_account_name": user.wd_account_name,
-        "wd_account_number": user.wd_account_number
-    }
-
-@app.post("/api/save-withdrawal-account")
-def save_withdrawal_account(payload: SaveWdAccountRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.telegram_id == payload.telegram_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    user.wd_method = "CBE"
-    user.wd_account_name = payload.name
-    user.wd_account_number = payload.number
-    db.commit()
-    return {"message": "Withdrawal account saved successfully."}
-
-@app.get("/api/user/transactions/{telegram_id}")
-def get_user_transactions(telegram_id: int, db: Session = Depends(get_db)):
-    deposits = db.query(Deposit).filter(Deposit.telegram_id == telegram_id).all()
-    withdrawals = db.query(Withdrawal).filter(Withdrawal.telegram_id == telegram_id).all()
-    history = []
-    for d in deposits:
-        # FIX: withdrawal/deposit timestamp now returned as Ethiopian local time (UTC+3) in 24-hour format
-        history.append({"id": d.id, "type": "Deposit", "amount": d.amount_etb, "status": d.status, "date": to_ethiopian_24h_str(d.created_at), "method": d.payment_method})
-    for w in withdrawals:
-        history.append({"id": w.id, "type": "Withdrawal", "amount": w.amount, "status": w.status, "date": to_ethiopian_24h_str(w.created_at), "method": w.method})
-    history.sort(key=lambda x: x["date"], reverse=True)
-    return history
-
-@app.post("/api/daily-checkin")
-def daily_checkin(payload: DailyCheckinRequest, db: Session = Depends(get_db)):
-    balance = db.query(UserBalance).filter(UserBalance.telegram_id == payload.telegram_id).first()
-    if not balance:
-        raise HTTPException(status_code=404, detail="User balance not found")
-    now = datetime.utcnow()
-    if balance.last_checkin_at:
-        delta = now - balance.last_checkin_at
-        if delta < timedelta(hours=24):
-            remaining = timedelta(hours=24) - delta
-            raise HTTPException(status_code=400, detail=f"Daily check-in not available yet. Please wait {str(remaining).split('.')[0]}.")
-    balance.daily_income_balance += 20.0
-    balance.total_balance += 20.0
-    balance.available_balance += 20.0
-    balance.last_checkin_at = now
-    db.commit()
-    return {"message": "Daily check-in successful! 20 ETB added to your balance.",
-            "daily_income_balance": balance.daily_income_balance,
-            "total_balance": balance.total_balance}
-
-@app.post("/api/buy-product")
-async def buy_product(payload: BuyProductRequest, db: Session = Depends(get_db)):
-    balance = db.query(UserBalance).filter(UserBalance.telegram_id == payload.telegram_id).first()
-    if not balance:
-        raise HTTPException(status_code=404, detail="User not found. Please log in again.")
-    if balance.total_balance < payload.product_price:
-        raise HTTPException(status_code=400, detail="Insufficient balance. Please deposit first.")
-    
-    balance.total_balance -= payload.product_price
-    
-    db.add(UserProduct(telegram_id=payload.telegram_id, product_name=payload.product_name,
-                       product_price=payload.product_price, daily_income=payload.daily_income,
-                       purchased_at=datetime.utcnow(), last_yield_claimed_at=datetime.utcnow()))
-    db.commit()
-    notification = {"type": "product_purchased", "name": payload.product_name, "new_balance": balance.total_balance}
-    await manager.send_personal_message(json.dumps(notification), str(payload.telegram_id))
-    return {"message": f"{payload.product_name} activated successfully!",
-            "new_balance": balance.total_balance, "daily_income": payload.daily_income}
-
-# --- GET DEPOSIT ACCOUNT ---
-@app.get("/api/get-deposit-account")
-def get_deposit_account(telegram_id: int, amount: float, method: str, db: Session = Depends(get_db)):
-    if amount < 650 or amount > 100000:
-        raise HTTPException(status_code=400, detail="Amount must be between 650 and 100,000 ETB.")
-    
-    method_lower = method.lower()
-    if method_lower == "telebirr":
-        if not (650 <= amount <= 1000):
-            raise HTTPException(status_code=400, detail="Telebirr can only be used for amounts between 650 and 1000 ETB.")
-    elif method_lower in ["cbe", "abyssinia", "bank of abysinia"]:
-        if amount < 1600:
-            raise HTTPException(status_code=400, detail="CBE/Abyssinia requires a minimum amount of 1600 ETB.")
-    else:
-        raise HTTPException(status_code=400, detail="Invalid payment method.")
-
-    setting = db.query(Setting).filter(Setting.key == "deposit_account_pool").first()
-    if not setting or not setting.value:
-        raise HTTPException(status_code=404, detail="No accounts configured")
-    
-    accounts = []
-    for line in setting.value.strip().split('\n'):
-        parts = [p.strip() for p in line.split(',')]
-        if len(parts) == 3:
-            acc_method = parts[0]
-            if acc_method.lower() == method_lower or \
-               (method_lower == "abyssinia" and acc_method.lower() in ["abyssinia", "bank of abysinia"]) or \
-               (method_lower == "cbe" and acc_method.lower() == "cbe"):
-                
-                accounts.append({"method": acc_method, "name": parts[1], "number": parts[2]})
-    
-    if not accounts:
-        raise HTTPException(status_code=404, detail=f"No {method} accounts configured for this amount")
-    
-    three_hours_ago = datetime.utcnow() - timedelta(hours=3)
-    recent_deposits = db.query(Deposit).filter(
-        Deposit.created_at >= three_hours_ago,
-        Deposit.assigned_account.isnot(None)
-    ).all()
-
-    usage_counts = {}
-    for d in recent_deposits:
-        usage_counts[d.assigned_account] = usage_counts.get(d.assigned_account, 0) + 1
-
-    random.shuffle(accounts)
-
-    available_accounts = []
-    for acc in accounts:
-        acc_str = f"{acc['method']}, {acc['name']}, {acc['number']}"
-        count = usage_counts.get(acc_str, 0)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>AssetCore</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --text-muted: #94a3b8; --primary: #3b82f6; --success: #10b981; --danger: #ef4444; --border: #334155;
+            --tg-bg: #0f172a; --tg-text: #f1f5f9; --tg-hint: #94a3b8; --tg-link: #3b82f6; --tg-button: #3b82f6; --tg-button-text: #ffffff; --tg-secondary-bg: #1e293b;
+        }
+        html { background-color: #020617; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100dvh; position: relative; overflow-x: hidden; transition: background-color 0.3s ease, color 0.3s ease; padding-top: env(safe-area-inset-top); box-shadow: 0 0 30px rgba(0,0,0,0.5); }
+        .hidden { display: none !important; }
+        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: var(--card-bg); color: var(--text); padding: 16px 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid var(--border); border-left: 5px solid var(--primary); font-size: 14px; font-weight: 500; text-align: center; animation: slideDown 0.3s ease; opacity: 1; transition: opacity 0.3s ease, transform 0.3s ease; }
+        .toast.success { border-left-color: var(--success); }
+        .toast.error { border-left-color: var(--danger); }
+        .toast.hide { opacity: 0; transform: translateY(-20px); }
+        @keyframes slideDown { from { transform: translateY(-100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        #auth-view { padding: 2rem 1.5rem; display: flex; flex-direction: column; justify-content: center; min-height: 100dvh; background: var(--bg); animation: fadeIn 0.5s ease; }
         
-        limit = 2 
-        if acc['method'].lower() in ["abyssinia", "bank of abysinia"]:
-            limit = 4
+        .logo { text-align: center; font-size: 2.5rem; font-weight: 900; margin-bottom: 0.5rem; letter-spacing: -1px; color: var(--text); }
+        .logo span { color: var(--primary); }
+        .logo-sm { font-size: 1.2rem; font-weight: 900; letter-spacing: -0.5px; color: var(--text); }
+        .logo-sm span { color: var(--primary); }
+
+        .welcome-text { text-align: center; color: var(--text-muted); margin-bottom: 2.5rem; font-size: 1.1rem; font-weight: 500; }
+        .form-group { margin-bottom: 1.25rem; animation: slideUp 0.4s ease; width: 100%; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: var(--text); }
+        .input-field { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: all 0.2s; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; -webkit-appearance: none; appearance: none; box-sizing: border-box; margin: 0; }
+        .input-field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+        /* NEW: Strong, highly visible red border for errors */
+        .input-field.input-error, .input-prefix-group.input-error {
+            border-color: var(--danger) !important;
+            border-width: 2px !important;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.4) !important;
+            background-color: rgba(239, 68, 68, 0.05);
+        }
+        .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary:disabled { background: #475569; color: #cbd5e1; cursor: not-allowed; }
+        .toggle-text { text-align: center; margin-top: 1.5rem; color: var(--text-muted); font-weight: 500; }
+        .toggle-text span { color: var(--primary); font-weight: 700; cursor: pointer; }
+        .captcha-box { background: var(--bg); background-size: 20px 20px; border: 1px solid var(--border); text-align: center; font-size: 1.5rem; font-weight: 800; letter-spacing: 0.5rem; padding: 12px; border-radius: 8px; user-select: none; margin-bottom: 0.5rem; font-style: italic; color: var(--text); cursor: pointer; }
+        .terms-group { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 1.5rem; }
+        .terms-group input { width: 20px; height: 20px; margin-top: 2px; cursor: pointer; accent-color: var(--primary); }
+        .terms-group label { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
+        .terms-group label span { color: var(--primary); font-weight: 700; cursor: pointer; }
+
+        .btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: btn-spin 0.8s linear infinite; }
+        @keyframes btn-spin { to { transform: rotate(360deg); } }
+
+        .warning-banner { color: var(--danger); font-weight: 700; font-size: 0.85rem; text-align: center; margin-top: 1.5rem; border: 1px solid var(--danger); padding: 10px; border-radius: 6px; background: rgba(239, 68, 68, 0.05); }
+
+        #center-message { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; background: var(--card-bg); color: var(--text); padding: 20px 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid var(--border); font-size: 1.1rem; font-weight: 600; text-align: center; max-width: 80%; display: none; }
+        #center-message.error { color: var(--danger); border-color: var(--danger); }
+        #center-message.success { color: var(--success); border-color: var(--success); }
+
+        #dashboard-view { padding-bottom: calc(90px + env(safe-area-inset-bottom)); animation: fadeIn 0.4s ease; }
+        .view-header { background: var(--card-bg); padding: 1.5rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; }
+        .view-title { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
+        .top-nav-bar { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; background: var(--card-bg); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+        .nav-left-group { display: flex; align-items: center; gap: 0.75rem; }
+        .nav-back-btn { font-size: 1.5rem; background: none; border: none; color: var(--text); cursor: pointer; line-height: 1; padding: 0.5rem; transition: transform 0.2s; }
+        .nav-back-btn:active { transform: scale(1.2); }
+        .nav-title { font-size: 1.2rem; font-weight: 700; color: var(--text); }
+        .nav-info-btn { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: #fff; border: none; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; font-style: italic; cursor: pointer; line-height: 1; transition: transform 0.2s; }
+        .nav-info-btn:active { transform: scale(0.9); }
+        .product-card { background: var(--card-bg); margin: 1.5rem 1.5rem; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; transition: transform 0.3s ease; animation: slideUp 0.4s ease; }
+        .product-card:active { transform: translateY(-2px); }
+        .product-img { width: 100%; height: 200px; object-fit: cover; display: block; background-color: var(--bg); }
+        .product-header { background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%); color: #fff; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+        .product-title-desc { display: flex; flex-direction: column; margin-right: 1rem; flex: 1; }
+        .product-title { font-size: 1.1rem; font-weight: 700; line-height: 1.2; }
+        .product-desc { font-size: 0.85rem; font-weight: 400; color: rgba(255, 255, 255, 0.8); line-height: 1.4; margin-top: 6px; }
+        .product-price { font-size: 1.4rem; font-weight: 800; white-space: nowrap; align-self: center; }
+        .product-body { padding: 1.5rem; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+        .stat-item { display: flex; flex-direction: column; }.stat-item .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 500; }
+        .stat-item .stat-value { font-size: 1.15rem; font-weight: 700; color: var(--text); }
+        .stat-item .stat-value.highlight { color: var(--success); }
+        .btn-buy { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; }
+        .btn-buy:active { transform: scale(0.98); }
+        .btn-coming-soon { width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 1rem; font-family: 'Inter', sans-serif; background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); animation: pulse-glow 2s infinite; cursor: not-allowed; box-sizing: border-box; text-align: center; }
+        @keyframes pulse-glow { 0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); } 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); } }
+        .dep-step { padding: 1.5rem; }
+        .section-title { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; color: var(--text); }
+        .quick-amounts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+        .btn-quick-amt { padding: 12px 0; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; color: var(--text); font-family: 'Inter', sans-serif; }
+        .btn-quick-amt.active { border-color: var(--primary); color: var(--primary); background: rgba(59, 130, 246, 0.1); }
+        .input-prefix-group { display: flex; align-items: center; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0 16px; margin-bottom: 1.5rem; transition: all 0.2s; }
+        .input-prefix { font-weight: 700; margin-right: 0.75rem; color: var(--text-muted); }
+        .input-prefix-group input { border: none; padding: 12px 0; flex: 1; font-size: 1rem; background: transparent; color: var(--text); font-family: 'Inter', sans-serif; }
+        .input-prefix-group input:focus { outline: none; }
+        .btn-black { display: block; width: 100%; margin: 1.5rem 0 0.5rem; background: var(--text); color: var(--bg); border: none; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 1.1rem; cursor: pointer; transition: transform 0.1s; font-family: 'Inter', sans-serif; }
+        .btn-black:active { transform: scale(0.98); }
+        .btn-upload-voucher { display: block; width: 100%; margin: 0.5rem 0 0.5rem; background: transparent; color: var(--text-muted); border: 1px solid var(--border); padding: 12px; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; font-family: 'Inter', sans-serif; }
+        .payment-notes { margin-top: 2rem; background: var(--card-bg); padding: 1.25rem; border-radius: 8px; border: 1px solid var(--border); }
+        .payment-notes p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0.5rem; }
+        .invoice-header { text-align: center; margin: 1.5rem 0; }
+        .invoice-amt { font-size: 3.5rem; font-weight: 900; color: var(--text); letter-spacing: -1px; }
+        .warning-box { text-align: center; background: rgba(239, 68, 68, 0.1); color: var(--danger); padding: 0.85rem; margin: 0 0 1.5rem 0; border-radius: 8px; font-weight: 800; font-size: 1rem; border: 2px solid var(--danger); }
+        .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; background: var(--card-bg); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+        .invoice-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+        .invoice-table tr:last-child td { border-bottom: none; } .inv-label { color: var(--text-muted); width: 40%; font-weight: 500; }
+        .inv-val { font-weight: 700; text-align: right; display: flex; justify-content: flex-end; align-items: center; gap: 8px; color: var(--text); }
+        .btn-copy-inline { background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; color: var(--text-muted); transition: transform 0.1s; }
+        .btn-copy-inline:active { transform: scale(0.95); }
+        .warning-notes { background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2); color: #fbbf24; padding: 12px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 1.5rem; }
+        .balance-container { background: radial-gradient(circle at top right, #1e293b, #0f172a); color: #fff; padding: 2.5rem 1.5rem 2rem; border-bottom-left-radius: 2.5rem; border-bottom-right-radius: 2.5rem; margin-bottom: 1.5rem; position: relative; overflow: hidden; box-shadow: inset 0 0 40px rgba(16, 185, 129, 0.05); }
+        .candlestick-bg { position: absolute; bottom: 0; left: 0; width: 100%; height: 70%; display: flex; align-items: flex-end; justify-content: space-around; padding: 0 10px; z-index: 0; pointer-events: none; }
+        .candle { width: 6px; background: linear-gradient(to top, rgba(59, 130, 246, 0.1), #3b82f6); border-radius: 4px 4px 0 0; animation: pulse-candle 2.5s ease-in-out infinite; box-shadow: 0 0 8px rgba(59, 130, 246, 0.4); }
+        .candle.green { background: linear-gradient(to top, rgba(16, 185, 129, 0.1), #10b981); box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+        @keyframes pulse-candle { 0%, 100% { height: 15%; opacity: 0.4; } 50% { height: 75%; opacity: 0.8; } }
+        .candle:nth-child(1) { animation-delay: 0s; height: 20%; } .candle:nth-child(2) { animation-delay: 0.3s; height: 40%; } .candle:nth-child(3) { animation-delay: 0.6s; height: 25%; } .candle:nth-child(4) { animation-delay: 0.9s; height: 55%; } .candle:nth-child(5) { animation-delay: 1.2s; height: 35%; } .candle:nth-child(6) { animation-delay: 0.2s; height: 65%; } .candle:nth-child(7) { animation-delay: 0.5s; height: 30%; } .candle:nth-child(8) { animation-delay: 0.8s; height: 50%; } .candle:nth-child(9) { animation-delay: 1.1s; height: 20%; } .candle:nth-child(10) { animation-delay: 0.1s; height: 60%; } .candle:nth-child(11) { animation-delay: 0.4s; height: 35%; } .candle:nth-child(12) { animation-delay: 0.7s; height: 45%; } .candle:nth-child(13) { animation-delay: 1.0s; height: 25%; } .candle:nth-child(14) { animation-delay: 0.3s; height: 50%; } .candle:nth-child(15) { animation-delay: 0.6s; height: 30%; }
+        .bal-main-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; position: relative; z-index: 1; }
+        .bal-info { flex: 1; }
+        .bal-label { opacity: 0.8; font-size: 0.9rem; font-weight: 500; color: #cbd5e1; }
+        .bal-amount { font-size: 3rem; font-weight: 900; margin-bottom: 0.5rem; letter-spacing: -1px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .bal-user-info { font-size: 0.85rem; opacity: 0.9; display: flex; gap: 10px; font-weight: 500; color: #94a3b8; }
+        .btn-withdraw-header { background: rgba(255,255,255,0.1); backdrop-filter: blur(5px); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; align-self: flex-start; transition: transform 0.1s; font-family: 'Inter', sans-serif; }
+        .btn-withdraw-header:active { transform: scale(0.95); }
+        .sub-bals { display: flex; justify-content: space-between; position: relative; z-index: 1; }
+        .sub-bal-item { text-align: left; }
+        .sub-bal-item:last-child { text-align: right; }
+        .mine-assets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem; }
+        .mine-asset-card { background: var(--card-bg); padding: 1.5rem 1rem; border-radius: 12px; border: 1px solid var(--border); text-align: center; transition: transform 0.2s; }
+        .mine-asset-card:active { transform: scale(0.98); }
+        .mine-asset-card.clickable { cursor: pointer; border-color: var(--primary); }
+        .mine-asset-label { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 500; }
+        .mine-asset-value { font-size: 1.5rem; font-weight: 800; color: var(--text); }
+        .no-shop-text { text-align: center; color: var(--text-muted); margin: 0 1.5rem 1.5rem; font-weight: 600; font-size: 0.9rem; }
+        .action-card { background: var(--card-bg); margin: 0 1.5rem 1.5rem; padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border); }
+        .referral-box { background: var(--bg); border: 1px dashed var(--success); padding: 1.25rem; border-radius: 8px; margin-top: 1rem; }
+        .ref-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .ref-row:last-child { margin-bottom: 0; }
+        .ref-label { font-size: 0.9rem; color: var(--text-muted); font-weight: 500; }
+        .ref-val-group { display: flex; align-items: center; gap: 10px; }
+        .ref-val { font-weight: 700; font-size: 1rem; color: var(--text); }
+        .btn-copy-sm { background: var(--danger); color: #fff; border: none; padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: transform 0.1s; }
+        .btn-copy-sm:active { transform: scale(0.95); }
+        .commission-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+        .commission-table th, .commission-table td { border: 1px solid var(--border); padding: 12px; text-align: center; }
+        .commission-table th { background: var(--bg); color: var(--text-muted); font-weight: 600; }
+        .commission-table td { color: var(--text); }
+        .stat-mini-row { display: flex; gap: 1rem; margin-top: 1rem; }
+        .stat-mini { flex: 1; background: var(--bg); padding: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
+        .stat-mini-val { font-weight: 800; font-size: 1.1rem; color: var(--text); }
+        .stat-mini-lbl { font-size: 0.75rem; color: var(--text-muted); }
+        .menu-list { margin: 0 1.5rem 1.5rem; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+        .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border); font-weight: 600; cursor: pointer; transition: background 0.2s; color: var(--text); }
+        .menu-item:active { background: var(--bg); }
+        .menu-item:last-child { border-bottom: none; }
+        .menu-arrow { color: var(--text-muted); font-size: 1.2rem; }
+        .lb-item { display: flex; align-items: center; background: var(--card-bg); margin: 0.75rem 1.5rem; padding: 1.25rem; border-radius: 8px; border: 1px solid var(--border); transition: transform 0.2s; }
+        .lb-item:active { transform: scale(0.98); }
+        .lb-rank { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--bg); border-radius: 50%; font-weight: 800; margin-right: 1.25rem; color: var(--text); }
+        .lb-rank.gold { background: #fef08a; color: #854d0e; }.lb-rank.silver { background: #e2e8f0; color: #475569; }
+        .lb-rank.bronze { background: #fed7aa; color: #9a3412; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto; background: var(--card-bg); display: flex; justify-content: space-around; border-top: 1px solid var(--border); padding: 0.75rem 0; padding-bottom: env(safe-area-inset-bottom, 0); z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--text-muted); font-size: 0.7rem; font-weight: 600; cursor: pointer; padding: 0.5rem; flex: 1; transition: color 0.2s; font-family: 'Inter', sans-serif; }
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 1.4rem; margin-bottom: 0.25rem; transition: transform 0.2s; }
+        .nav-item.active .nav-icon { transform: translateY(-2px); }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: flex-end; justify-content: center; z-index: 200; padding: 1rem; backdrop-filter: blur(5px); animation: fadeIn 0.2s ease; }
+        .modal-content { background: var(--card-bg); width: 100%; max-width: 480px; padding: 2rem; border-radius: 16px 16px 0 0; max-height: 90dvh; overflow-y: auto; text-align: center; animation: slideUp 0.3s ease; color: var(--text); border-top: 1px solid var(--border); }
+        .loader-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; animation: fadeIn 0.2s ease; }
+        #loader-1 { background-color: var(--bg); }
+        .clock-spinner { position: relative; width: 56px; height: 56px; }
+        .clock-spinner .seg { position: absolute; top: 0; left: 50%; width: 5px; height: 14px; margin-left: -2.5px; background: var(--text-muted); border-radius: 3px; transform-origin: 2.5px 28px; opacity: 0.25; }
+        .clock-spinner .seg:nth-child(1)  { transform: rotate(0deg);   animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0s; } .clock-spinner .seg:nth-child(2)  { transform: rotate(30deg);  animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.1s; } .clock-spinner .seg:nth-child(3)  { transform: rotate(60deg);  animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.2s; } .clock-spinner .seg:nth-child(4)  { transform: rotate(90deg);  animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.3s; } .clock-spinner .seg:nth-child(5)  { transform: rotate(120deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.4s; } .clock-spinner .seg:nth-child(6)  { transform: rotate(150deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.5s; } .clock-spinner .seg:nth-child(7)  { transform: rotate(180deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.6s; } .clock-spinner .seg:nth-child(8)  { transform: rotate(210deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.7s; } .clock-spinner .seg:nth-child(9)  { transform: rotate(240deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.8s; } .clock-spinner .seg:nth-child(10) { transform: rotate(270deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 0.9s; } .clock-spinner .seg:nth-child(11) { transform: rotate(300deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 1.0s; } .clock-spinner .seg:nth-child(12) { transform: rotate(330deg); animation: tick-seg 1.2s steps(1, end) infinite; animation-delay: 1.1s; }
+        @keyframes tick-seg { 0%, 100% { opacity: 0.25; background: var(--text-muted); } 8% { opacity: 1; background: var(--primary); } }
+        #loader-2 { background-color: #ffffff; }
+        .paynow-logo { font-size: 2rem; font-weight: 800; color: #2563eb; margin-bottom: 1.75rem; letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px; }
+        .paynow-icon { width: 28px; height: 28px; background-color: #10b981; border-radius: 7px; display: inline-block; }
+        .dots-container { display: flex; gap: 10px; }
+        .dot { width: 11px; height: 11px; background-color: #2563eb; border-radius: 50%; }
+        .dot-1, .dot-2 { animation: dots-move-1-2 1.4s infinite ease-in-out; }
+        .dot-3 { animation: dots-move-3 1.4s infinite ease-in-out; }
+        @keyframes dots-move-1-2 { 0%, 40%, 100% { transform: translateY(0); } 20% { transform: translateY(-14px); } }
+        @keyframes dots-move-3 { 0%, 60%, 100% { transform: translateY(0); } 40% { transform: translateY(-14px); } }
+        .saved-account-box { background: var(--bg); padding: 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: left; border: 1px solid var(--border); }
+        .saved-account-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+        .saved-account-name { font-weight: 700; font-size: 1.1rem; color: var(--text); }
+        .saved-account-number { color: var(--text-muted); font-size: 0.9rem; }
+        .history-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 1.5rem; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+        .history-table th, .history-table td { border: 1px solid var(--border); padding: 12px; text-align: center; color: var(--text); }
+        .history-table th { background: var(--bg); color: var(--text-muted); font-weight: 600; }
+        .info-content { text-align: left; line-height: 1.6; font-size: 0.95rem; color: var(--text); }
+        .info-content p { margin-bottom: 0.75rem; }
+        .info-content h4 { margin-top: 1rem; margin-bottom: 0.5rem; color: var(--primary); }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .app-coming-soon-banner { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background: linear-gradient(270deg, #3b82f6, #8b5cf6, #3b82f6); background-size: 200% 200%; color: #fff; font-weight: 700; text-align: center; animation: gradient-shift 3s ease infinite; }
+        @keyframes gradient-shift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .fee-breakdown { margin-top: -10px; margin-bottom: 15px; padding: 12px; background: var(--bg); border-radius: 8px; font-size: 13px; color: var(--text-muted); text-align: left; }
+        .my-device-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 15px; margin-bottom: 15px; text-align: left; }
+        .my-device-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+        .my-device-name { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+        .my-device-validity { font-size: 0.8rem; color: var(--success); font-weight: 600; background: rgba(16, 185, 129, 0.1); padding: 4px 8px; border-radius: 12px; }
+        .my-device-stat { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 6px; }
+        .my-device-stat-label { color: var(--text-muted); }
+        .my-device-stat-value { color: var(--text); font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+    <div id="center-message"></div>
+
+    <div id="auth-view">
+        <div class="logo">Asset<span>Core</span></div>
+        <p class="welcome-text">Welcome! Please sign in or create an account.</p>
+        <div id="signup-form">
+            <div class="form-group"><label>Telegram Username</label><input type="text" id="su-username" class="input-field" placeholder="@username" oninput="validateUsernameLive(this.value)"></div>
+            <div class="form-group"><label>Phone Number</label>
+                <div class="input-prefix-group" id="su-phone-group">
+                    <span class="input-prefix">+251</span>
+                    <input type="tel" id="su-phone" class="input-field" placeholder="9XXXXXXXX" maxlength="9" oninput="validatePhoneLive(this.value, 'su-phone', 'su-phone-group')">
+                </div>
+            </div>
+            <div class="form-group"><label>Password</label><input type="password" id="su-pass" class="input-field" placeholder="Min 6 characters" oninput="checkPasswordLive()"></div>
+            <div class="form-group"><label>Repeat Password</label><input type="password" id="su-pass2" class="input-field" placeholder="********" oninput="checkPasswordLive()"></div>
+            <div class="form-group"><label>Captcha Code</label><div class="captcha-box" id="captcha-text" onclick="generateCaptcha()" title="Click to refresh">45be</div><input type="text" id="su-captcha" class="input-field" placeholder="Enter code above" oninput="checkCaptchaLive(this.value)"></div>
             
-        if count < limit:
-            available_accounts.append(acc)
+            <div class="terms-group">
+                <input type="checkbox" id="terms-agree" onclick="toggleSignUpButton()">
+                <label for="terms-agree">I have read and agree to the <span onclick="openTermsModal()">Terms & Agreement</span></label>
+            </div>
 
-    if available_accounts:
-        chosen_acc = random.choice(available_accounts)
-        return {"account_string": f"{chosen_acc['method']}, {chosen_acc['name']}, {chosen_acc['number']}", **chosen_acc}
+            <button class="btn-primary" id="signup-btn" disabled onclick="handleSignUp()">Sign Up</button>
+            
+            <div class="warning-banner">⚠️ DO NOT PAY WITHOUT MANAGER APPROVAL OR YOU WILL LOSE YOUR FUNDS!</div>
+            
+            <p class="toggle-text">I already have an account, <span onclick="toggleAuth('signin')">Sign In</span></p>
+        </div>
+        <div id="signin-form" class="hidden">
+            <div class="form-group"><label>Phone Number</label>
+                <div class="input-prefix-group" id="si-phone-group">
+                    <span class="input-prefix">+251</span>
+                    <input type="tel" id="si-phone" class="input-field" placeholder="9XXXXXXXX" maxlength="9" oninput="validatePhoneLive(this.value, 'si-phone', 'si-phone-group')">
+                </div>
+            </div>
+            <div class="form-group"><label>Password</label><input type="password" id="si-pass" class="input-field" placeholder="********" oninput="this.classList.remove('input-error')"></div>
+            <div class="form-group" style="display: flex; align-items: center;"><input type="checkbox" id="si-remember" style="width: 20px; height: 20px; margin-right: 10px;"><label for="si-remember" style="margin: 0;">Remember password</label></div>
+            <button class="btn-primary" id="signin-btn" onclick="handleSignIn()">Sign In</button>
+            <p class="toggle-text">Don't have an account? <span onclick="toggleAuth('signup')">Sign Up</span></p>
+        </div>
+    </div>
 
-    raise HTTPException(status_code=429, detail="Currently payment method unavailable, please wait while we update our accounts.")
+    <div id="terms-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 450px; text-align: left;">
+            <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem; text-align: center;">Terms and Agreement</h2>
+            <div class="info-content" style="font-size: 0.9rem; line-height: 1.6;">
+                <p>1. I understand that the minimum deposit is 650 ETB and the minimum withdrawal is 300 ETB.</p>
+                <p>2. I understand that all withdrawals are subject to a 20% transaction fee.</p>
+                <p>3. I understand that I must provide the exact correct Transaction ID when making a deposit, and that providing a fake ID will result in a permanent account ban.</p>
+                <p>4. I understand that daily income is credited automatically every 24 hours and can be withdrawn at any time.</p>
+                <p>5. I agree that AssetCore is not liable for funds sent to the wrong bank account due to user error.</p>
+                <p>6. I understand that withdrawals are processed between 9:00 AM and 6:00 PM, and are limited to one transaction per day.</p>
+                <p>7. I understand that if we find my personal information is inaccurate or fake and I make transactions with it, inevitably my funds will be gone.</p>
+                <p>8. I understand that ruining the company's reputation is strictly not allowed. If I have any questions or confusion, I can have a conversation with customer support.</p>
+                <p style="color: var(--danger); font-family: 'Courier New', Courier, monospace; font-weight: 800; text-transform: uppercase; border: 2px solid var(--danger); padding: 10px; border-radius: 6px; text-align: center; margin-top: 1rem;">9. REMEMBER THE RULE WILL BE APPLIED REGARDLESS OF WHO YOU ARE. WE ARE NOT RESPONSIBLE FOR THE CONSEQUENCES YOU ENCOUNTER DUE TO THE VIOLATION OF ANY ONE OF OUR "TERMS AND SERVICE".</p>
+                <p style="color: var(--danger); font-weight: 700; margin-top: 1rem;">10. I understand that I must NOT make any payments without manager approval. If I dare to do so, I acknowledge that I will permanently lose my funds.</p>
+            </div>
+            <button class="btn-primary" style="margin-top: 2rem; width: 100%;" onclick="closeTermsModal()">I Understand</button>
+        </div>
+    </div>
 
-@app.post("/api/paynow-webhook")
-def paynow_webhook(payload: PaynowWebhookRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.telegram_id == payload.telegram_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    deposit = db.query(Deposit).filter(Deposit.transaction_id == payload.reference).first()
-    if not deposit:
-        deposit = Deposit(
-            telegram_id=payload.telegram_id, transaction_id=payload.reference,
-            amount_etb=payload.amount, status="Pending", payment_method=payload.payment_method,
-            assigned_account=payload.assigned_account
-        )
-        db.add(deposit)
-        db.flush()
-    if payload.status.lower() == "paid":
-        if deposit.status.lower() != "paid":
-            deposit.status = "Paid"
-            db.commit()
-            return {"message": "Deposit marked as Paid. Awaiting admin approval."}
-        return {"message": "Deposit already processed."}
-    deposit.status = payload.status
-    db.commit()
-    return {"message": f"Deposit status updated to {payload.status}."}
+    <div id="dashboard-view" class="hidden">
+        <div id="view-home" class="app-view">
+            <div class="view-header">
+                <div class="view-title">Investment Products</div>
+                <div class="logo-sm">Asset<span>Core</span></div>
+            </div>
+            <div id="product-list"></div>
+        </div>
+        <div id="view-deposit" class="app-view hidden">
+            <div class="top-nav-bar">
+                <div class="nav-left-group"><button class="nav-back-btn" onclick="switchTab('home')">‹</button><div class="nav-title">Payment</div></div>
+            </div>
+            <div id="dep-step-1" class="dep-step">
+                <h3 class="section-title">Payment amount (Minimum ETB 650)</h3>
+                <div class="quick-amounts">
+                    <button class="btn-quick-amt" onclick="selectQuickAmount(650, this)">650</button>
+                    <button class="btn-quick-amt" onclick="selectQuickAmount(1000, this)">1000</button>
+                    <button class="btn-quick-amt" onclick="selectQuickAmount(1600, this)">1600</button>
+                    <button class="btn-quick-amt" onclick="selectQuickAmount(3000, this)">3000</button>
+                </div>
+                <div class="input-prefix-group"><span class="input-prefix">ETB</span><input type="number" id="dep-amount-input" placeholder="Please enter the payment amount"></div>
+                <button class="btn-black" onclick="proceedToPayment()">Payment Now</button>
+                <button class="btn-upload-voucher" onclick="showCenterMessage('Upload voucher feature coming soon!', 'error')">Payment failed? Upload voucher</button>
+                <div class="payment-notes">
+                    <p>1. The minimum recharge amount is 650 ETB.</p><p>2. Please do not modify the account information in the background, otherwise the recharge will fail.</p>
+                    <p>3. Please follow the payment instructions, otherwise the deposit will not be received.</p><p>4. If the funds are not received within 10 minutes, please contact customer service.</p>
+                </div>
+            </div>
+            <div id="dep-step-2" class="dep-step hidden">
+                <div class="invoice-header"><div style="color: var(--text-muted); font-size: 1rem; font-weight: 500;">Amount Due</div><div class="invoice-amt">Br <span id="inv-amount">0.00</span></div></div>
+                <div class="warning-box">⚠️ DO NOT PAY WITHOUT MANAGER APPROVAL</div>
+                <table class="invoice-table">
+                    <tr><td class="inv-label">Account Name</td><td class="inv-val" id="inv-acc-name">Loading...</td></tr>
+                    <tr><td class="inv-label">Bank Name</td><td class="inv-val" id="inv-bank-name">Loading...</td></tr>
+                    <tr><td class="inv-label" id="acc-num-label">Account Number</td><td class="inv-val"><span id="inv-acc-num">Loading...</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-acc-num').innerText)">Copy</button></td></tr>
+                    <tr><td class="inv-label">Amount</td><td class="inv-val"><span id="inv-amt-val">0 ETB</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-amt-val').innerText)">Copy</button></td></tr>
+                    <tr><td class="inv-label">Order Code</td><td class="inv-val"><span id="inv-order-code">PNXXXXXX</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-order-code').innerText)">Copy</button></td></tr>
+                </table>
+                <div class="warning-notes">⚠️ <strong>Important:</strong> Please put the <strong>Order Code</strong> in your transfer remarks. Do NOT transfer from a different bank or method.</div>
+                <button class="btn-primary" onclick="openConfirmModal()">I have made the payment</button>
+            </div>
+        </div>
+        <div id="view-mine" class="app-view hidden">
+            <div class="view-header"><div class="view-title">My Profile</div></div>
+            <div class="balance-container">
+                <div class="candlestick-bg">
+                    <div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div><div class="candle"></div><div class="candle green"></div><div class="candle"></div>
+                </div>
+                <div class="bal-main-row">
+                    <div class="bal-info">
+                        <div class="bal-label">Total Balance (ETB)</div><div class="bal-amount" id="bal-total">300.00</div>
+                        <div class="bal-user-info"><span id="user-tg-name">@assetcore_user</span> | <span id="user-phone">+251900000000</span></div>
+                    </div>
+                    <button class="btn-withdraw-header" onclick="openWithdrawModal()">Withdraw</button>
+                </div>
+                <div class="sub-bals">
+                    <div class="sub-bal-item"><div class="bal-label" style="font-size: 0.8rem;">Daily Income</div><div style="font-weight: 700; font-size: 1.1rem;" id="bal-daily">0.00</div></div>
+                    <div class="sub-bal-item"><div class="bal-label" style="font-size: 0.8rem;">Invitation Income</div><div style="font-weight: 700; font-size: 1.1rem;" id="bal-invite">0.00</div></div>
+                </div>
+            </div>
+            <div class="mine-assets-grid">
+                <div class="mine-asset-card clickable" onclick="openMyDevicesModal()">
+                    <div class="mine-asset-label">My Products</div>
+                    <div class="mine-asset-value" id="mine-device-count">0</div>
+                </div>
+                <div class="mine-asset-card">
+                    <div class="mine-asset-label">Daily Income</div>
+                    <div class="mine-asset-value" id="mine-income-sum">ETB 0</div>
+                </div>
+            </div>
+            <div class="no-shop-text">Click "My Products" to view your active investments</div>
+            <div class="action-card">
+                <h3 style="margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 700;">Referral Program</h3>
+                <p style="font-size: 0.9rem; color: var(--text-muted);">Earn 30% of your friend's entry price instantly! A flat single-level reward system.</p>
+                <div class="referral-box">
+                    <div class="ref-row"><span class="ref-label">Invitation Code:</span><div class="ref-val-group"><strong id="user-invite-code">DEMO01</strong><button class="btn-copy-sm" onclick="copyText(document.getElementById('user-invite-code').innerText)">Copy</button></div></div>
+                    <div class="ref-row"><span class="ref-label">Invitation Link:</span><div class="ref-val-group"><strong id="user-invite-link-display" style="font-size: 0.8rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">https://assetcore-et.vercel.app/?start=DEMO01</strong><button class="btn-copy-sm" onclick="copyReferralLink()">Copy</button></div></div>
+                    <table class="commission-table">
+                        <thead>
+                            <tr>
+                                <th>Valid Users</th>
+                                <th>Income</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td id="ref-table-count">0</td>
+                                <td id="ref-table-income">0 ETB</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="stat-mini-row">
+                        <div class="stat-mini"><div class="stat-mini-val" id="ref-valid-count">0</div><div class="stat-mini-lbl">Valid users</div></div>
+                        <div class="stat-mini"><div class="stat-mini-val" id="ref-invite-income">0 ETB</div><div class="stat-mini-lbl">Invited income</div></div>
+                    </div>
+                </div> 
+            </div>
+            <div class="menu-list">
+                <div class="menu-item" onclick="openInfoModal('account')"><span>Account details</span><span class="menu-arrow">›</span></div>
+                <div class="menu-item" onclick="openInfoModal('service')"><span>Customer service</span><span class="menu-arrow">›</span></div>
+                <div class="menu-item" onclick="openInfoModal('about')"><span>About us</span><span class="menu-arrow">›</span></div>
+                <div class="menu-item" onclick="handleLogout()" style="color: var(--danger);"><span>Secure exit</span><span class="menu-arrow">›</span></div>
+            </div>
+        </div>
+        <div id="view-leaderboard" class="app-view hidden">
+            <div class="view-header"><div class="view-title">Leaderboard</div></div>
+            <div id="lb-list" style="margin-top: 1rem;"></div>
+        </div>
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-view="home" onclick="switchTab('home')"><span class="nav-icon">🏠</span> Home</button>
+            <button class="nav-item" data-view="deposit" onclick="switchTab('deposit')"><span class="nav-icon">💳</span> Deposit</button>
+            <button class="nav-item" data-view="mine" onclick="switchTab('mine')"><span class="nav-icon">👤</span> Mine</button>
+            <button class="nav-item" data-view="leaderboard" onclick="switchTab('leaderboard')"><span class="nav-icon">🏆</span> Rank</button>
+        </nav>
+    </div>
 
-@app.post("/api/request-withdrawal")
-def request_withdrawal(payload: WithdrawalRequest, db: Session = Depends(get_db)):
-    if payload.amount < 300:
-        raise HTTPException(status_code=400, detail="Minimum withdrawal is 300 ETB.")
+    <div id="logout-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-icon" style="font-size: 2.5rem; margin-bottom: 0.5rem;">🚪</div>
+            <h2 style="margin-bottom: 0.75rem; color: var(--text); font-size: 1.3rem;">Secure Exit</h2>
+            <p style="margin-bottom: 1.75rem; font-size: 0.95rem; color: var(--text-muted); line-height: 1.6;">Are you sure you want to securely exit your account?</p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border);" onclick="closeLogoutModal()">Cancel</button>
+                <button class="btn-primary" style="background: var(--danger);" onclick="confirmLogout()">Exit</button>
+            </div>
+        </div>
+    </div>
+    <div id="login-promo-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 1.5rem; text-align: center; color: var(--text); font-size: 1.5rem;">Platform</h2>
+            <p style="white-space: pre-line; font-size: 0.95rem; line-height: 1.6; color: var(--text); text-align: left;">
+Welcome to AssetCore, Ethiopia's most trusted investment platform💯.
+▼ Invite friends to invest and earn up to 30% commission. Passive income is no longer a dream.
+🎁 Sign-up Bonus: 300 Ethiopian Birr.
+🔥 Invest 650 Ethiopian Birr and instantly withdraw 300 Ethiopian Birr.
+🎁 No time restrictions on deposits and withdrawals, 24/7 service.
+❤️ All products can be purchased multiple times.
+🎬 Referral Commission: 30%
+Note: Your investment earnings will be automatically deposited into your account daily, and you can withdraw them at any time. Our platform offers high-quality investment opportunities with strong long-term growth potential and generous returns.
+            </p>
+            <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+                <button class="btn-primary" style="background: var(--success);" onclick="window.open('https://t.me/Assetcorecommunity', '_blank')">Telegram Group</button>
+                <button class="btn-primary" onclick="closePromoModal()">OK</button>
+            </div>
+        </div>
+    </div>
     
-    balance = db.query(UserBalance).filter(UserBalance.telegram_id == payload.telegram_id).first()
-    if not balance:
-        raise HTTPException(status_code=400, detail="User balance not found.")
-    
-    if payload.amount > balance.available_balance:
-        raise HTTPException(status_code=400, detail="Withdrawal failed. You can only withdraw your registration bonus and earned income. Please purchase a product to activate daily income.")
-    
-    fee = payload.amount * 0.20
-    payout = payload.amount - fee
+    <div id="select-method-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 1.5rem; text-align: center; color: var(--text); font-size: 1.5rem;">Select Payment Method</h2>
+            <p style="margin-bottom: 1.5rem; color: var(--text-muted); font-size: 0.9rem;">You are depositing <strong id="method-select-amount" style="color: var(--primary);">0 ETB</strong>. Please choose your preferred bank:</p>
+            <button class="btn-primary" style="margin-bottom: 10px;" onclick="confirmMethodSelection('CBE')">Pay with CBE</button>
+            <button class="btn-primary" style="background: #8b5cf6;" onclick="confirmMethodSelection('Abyssinia')">Pay with Abyssinia</button>
+            <button class="btn-primary" style="background: var(--bg); border: 1px solid var(--border); color: var(--text); margin-top: 15px;" onclick="closeMethodSelect()">Cancel</button>
+        </div>
+    </div>
 
-    balance.total_balance -= payload.amount
-    balance.available_balance -= payload.amount
-    
-    db.add(Withdrawal(
-        telegram_id=payload.telegram_id, amount=payload.amount, 
-        fee=fee, payout_amount=payout,
-        method=payload.method, account_details=payload.account_details, status="Pending"
-    ))
-    db.commit()
-    return {"message": "Withdrawal request submitted. Waiting for admin approval."}
+    <div id="bank-warning-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-icon" style="font-size: 2.5rem; margin-bottom: 0.5rem;">⚠️</div>
+            <h2 style="margin-bottom: 1rem; color: var(--danger); font-size: 1.3rem;">Warning</h2>
+            <p style="margin-bottom: 1.75rem; font-size: 0.95rem; color: var(--text); line-height: 1.6;">Please select your bank carefully! Do <strong style="color: var(--danger);">NOT</strong> transfer from a different bank, or your funds will be lost!</p>
+            <button class="btn-primary btn-understand" onclick="acceptBankWarning()">I Understand</button>
+        </div>
+    </div>
+    <div id="confirm-transfer-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Submit Transaction ID</h2>
+            <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">Enter the Transaction ID or Receipt Number from your banking app or Telebirr.</p>
+            <div class="form-group"><input type="text" id="tx-id" class="input-field" placeholder="e.g. FT12345678 or TB998877"></div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border);" onclick="closeConfirmModal()">Cancel</button>
+                <button class="btn-primary" onclick="submitPayment()">Submit</button>
+            </div>
+        </div>
+    </div>
+    <div id="withdraw-modal" class="modal-overlay hidden"><div class="modal-content"><div id="withdraw-modal-body"></div></div></div>
+    <div id="info-modal" class="modal-overlay hidden"><div class="modal-content"><div id="info-modal-body"></div></div></div>
+    <div id="history-modal" class="modal-overlay hidden"><div class="modal-content" style="max-width: 450px;"><div id="history-modal-body"></div></div></div>
+    <div id="my-devices-modal" class="modal-overlay hidden"><div class="modal-content"><div id="my-devices-modal-body"></div></div></div>
+    <div id="loader-1" class="loader-overlay hidden"><div class="clock-spinner"><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div></div></div>
+    <div id="loader-2" class="loader-overlay hidden"><div class="paynow-logo"><span class="paynow-icon"></span>PayNow</div><div class="dots-container"><div class="dot dot-1"></div><div class="dot dot-2"></div><div class="dot dot-3"></div></div></div>
 
-# --- ADMIN ENDPOINTS ---
-@app.get("/api/admin/pending-deposits")
-def get_pending_deposits(admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):
-    deposits = db.query(Deposit).filter(Deposit.status.in_(["Pending", "Paid"])).all()
-    return [
-        {
-            "id": d.id,
-            "telegram_id": d.telegram_id,
-            "amount_etb": d.amount_etb,
-            "transaction_id": d.transaction_id,
-            "payment_method": d.payment_method,
-            "status": d.status,
-            "assigned_account": d.assigned_account or "N/A"
-        } for d in deposits
-    ]
-
-@app.get("/api/admin/pending-withdrawals")
-def get_pending_withdrawals(admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):
-    return db.query(Withdrawal).filter(Withdrawal.status == "Pending").all()
-
-@app.get("/api/admin/transactions")
-def get_all_transactions(admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):
-    deposits = db.query(Deposit).all()
-    withdrawals = db.query(Withdrawal).all()
-    history = []
-    for d in deposits:
-        history.append({"id": d.id, "type": "Deposit", "user": d.telegram_id, "amount": d.amount_etb,
-                        "status": d.status, "date": d.created_at, "method": d.payment_method})
-    for w in withdrawals:
-        history.append({"id": w.id, "type": "Withdrawal", "user": w.telegram_id, "amount": w.amount,
-                        "status": w.status, "date": w.created_at, "method": w.method})
-    return history
-
-@app.post("/api/admin/process-yields")
-async def admin_process_yields(admin: str = Depends(get_current_admin)):
-    await process_yields()
-    return {"message": "Yield processing triggered. Only eligible users (24h passed) have been credited. Users who already received yields are ignored."}
-
-@app.post("/api/admin/approve-deposit/{deposit_id}")
-async def approve_deposit(deposit_id: int, admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):
-    deposit = db.query(Deposit).filter(Deposit.id == deposit_id).first()
-    if not deposit: raise HTTPException(status_code=404, detail="Deposit not found.")
-    if deposit.status == "Approved": raise HTTPException(status_code=400, detail="Deposit is already approved.")
-    deposit.status = "Approved"
-    user_balance = db.query(UserBalance).filter(UserBalance.telegram_id == deposit.telegram_id).first()
-    if not user_balance: raise HTTPException(status_code=404, detail="User balance record not found.")
-    
-    user_balance.total_balance += deposit.amount_etb
-    
-    comm_setting = db.query(Setting).filter(Setting.key == "commission_rate").first()
-    comm_rate = float(comm_setting.value) if comm_setting else 0.30
-    ref = db.query(TeamReferral).filter(TeamReferral.telegram_id == deposit.telegram_id).first()
-    if ref and not ref.is_valid_depositor:
-        commission = deposit.amount_etb * comm_rate
-        ref.is_valid_depositor = True
-        ref.commission_earned += commission
-        inv_bal = db.query(UserBalance).filter(UserBalance.telegram_id == ref.inviter_id).first()
-        if inv_bal:
-            inv_bal.invitation_income += commission
-            inv_bal.total_balance += commission
-            inv_bal.available_balance += commission
-            # NEW: Notify the inviter in real time that they earned commission from a referral's first deposit
-            inv_notification = {
-                "type": "commission_earned",
-                "amount": commission,
-                "new_balance": inv_bal.total_balance,
-                "invitee_id": deposit.telegram_id
+    <script>
+        function extractErrorMessage(err, fallback = "An error occurred.") {
+            if (!err) return fallback;
+            if (typeof err === 'string') return err;
+            if (typeof err.detail === 'string') return err.detail;
+            if (Array.isArray(err.detail) && err.detail.length > 0) {
+                const item = err.detail[0];
+                if (typeof item === 'string') return item;
+                if (item && item.msg) return item.msg;
             }
-            await manager.send_personal_message(json.dumps(inv_notification), str(ref.inviter_id))
-    db.commit()
-    notification = {"type": "deposit_approved", "amount": deposit.amount_etb, "new_balance": user_balance.total_balance}
-    await manager.send_personal_message(json.dumps(notification), str(deposit.telegram_id))
-    return {"message": "Deposit approved successfully."}
+            if (err.message) return err.message;
+            return fallback;
+        }
 
-@app.post("/api/admin/reject-deposit/{deposit_id}")
-async def reject_deposit(deposit_id: int, admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):
-    deposit = db.query(Deposit).filter(Deposit.id == deposit_id).first()
-    if not deposit: raise HTTPException(status_code=404, detail="Deposit not found.")
-    deposit.status = "Rejected"
-    db.commit()
-    notification = {"type": "deposit_rejected", "amount": deposit.amount_etb}
-    await manager.send_personal_message(json.dumps(notification), str(deposit.telegram_id))
-    return {"message": "Deposit rejected successfully."}
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = typeof message === 'string' ? message : extractErrorMessage(message);
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.add('hide'); setTimeout(() => toast.remove(), 300); }, 4000);
+        }
 
-@app.post("/api/admin/approve-withdrawal/{withdrawal_id}")
-async def approve_withdrawal(withdrawal_id: int, admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):
-    w = db.query(Withdrawal).filter(Withdrawal.id == withdrawal_id).first()
-    if not w: raise HTTPException(status_code=404, detail="Withdrawal not found.")
-    if w.status != "Pending": raise HTTPException(status_code=400, detail="Withdrawal already processed.")
-    w.status = "Approved"
-    db.commit()
-    notification = {"type": "withdrawal_approved", "amount": w.amount}
-    await manager.send_personal_message(json.dumps(notification), str(w.telegram_id))
-    return {"message": "Withdrawal approved successfully."}
+        function showCenterMessage(message, type = 'info') {
+            const container = document.getElementById('center-message');
+            container.textContent = message;
+            container.className = type; // 'error' or 'success'
+            container.style.display = 'block';
+            setTimeout(() => { container.style.display = 'none'; }, 4000);
+        }
 
-@app.post("/api/admin/reject-withdrawal/{withdrawal_id}")
-async def reject_withdrawal(withdrawal_id: int, admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):
-    w = db.query(Withdrawal).filter(Withdrawal.id == withdrawal_id).first()
-    if not w: raise HTTPException(status_code=404, detail="Withdrawal not found.")
-    w.status = "Rejected"
-    bal = db.query(UserBalance).filter(UserBalance.telegram_id == w.telegram_id).first()
-    if bal: 
-        bal.total_balance += w.amount
-        bal.available_balance += w.amount
-    db.commit()
-    notification = {"type": "withdrawal_rejected", "amount": w.amount}
-    await manager.send_personal_message(json.dumps(notification), str(w.telegram_id))
-    return {"message": "Withdrawal rejected and user refunded."}
+        const API_URL = 'https://projectdeployment-1-yuwq.onrender.com';
+        const APP_BASE_URL = window.location.origin;
 
-@app.get("/api/admin/settings")
-def get_settings(admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):
-    return {s.key: s.value for s in db.query(Setting).all()}
+        async function apiFetch(path, options = {}) {
+            const cleanPath = path.startsWith('/') ? path : `/${path}`;
+            return await fetch(`${API_URL}${cleanPath}`, options);
+        }
 
-@app.post("/api/admin/settings")
-def update_settings(payload: SystemSettingsUpdate, admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):
-    data = payload.dict(exclude_none=True)
-    for key, value in data.items():
-        setting = db.query(Setting).filter(Setting.key == key).first()
-        if setting: setting.value = str(value)
-        else: db.add(Setting(key=key, value=str(value)))
-    db.commit()
-    return {"message": "Settings updated successfully"}
+        let currentProductAmount = 0; let countdownInterval = null; let socket = null; let reconnectTimer = null; let withdrawalAccount = null; let currentWdMethod = "CBE"; let currentPaymentMethod = "CBE"; 
+        let currentCaptcha = "";
+        let currentAssignedAccount = ""; 
+        let currentSelectedMethod = "CBE";
+        
+        let userState = {
+            telegram_id: "123456789", telegram_username: "@assetcore_user", phone_number: "+251900000000", invite_code: "DEMO01",
+            total_balance: 300.00, daily_income: 0.00, daily_income_balance: 0.00, invite_income: 0.00, valid_referrals: 0, has_checked_in: false, transactions: [], products: []
+        };
+
+        window.onload = function() {
+            const savedUser = sessionStorage.getItem("ac_user_state");
+            if (savedUser) {
+                try {
+                    const parsed = JSON.parse(savedUser);
+                    userState = parsed;
+                    if (parsed.wd_method) {
+                        withdrawalAccount = { method: parsed.wd_method, name: parsed.wd_account_name, number: parsed.wd_account_number };
+                    }
+                    loginSuccess();
+                } catch (e) {
+                    sessionStorage.removeItem("ac_user_state");
+                }
+            }
+
+            const savedPhone = localStorage.getItem("ac_phone");
+            const savedPass = localStorage.getItem("ac_pass");
+            if (savedPhone && savedPass) {
+                const siPhone = document.getElementById("si-phone");
+                const siPass = document.getElementById("si-pass");
+                if (siPhone && savedPhone.startsWith("+251")) siPhone.value = savedPhone.substring(3);
+                if (siPass) siPass.value = savedPass;
+                const siRemember = document.getElementById("si-remember");
+                if (siRemember) siRemember.checked = true;
+            }
+        };
+
+        function openTermsModal() { document.getElementById("terms-modal").classList.remove("hidden"); }
+        function closeTermsModal() { document.getElementById("terms-modal").classList.add("hidden"); }
+        function toggleSignUpButton() {
+            const isChecked = document.getElementById("terms-agree").checked;
+            document.getElementById("signup-btn").disabled = !isChecked;
+        }
+
+        function generateCaptcha() {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            currentCaptcha = "";
+            for (let i = 0; i < 4; i++) {
+                currentCaptcha += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            document.getElementById("captcha-text").innerText = currentCaptcha;
+            document.getElementById("su-captcha").classList.remove('input-error');
+        }
+
+        // NEW: Live Validation Functions
+        function validateUsernameLive(val) {
+            const input = document.getElementById('su-username');
+            const clean = val.trim().replace(/^@/, "");
+            if (clean.length === 0) {
+                input.classList.remove('input-error');
+                return false;
+            }
+            if (clean.length < 5 || clean.length > 32 || /^\d+$/.test(clean) || !/^[a-zA-Z0-9_]{5,32}$/.test(clean)) {
+                input.classList.add('input-error');
+                return false;
+            }
+            input.classList.remove('input-error');
+            return true;
+        }
+
+        function validatePhoneLive(val, inputId, groupId) {
+            const input = document.getElementById(inputId);
+            const group = document.getElementById(groupId);
+            const digits = val.replace(/\D/g, '').replace(/^251/, '');
+            
+            if (digits.length === 0) {
+                input.classList.remove('input-error');
+                if(group) group.classList.remove('input-error');
+                return false;
+            }
+            if (digits.length !== 9 || digits[0] !== '9') {
+                input.classList.add('input-error');
+                if(group) group.classList.add('input-error');
+                return false;
+            }
+            input.classList.remove('input-error');
+            if(group) group.classList.remove('input-error');
+            return true;
+        }
+
+        function checkPasswordLive() {
+            const p1 = document.getElementById("su-pass");
+            const p2 = document.getElementById("su-pass2");
+            if (p1.value.length > 0 && p2.value.length > 0 && p1.value !== p2.value) {
+                p1.classList.add('input-error');
+                p2.classList.add('input-error');
+            } else {
+                p1.classList.remove('input-error');
+                p2.classList.remove('input-error');
+            }
+        }
+
+        function checkCaptchaLive(val) {
+            const input = document.getElementById("su-captcha");
+            if (val.length === 0) {
+                input.classList.remove('input-error');
+                return false;
+            }
+            if (val.toUpperCase() !== currentCaptcha) {
+                input.classList.add('input-error');
+                return false;
+            }
+            input.classList.remove('input-error');
+            return true;
+        }
+
+        function initWebSocket(userId) {
+            if (socket) { try { socket.close(); } catch(e) {} socket = null; }
+            if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+            const ws_url = `wss://projectdeployment-1-yuwq.onrender.com/ws/${userId}`;
+            socket = new WebSocket(ws_url);
+            socket.onopen = function(e) {};
+            socket.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === "connected") return;
+                    if (data.type === "deposit_approved") {
+                        userState.total_balance = data.new_balance; updateBalances();
+                        showCenterMessage(`✅ Deposit Approved! ${data.amount} ETB added.`, 'success');
+                        const tx = userState.transactions.find(t => t.type === 'Purchase' && t.status === 'Pending' && t.amount === data.amount);
+                        if (tx) tx.status = 'Approved';
+                    } else if (data.type === "withdrawal_approved") {
+                        showCenterMessage(`✅ Withdrawal Approved! ${data.amount} ETB sent.`, 'success');
+                        const tx = userState.transactions.find(t => t.type === 'Withdrawal' && t.status === 'Pending' && t.amount === data.amount);
+                        if (tx) tx.status = 'Approved';
+                    } else if (data.type === "withdrawal_rejected") { 
+                        userState.total_balance += data.amount; updateBalances();
+                        showCenterMessage(`❌ Withdrawal Rejected! ${data.amount} ETB refunded.`, 'error');
+                        const tx = userState.transactions.find(t => t.type === 'Withdrawal' && t.status === 'Pending' && t.amount === data.amount);
+                        if (tx) tx.status = 'Rejected';
+                    } else if (data.type === "product_purchased") {
+                        userState.total_balance = data.new_balance; updateBalances();
+                        showCenterMessage(`✅ ${data.name} activated!`, 'success');
+                    } else if (data.type === "yield_credited") {
+                        userState.total_balance = data.new_balance; userState.daily_income_balance += data.amount; updateBalances();
+                        showCenterMessage(`💰 Daily Income: +${data.amount} ETB from ${data.product}.`, 'success');
+                    } else if (data.type === "commission_earned") {
+                        // NEW: Inviter receives 30% commission when their invitee's first deposit is approved
+                        userState.total_balance = data.new_balance;
+                        userState.invite_income = (userState.invite_income || 0) + data.amount;
+                        userState.valid_referrals = (userState.valid_referrals || 0) + 1;
+                        updateBalances();
+                        updateReferralStats();
+                        showCenterMessage(`🎉 Referral commission earned: +${data.amount} ETB!`, 'success');
+                        sessionStorage.setItem("ac_user_state", JSON.stringify(userState));
+                    }
+                } catch (err) {}
+            };
+            socket.onclose = function(event) { if (event.code !== 1000) { reconnectTimer = setTimeout(() => initWebSocket(userId), 3000); } };
+            socket.onerror = function(e) {};
+        }
+
+        function toggleAuth(view) {
+            document.getElementById("signup-form").classList.toggle("hidden", view !== 'signup');
+            document.getElementById("signin-form").classList.toggle("hidden", view !== 'signin');
+        }
+
+        async function handleSignUp() {
+            const pass1 = document.getElementById("su-pass").value;
+            const pass2 = document.getElementById("su-pass2").value;
+            const captcha = document.getElementById("su-captcha").value;
+            const username = document.getElementById("su-username").value.trim();
+            const phoneRaw = document.getElementById("su-phone").value;
+            const phoneDigits = phoneRaw.replace(/\D/g, '').replace(/^251/, '');
+            
+            if (!validatePhoneLive(phoneRaw, 'su-phone', 'su-phone-group')) { showCenterMessage("Invalid phone number format.", 'error'); return; }
+            if (!validateUsernameLive(username)) { showCenterMessage("Invalid username format.", 'error'); return; }
+            if (pass1.length < 6) { document.getElementById("su-pass").classList.add('input-error'); showCenterMessage("Password must be at least 6 characters.", 'error'); return; }
+            if (pass1 !== pass2) { showCenterMessage("Passwords do not match.", 'error'); return; }
+            if (!checkCaptchaLive(captcha)) { showCenterMessage("Invalid or missing captcha.", 'error'); return; }
+
+            const phone = "+251" + phoneDigits;
+            const signupBtn = document.getElementById("signup-btn");
+            signupBtn.disabled = true;
+            signupBtn.innerHTML = 'Processing... <span class="btn-spinner"></span>';
+
+            const randomTelegramId = Math.floor(Math.random() * 1000000000) + 100000000;
+
+            // FIX: Read inviter code from URL (?start=CODE shared by frontend; ?invite=CODE generated by backend)
+            const urlParams = new URLSearchParams(window.location.search);
+            const inviterCode = (urlParams.get('start') || urlParams.get('invite') || '').trim();
+
+            try {
+                const res = await apiFetch('/api/register', {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ telegram_id: randomTelegramId, telegram_username: username, phone_number: phone, password: pass1, inviter_code: inviterCode })
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    userState.telegram_id = data.telegram_id;
+                    userState.total_balance = data.registration_bonus;
+                    userState.telegram_username = username;
+                    userState.phone_number = phone;
+                    userState.invite_code = data.invitation_code; 
+                    showCenterMessage("300 ETB Registration Bonus Awarded!", 'success');
+                    loginSuccess();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    const errorMsg = extractErrorMessage(err, "Registration failed.");
+                    if (res.status === 400 || res.status === 409 || errorMsg.toLowerCase().includes("already") || errorMsg.toLowerCase().includes("exist")) {
+                        showCenterMessage("You already have an account! Please sign in.", 'error');
+                        document.getElementById("su-phone").classList.add('input-error');
+                        document.getElementById("su-phone-group").classList.add('input-error');
+                        toggleAuth('signin');
+                    } else { showCenterMessage(errorMsg, 'error'); }
+                    signupBtn.innerHTML = 'Sign Up';
+                    signupBtn.disabled = !document.getElementById("terms-agree").checked;
+                }
+            } catch (error) { 
+                showCenterMessage("Network error. Server is waking up.", 'error');
+                signupBtn.innerHTML = 'Sign Up';
+                signupBtn.disabled = !document.getElementById("terms-agree").checked;
+            }
+        }
+
+        async function handleSignIn() {
+            const phoneRaw = document.getElementById("si-phone").value;
+            const phoneDigits = phoneRaw.replace(/\D/g, '').replace(/^251/, '');
+            const pass = document.getElementById("si-pass").value;
+            
+            if (!validatePhoneLive(phoneRaw, 'si-phone', 'si-phone-group')) { showCenterMessage("Invalid phone number format.", 'error'); return; }
+            if (!pass) { 
+                document.getElementById("si-pass").classList.add('input-error'); 
+                showCenterMessage("Please enter your password.", 'error');
+                return; 
+            }
+
+            const phone = "+251" + phoneDigits;
+            const signinBtn = document.getElementById("signin-btn");
+            signinBtn.disabled = true;
+            signinBtn.innerHTML = 'Processing... <span class="btn-spinner"></span>';
+
+            const rememberMe = document.getElementById("si-remember").checked;
+
+            try {
+                const res = await apiFetch('/api/login', {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ phone_number: phone, password: pass })
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    userState.telegram_id = data.telegram_id || userState.telegram_id;
+                    userState.total_balance = data.total_balance !== undefined ? data.total_balance : 300.00;
+                    userState.telegram_username = data.telegram_username || phone;
+                    userState.phone_number = phone;
+                    userState.invite_code = data.invitation_code || "DEMO01";
+                    userState.daily_income_balance = data.daily_income_balance || 0.00;
+                    userState.invite_income = data.invite_income || 0.00;
+                    userState.valid_referrals = data.valid_referrals || 0;
+                    userState.products = data.products || [];
+                    
+                    if (data.wd_method) {
+                        userState.wd_method = data.wd_method;
+                        userState.wd_account_name = data.wd_account_name;
+                        userState.wd_account_number = data.wd_account_number;
+                        withdrawalAccount = { method: data.wd_method, name: data.wd_account_name, number: data.wd_account_number };
+                    }
+
+                    if (rememberMe) {
+                        localStorage.setItem("ac_phone", phone);
+                        localStorage.setItem("ac_pass", pass);
+                    } else {
+                        localStorage.removeItem("ac_phone");
+                        localStorage.removeItem("ac_pass");
+                    }
+
+                    showCenterMessage("Welcome back!", 'success');
+                    loginSuccess();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showCenterMessage(extractErrorMessage(err, "Invalid phone number or password."), 'error');
+                    document.getElementById("si-pass").classList.add('input-error');
+                    document.getElementById("si-phone").classList.add('input-error');
+                    document.getElementById("si-phone-group").classList.add('input-error');
+                    signinBtn.innerHTML = 'Sign In';
+                    signinBtn.disabled = false;
+                }
+            } catch (error) { 
+                showCenterMessage("Network error. Server is waking up.", 'error');
+                signinBtn.innerHTML = 'Sign In';
+                signinBtn.disabled = false;
+            }
+        }
+
+        function loginSuccess() {
+            document.getElementById("auth-view").classList.add("hidden");
+            document.getElementById("dashboard-view").classList.remove("hidden");
+            document.getElementById("user-tg-name").innerText = userState.telegram_username;
+            document.getElementById("user-phone").innerText = userState.phone_number;
+            initApp();
+            document.getElementById("login-promo-modal").classList.remove("hidden");
+            initWebSocket(userState.telegram_id);
+            sessionStorage.setItem("ac_user_state", JSON.stringify(userState));
+        }
+
+        function closePromoModal() { document.getElementById("login-promo-modal").classList.add("hidden"); }
+        function handleLogout() { document.getElementById("logout-modal").classList.remove("hidden"); }
+        function closeLogoutModal() { document.getElementById("logout-modal").classList.add("hidden"); }
+        function confirmLogout() {
+            if (socket) socket.close();
+            closeLogoutModal();
+            sessionStorage.removeItem("ac_user_state");
+            
+            const signinBtn = document.getElementById("signin-btn");
+            if(signinBtn) { signinBtn.innerHTML = 'Sign In'; signinBtn.disabled = false; }
+            const signupBtn = document.getElementById("signup-btn");
+            if(signupBtn) { signupBtn.innerHTML = 'Sign Up'; signupBtn.disabled = true; document.getElementById("terms-agree").checked = false; }
+            
+            document.getElementById("dashboard-view").classList.add("hidden");
+            document.getElementById("auth-view").classList.remove("hidden");
+        }
+
+        function initApp() { 
+            renderProducts(); renderLeaderboard(); 
+            document.getElementById("user-invite-code").innerText = userState.invite_code; 
+            document.getElementById("user-invite-link-display").innerText = `${APP_BASE_URL}/?start=${userState.invite_code}`;
+            updateBalances();
+            updateMineStats(); 
+            updateReferralStats(); // NEW: populate referral stats with real values from backend
+        }
+
+        // NEW: Populate referral stats (valid users count + invited income) into the Referral Program card
+        function updateReferralStats() {
+            const validCount = userState.valid_referrals || 0;
+            const inviteIncome = userState.invite_income || 0;
+            const formattedIncome = `${inviteIncome.toFixed(2)} ETB`;
+
+            const tableCount = document.getElementById("ref-table-count");
+            const tableIncome = document.getElementById("ref-table-income");
+            const validCountEl = document.getElementById("ref-valid-count");
+            const inviteIncomeEl = document.getElementById("ref-invite-income");
+
+            if (tableCount) tableCount.innerText = validCount;
+            if (tableIncome) tableIncome.innerText = formattedIncome;
+            if (validCountEl) validCountEl.innerText = validCount;
+            if (inviteIncomeEl) inviteIncomeEl.innerText = formattedIncome;
+        }
+
+        function updateMineStats() {
+            const products = userState.products || [];
+            const deviceCount = products.length;
+            const dailyIncomeSum = products.reduce((sum, p) => sum + p.daily_income, 0);
+
+            document.getElementById("mine-device-count").innerText = deviceCount;
+            document.getElementById("mine-income-sum").innerText = `ETB ${dailyIncomeSum.toLocaleString()}`;
+        }
+
+        function openMyDevicesModal() {
+            const body = document.getElementById('my-devices-modal-body');
+            const products = userState.products || [];
+
+            if (products.length === 0) {
+                body.innerHTML = `
+                    <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">My Investment Products</h2>
+                    <p style="text-align: center; color: var(--text-muted); margin-bottom: 2rem;">You have no active products.<br>Go to the Home tab to invest and start earning!</p>
+                    <button class="btn-primary" onclick="closeMyDevicesModal()">Close</button>`;
+            } else {
+                let html = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">My Investment Products (${products.length})</h2>`;
+                products.forEach(p => {
+                    html += `
+                        <div class="my-device-item">
+                            <div class="my-device-header">
+                                <span class="my-device-name">${p.name}</span>
+                                <span class="my-device-validity">${p.validity_days} Days Validity</span>
+                            </div>
+                            <div class="my-device-stat">
+                                <span class="my-device-stat-label">💰 Daily Income:</span>
+                                <span class="my-device-stat-value" style="color: var(--success)">${p.daily_income} ETB</span>
+                            </div>
+                            <div class="my-device-stat">
+                                <span class="my-device-stat-label">🏷️ Purchase Price:</span>
+                                <span class="my-device-stat-value">${p.price.toLocaleString()} ETB</span>
+                            </div>
+                            <div class="my-device-stat">
+                                <span class="my-device-stat-label">📅 Time of Purchase:</span>
+                                <span class="my-device-stat-value">${p.purchase_time}</span>
+                            </div>
+                            <div class="my-device-stat">
+                                <span class="my-device-stat-label">🚀 Total Expected Earning:</span>
+                                <span class="my-device-stat-value">${p.total_earning.toLocaleString()} ETB</span>
+                            </div>
+                        </div>`;
+                });
+                html += `<button class="btn-primary" style="margin-top: 1rem;" onclick="closeMyDevicesModal()">Close</button>`;
+                body.innerHTML = html;
+            }
+            document.getElementById('my-devices-modal').classList.remove("hidden");
+        }
+
+        function closeMyDevicesModal() { document.getElementById('my-devices-modal').classList.add("hidden"); }
+
+        function copyReferralLink() { copyText(`${APP_BASE_URL}/?start=${userState.invite_code}`); }
+
+        function switchTab(viewName) {
+            document.querySelectorAll(".app-view").forEach(el => el.classList.add("hidden"));
+            document.getElementById(`view-${viewName}`).classList.remove("hidden");
+            document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("active"));
+            document.querySelector(`.nav-item[data-view="${viewName}"]`).classList.add("active");
+            if (viewName !== 'deposit') { document.getElementById("dep-step-1").classList.remove("hidden"); document.getElementById("dep-step-2").classList.add("hidden"); }
+        }
+
+        const products = [
+            { name: "Cloud Server", desc: "Renting out server space.", img: "images/cloud_server.png", price: 650, daily: 100, days: 60, total: 6000 },
+            { name: "Electronic Device", desc: "Flipping or leasing consumer tech.", img: "images/electronic_device.png", price: 1000, daily: 200, days: 60, total: 12000 },
+            { name: "Crypto Mining Rig", desc: "Hardware dedicated to mining Bitcoin and altcoins.", img: "images/crypto_rig.png", price: 1600, daily: 400, days: 60, total: 24000 },
+            { name: "E-Commerce Node", desc: "Owning a piece of a digital retail supply chain.", img: "images/ecommerce_node.png", price: 3000, daily: 800, days: 60, total: 48000 },
+            { name: "Solar Energy Farm", desc: "Investing in renewable, passive energy grids.", img: "images/solar_farm.png", price: 5000, daily: 1400, days: 60, total: 84000 },
+            { name: "Crude Oil Pump", desc: "Traditional, high-yield energy extraction.", img: "images/oil_pump.png", price: 10000, daily: 3000, days: 60, total: 180000 },
+            { name: "Commercial Real Estate", desc: "Owning a share in high-rise office spaces.", img: "images/real_estate.png", price: 20000, daily: 6400, days: 60, total: 384000 },
+            { name: "Luxury Resort", desc: "High-end hospitality and tourism property.", img: "images/luxury_resort.png", price: 50000, daily: 17000, days: 60, total: 1020000 },
+            { name: "Global Index Fund", desc: "The ultimate asset—a diversified stake in global megacorporations.", img: "images/index_fund.png", price: 100000, daily: 36000, days: 60, total: 2160000 },
+        ];
+        function renderProducts() {
+            const container = document.getElementById("product-list");
+            container.innerHTML = "";
+            products.forEach(p => {
+                const isComingSoon = p.price >= 20000 && p.price <= 100000;
+                let buttonHtml;
+                if (isComingSoon) { buttonHtml = `<button class="btn-coming-soon" disabled>COMING SOON</button>`; } 
+                else { buttonHtml = `<button class="btn-buy" onclick="buyProduct('${p.name}', ${p.price}, ${p.daily}, ${p.days}, ${p.total})">Buy Now</button>`; }
+                container.innerHTML += `
+                    <div class="product-card">
+                        <img src="${p.img}" alt="${p.name}" class="product-img">
+                        <div class="product-header">
+                            <div class="product-title-desc"><span class="product-title">${p.name}</span><span class="product-desc">${p.desc}</span></div>
+                            <span class="product-price">${p.price.toLocaleString()} ETB</span>
+                        </div>
+                        <div class="product-body">
+                            <div class="stats-grid">
+                                <div class="stat-item"><div class="stat-label">Daily Income</div><div class="stat-value highlight">${p.daily.toLocaleString()} ETB</div></div>
+                                <div class="stat-item"><div class="stat-label">Validity</div><div class="stat-value">${p.days} Days</div></div>
+                                <div class="stat-item"><div class="stat-label">Total Income</div><div class="stat-value highlight">${p.total.toLocaleString()} ETB</div></div>
+                                <div class="stat-item"><div class="stat-label">Entry Price</div><div class="stat-value">${p.price.toLocaleString()} ETB</div></div>
+                            </div>
+                            ${buttonHtml}
+                        </div>
+                    </div>`;
+            });
+        }
+
+        async function buyProduct(name, price, daily, days, total) {
+            try {
+                const res = await apiFetch('/api/buy-product', {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ telegram_id: parseInt(userState.telegram_id), product_name: name, product_price: price, daily_income: daily })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    userState.total_balance = data.new_balance; updateBalances();
+                    
+                    if (!userState.products) userState.products = [];
+                    
+                    const now = new Date();
+                    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+                    const eatDate = new Date(utc + (3 * 3600000));
+                    const eatString = eatDate.toISOString().slice(0, 19).replace('T', ' ');
+
+                    userState.products.push({
+                        name: name,
+                        price: price,
+                        daily_income: daily,
+                        purchase_time: eatString,
+                        validity_days: days,
+                        total_earning: total
+                    });
+                    updateMineStats(); 
+                    sessionStorage.setItem("ac_user_state", JSON.stringify(userState));
+
+                    showCenterMessage(`${name} activated successfully! Income will be credited automatically every 24h.`, 'success');
+                    switchTab('mine');
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    const errorMsg = extractErrorMessage(err, "Purchase failed.");
+                    if (errorMsg.toLowerCase().includes("insufficient")) {
+                        showCenterMessage("Please deposit first to activate this product!", 'error');
+                        selectQuickAmount(price); switchTab('deposit'); 
+                    } else {
+                        showCenterMessage(errorMsg, 'error');
+                    }
+                }
+            } catch (error) { showCenterMessage("Network error. Please check your connection.", 'error'); }
+        }
+
+        function selectQuickAmount(amount, btnElement) {
+            currentProductAmount = amount;
+            document.getElementById("dep-amount-input").value = amount;
+            document.querySelectorAll(".btn-quick-amt").forEach(btn => btn.classList.remove("active"));
+            if (btnElement) { btnElement.classList.add("active"); } 
+            else { document.querySelectorAll(".btn-quick-amt").forEach(btn => { if (parseInt(btn.innerText) === amount) btn.classList.add("active"); }); }
+        }
+
+        function proceedToPayment() {
+            const amount = parseFloat(document.getElementById("dep-amount-input").value);
+            if (isNaN(amount) || amount < 650 || amount > 100000) { return showCenterMessage("Amount must be strictly between 650 ETB and 100,000 ETB.", 'error'); }
+            if (amount > 1000 && amount < 1600) { return showCenterMessage("Invalid amount. Telebirr max is 1000, CBE/Abyssinia min is 1600.", 'error'); }
+            
+            currentProductAmount = amount;
+            
+            if (amount >= 1600) {
+                document.getElementById("method-select-amount").innerText = amount.toFixed(2);
+                document.getElementById("select-method-modal").classList.remove("hidden");
+            } else {
+                triggerBankWarning("Telebirr");
+            }
+        }
+
+        function closeMethodSelect() {
+            document.getElementById("select-method-modal").classList.add("hidden");
+        }
+
+        function confirmMethodSelection(method) {
+            document.getElementById("select-method-modal").classList.add("hidden");
+            triggerBankWarning(method);
+        }
+
+        function triggerBankWarning(method) {
+            currentSelectedMethod = method;
+            document.getElementById("bank-warning-modal").classList.remove("hidden");
+        }
+
+        async function acceptBankWarning() {
+            document.getElementById("bank-warning-modal").classList.add("hidden");
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            let orderCode = "PN";
+            for (let i = 0; i < 8; i++) { orderCode += chars.charAt(Math.floor(Math.random() * chars.length)); }
+            document.getElementById("inv-amount").innerText = currentProductAmount.toFixed(2);
+            document.getElementById("inv-amt-val").innerText = currentProductAmount + " ETB";
+            document.getElementById("inv-order-code").innerText = orderCode;
+            
+            try {
+                const res = await apiFetch(`/api/get-deposit-account?telegram_id=${parseInt(userState.telegram_id)}&amount=${currentProductAmount}&method=${currentSelectedMethod}`);
+                if (res.ok) {
+                    const accData = await res.json();
+                    currentAssignedAccount = accData.account_string; 
+                    currentPaymentMethod = accData.method; 
+                    
+                    document.getElementById('inv-acc-name').innerText = accData.name;
+                    document.getElementById('inv-bank-name').innerText = accData.method === 'CBE' ? 'Commercial Bank of Ethiopia' : (accData.method === 'Telebirr' ? 'Telebirr' : 'Bank of Abyssinia');
+                    document.getElementById('acc-num-label').innerText = accData.method === 'Telebirr' ? 'Phone Number' : 'Account Number';
+                    document.getElementById('inv-acc-num').innerText = accData.number;
+                    
+                    document.getElementById("dep-step-1").classList.add("hidden");
+                    document.getElementById("dep-step-2").classList.remove("hidden");
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    const errorMsg = extractErrorMessage(err, "Failed to get payment account.");
+                    showCenterMessage(errorMsg, 'error');
+                    switchTab('home'); 
+                }
+            } catch(e) { 
+                showCenterMessage("Network error fetching account.", 'error');
+                switchTab('home');
+            }
+        }
+
+        function openConfirmModal() { document.getElementById("confirm-transfer-modal").classList.remove("hidden"); }
+        function closeConfirmModal() { document.getElementById("confirm-transfer-modal").classList.add("hidden"); }
+
+        async function submitPayment() {
+            const txId = document.getElementById("tx-id").value;
+            if (!txId.trim()) { return showCenterMessage("Please enter a Transaction ID.", 'error'); }
+            try {
+                const res = await apiFetch('/api/paynow-webhook', {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        reference: txId, status: "Paid", amount: currentProductAmount, 
+                        telegram_id: parseInt(userState.telegram_id), payment_method: currentPaymentMethod,
+                        assigned_account: currentAssignedAccount 
+                    })
+                });
+                if (res.ok) {
+                    showCenterMessage("Submitted successfully! Waiting for admin approval.", 'success');
+                    userState.transactions.push({ id: txId, type: 'Purchase', method: currentPaymentMethod, amount: currentProductAmount, status: 'Pending', timestamp: new Date().toLocaleString() });
+                    closeConfirmModal(); document.getElementById("tx-id").value = "";
+                    document.getElementById("dep-step-1").classList.remove("hidden"); document.getElementById("dep-step-2").classList.add("hidden");
+                    switchTab('home');
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showCenterMessage(extractErrorMessage(err, "Submission failed."), 'error');
+                }
+            } catch (error) { showCenterMessage("Network error.", 'error'); }
+        }
+
+        function calculateWdFee() {
+            const amount = parseFloat(document.getElementById("withdraw-amount").value) || 0;
+            const fee = amount * 0.20;
+            const payout = amount - fee;
+            document.getElementById("wd-fee-breakdown").innerHTML = `
+                Transaction Fee (20%): <strong style="color: var(--danger);">${fee.toFixed(2)} ETB</strong><br>
+                You will receive: <strong style="color: var(--success);">${payout.toFixed(2)} ETB</strong>
+            `;
+        }
+
+        function openWithdrawModal() {
+            const body = document.getElementById("withdraw-modal-body");
+            if (!withdrawalAccount) {
+                currentWdMethod = "CBE"; 
+                body.innerHTML = `
+                    <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Add Withdrawal Account</h2>
+                    <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); margin-bottom: 15px;" onclick="closeWithdrawModal(); openHistoryModal();">View Transaction History</button>
+                    <p style="margin-bottom: 1rem; color: var(--danger); font-size: 0.85rem; font-weight: 600; text-align: left;">⚠️ Please enter your CBE bank details carefully. Your payment method cannot be changed later without contacting customer service.</p>
+                    <div class="form-group" style="text-align: left;"><label>CBE Account Name</label><input type="text" id="wd-name" class="input-field" placeholder="Enter account name"></div>
+                    <div class="form-group" style="text-align: left;"><label>Account Number</label><input type="text" id="wd-number" class="input-field" placeholder="Enter account number"></div>
+                    <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+                        <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border);" onclick="closeWithdrawModal()">Cancel</button>
+                        <button class="btn-primary" onclick="saveWithdrawalAccount()">Save & Lock Account</button>
+                    </div>`;
+            } else {
+                body.innerHTML = `
+                    <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Withdraw Funds</h2>
+                    <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); margin-bottom: 15px;" onclick="closeWithdrawModal(); openHistoryModal();">View Transaction History</button>
+                    <div class="saved-account-box">
+                        <div class="saved-account-label">Saved Payment Method:</div><div class="saved-account-name">${withdrawalAccount.method}</div>
+                        <div style="margin-top: 0.5rem; font-size: 0.9rem;"><strong>${withdrawalAccount.name}</strong><br><span style="color: var(--text-muted);">${withdrawalAccount.number}</span></div>
+                    </div>
+                    <div class="warning-notes" style="margin-bottom: 1.5rem; text-align: left;">⚠️ To change your payment method, please contact customer service.</div>
+                    <div class="form-group" style="text-align: left;">
+                        <label>Amount (ETB)</label>
+                        <input type="number" id="withdraw-amount" class="input-field" placeholder="Minimum 300 ETB" oninput="calculateWdFee()">
+                        <div class="fee-breakdown" id="wd-fee-breakdown">Transaction Fee (20%): <strong style="color: var(--danger);">0.00 ETB</strong><br>You will receive: <strong style="color: var(--success);">0.00 ETB</strong></div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+                        <button class="btn-primary" style="background: var(--bg); color: var(--text); border: 1px solid var(--border);" onclick="closeWithdrawModal()">Cancel</button>
+                        <button class="btn-primary" style="background: var(--danger);" onclick="handleWithdraw()">Withdraw</button>
+                    </div>`;
+            }
+            document.getElementById("withdraw-modal").classList.remove("hidden");
+        }
+
+        function closeWithdrawModal() { document.getElementById("withdraw-modal").classList.add("hidden"); }
+
+        async function saveWithdrawalAccount() {
+            const name = document.getElementById("wd-name").value.trim();
+            const number = document.getElementById("wd-number").value.trim();
+            if (!name || !number) { return showCenterMessage("Please fill in all fields.", 'error'); }
+            
+            try {
+                const res = await apiFetch('/api/save-withdrawal-account', {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ telegram_id: parseInt(userState.telegram_id), name: name, number: number })
+                });
+                if (res.ok) {
+                    withdrawalAccount = { method: "CBE", name: name, number: number }; 
+                    userState.wd_method = "CBE";
+                    userState.wd_account_name = name;
+                    userState.wd_account_number = number;
+                    sessionStorage.setItem("ac_user_state", JSON.stringify(userState));
+                    showCenterMessage("Account saved successfully! You can now withdraw funds.", 'success');
+                    openWithdrawModal(); 
+                } else {
+                    showCenterMessage("Failed to save account.", 'error');
+                }
+            } catch (e) {
+                showCenterMessage("Network error.", 'error');
+            }
+        }
+
+        async function handleWithdraw() {
+            const amount = parseFloat(document.getElementById("withdraw-amount").value);
+            if (isNaN(amount) || amount < 300) { return showCenterMessage("Minimum withdrawal is 300 ETB.", 'error'); }
+            if (amount > userState.total_balance) { return showCenterMessage("Insufficient balance.", 'error'); }
+            try {
+                const res = await apiFetch('/api/request-withdrawal', {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ telegram_id: parseInt(userState.telegram_id), amount: amount, method: "CBE", account_details: `${withdrawalAccount.name} - ${withdrawalAccount.number}` })
+                });
+                if (res.ok) {
+                    showCenterMessage(`Withdrawal request of ${amount} ETB submitted!`, 'success');
+                    userState.total_balance -= amount; updateBalances(); closeWithdrawModal();
+                    sessionStorage.setItem("ac_user_state", JSON.stringify(userState));
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    showCenterMessage(extractErrorMessage(err, "Withdrawal failed."), 'error');
+                }
+            } catch (error) { showCenterMessage("Network error.", 'error'); }
+        }
+
+        function openInfoModal(type) {
+            const body = document.getElementById('info-modal-body'); let content = '';
+            if (type === 'account') {
+                const method = withdrawalAccount ? withdrawalAccount.method : 'Not set';
+                const accName = withdrawalAccount ? withdrawalAccount.name : 'Not set';
+                const accNum = withdrawalAccount ? withdrawalAccount.number : 'Not set';
+                content = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Account Details</h2>
+                    <div class="info-content"><p><strong>Payment Method:</strong> ${method}</p><p><strong>Account Holder Name:</strong> ${accName}</p><p><strong>Account Number/Phone:</strong> ${accNum}</p>
+                    <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--danger);">⚠️ To change these details, please contact customer service.</p></div>
+                    <button class="btn-primary" style="margin-top: 1.5rem;" onclick="closeInfoModal()">Close</button>`;
+            } else if (type === 'service') {
+                content = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Customer Service</h2>
+                    <div class="info-content">
+                        <p><strong>Customer Service:</strong> <a href="https://t.me/mrFinances" target="_blank" style="color: var(--primary);">@mrFinances</a></p>
+                        <p><strong>Telegram Official Channel:</strong> <a href="https://t.me/assetcoreofficial" target="_blank" style="color: var(--primary);">@assetcoreofficial</a></p>
+                        <p><strong>Community Group:</strong> <a href="https://t.me/Assetcorecommunity" target="_blank" style="color: var(--primary);">@Assetcorecommunity</a></p>
+                    </div>
+                    <button class="btn-primary" style="margin-top: 1.5rem;" onclick="closeInfoModal()">Close</button>`;
+            } else if (type === 'about') {
+                content = `<h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">About Us</h2>
+                    <div class="info-content" style="font-size: 0.9rem; line-height: 1.6;">
+                        <p>Welcome to AssetCore, Ethiopia's premier digital asset management and investment platform! 🚀📈</p>
+                        <p>We are often asked: "How does AssetCore generate profit while paying such high daily returns to users?"</p>
+                        <p>It’s a great question. To present AssetCore as a legitimate, sustainable, and professional fintech platform, our narrative focuses on Asset Aggregation, Yield Spreads, and Platform Liquidity. We don't just hold funds; we act as a digital asset manager.</p>
+                        <p>Here is a transparent breakdown of how AssetCore generates profit, explained with real scenarios:</p>
+                        
+                        <h4>1. The Yield Spread (Arbitrage)</h4>
+                        <p>AssetCore pools user capital to access high-yield investment opportunities normally restricted to institutional investors (like wholesale cloud infrastructure leasing, large-scale DeFi liquidity pooling, or commercial real estate syndication). The platform generates a higher percentage yield than what it pays out to the users.</p>
+                        <p><strong>The Scenario:</strong> AssetCore pools 100,000 ETB from 100 users. By pooling this capital, AssetCore can deploy it into a high-yield infrastructure project that generates a 15% monthly return.</p>
+                        <p><strong>The Payout:</strong> AssetCore promises users a fixed return equivalent to 9% monthly (e.g., VIP 2 costs 1,000 ETB and pays 200 ETB daily over 60 days = 12,000 ETB total, a strong yield for the user).</p>
+                        <p><strong>The Profit:</strong> The platform keeps the 6% difference (the spread). On 100,000 ETB, the platform earns 6,000 ETB per month in pure profit just from the yield difference, while users are thrilled with their guaranteed 9% return.</p>
+                        
+                        <h4>2. Transaction & Liquidity Fees (Direct Revenue)</h4>
+                        <p>Every time money moves out of the ecosystem, the platform takes a percentage. This prevents capital drain and creates direct, immediate revenue.</p>
+                        <p><strong>The Scenario:</strong> John accumulates 1,000 ETB from daily yields and requests a withdrawal. The platform charges a 20% liquidity fee. John receives 800 ETB (which he is happy with, as it is pure profit for him), and AssetCore retains 200 ETB as operational revenue.</p>
+                        <p><strong>Why this works:</strong> This fee structure ensures the platform always retains 20% of all generated yields in the main treasury, keeping the platform solvent and highly liquid, even during high withdrawal periods.</p>
+                        
+                        <h4>3. Idle Capital & Reinvestment Cycles (The Float)</h4>
+                        <p>Money sitting in user balances (not immediately withdrawn) acts as a "float." The platform can safely deploy this idle capital into short-term, low-risk yield farms to generate extra profit.</p>
+                        <p><strong>The Scenario:</strong> John buys VIP 2 (1,000 ETB). He instantly withdraws his 300 ETB bonus. He then leaves his daily income to accumulate for 5 days without touching it. Over those 5 days, his balance grows to 1,000 ETB. During those 5 days, John’s 1,000 ETB (plus the 300 ETB from thousands of other users doing the same thing) sits in the AssetCore treasury. The platform uses this massive "float" to execute a 5-day flash loan or short-term crypto stake, generating thousands of ETB in interest. When John finally clicks "reinvest" to buy VIP 2 again, the capital is simply rotated, and the platform keeps the interest earned during the idle time.</p>
+                        
+                        <h4>4. Referral Economics (Exponential Growth at Low Cost)</h4>
+                        <p>The 30% referral commission is not a loss of profit; it is a customer acquisition cost (CAC) that is paid only from generated yield, not from the platform's pocket.</p>
+                        <p><strong>The Scenario:</strong> Sarah invites Mike. Mike deposits 1,000 ETB. Sarah gets 300 ETB as a commission. However, that 300 ETB is credited to Sarah's internal balance. If Sarah withdraws it, the platform takes a 20% fee (60 ETB back to the platform). Furthermore, Mike's 1,000 ETB is now working for the platform in the high-yield pool (generating 150 ETB/month). The platform paid Sarah 300 ETB out of future yields, but gained a 1,000 ETB asset that will generate returns for 60 days. It is a mathematically sound marketing strategy.</p>
+                        
+                        <h4>Summary</h4>
+                        <p>AssetCore is a digital asset management platform. We aggregate micro-investments from users to access institutional-grade yield opportunities in cloud infrastructure and decentralized finance. By sharing a portion of the high-yield returns with our users, while retaining a yield spread and implementing standard liquidity fees, we create a sustainable, win-win financial ecosystem.</p>
+                        
+                        <h4>📞 Contact & Official Links:</h4>
+                        <p>For any inquiries, support, or to join our community, please reach out through the official channels below:</p>
+                        <p>Customer Service: <a href="https://t.me/mrFinances" target="_blank" style="color: var(--primary);">@mrFinances</a></p>
+                        <p>Official Channel: <a href="https://t.me/assetcoreofficial" target="_blank" style="color: var(--primary);">https://t.me/assetcoreofficial</a></p>
+                        <p>Community Group: <a href="https://t.me/Assetcorecommunity" target="_blank" style="color: var(--primary);">https://t.me/Assetcorecommunity</a></p>
+                    </div>
+                    <button class="btn-primary" style="margin-top: 2rem;" onclick="closeInfoModal()">Close</button>`;
+            }
+            body.innerHTML = content;
+            document.getElementById('info-modal').classList.remove("hidden");
+        }
+
+        function closeInfoModal() { document.getElementById('info-modal').classList.add("hidden"); }
+
+        async function openHistoryModal() {
+            const body = document.getElementById('history-modal-body');
+            document.getElementById('history-modal').classList.remove("hidden");
+            body.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding: 2rem 0;">Loading history...</p>`;
+            
+            try {
+                const res = await apiFetch(`/api/user/transactions/${userState.telegram_id}`);
+                let transactions = [];
+                if (res.ok) {
+                    transactions = await res.json();
+                }
+                
+                const withdrawals = transactions.filter(t => t.type === 'Withdrawal');
+                let withdrawalHtml = '<tbody><tr><td colspan="4" style="text-align:center;">No history yet</td></tr></tbody>';
+
+                if (withdrawals.length > 0) {
+                    // FIX: Server now returns the date as a pre-formatted Ethiopian local time (UTC+3) string in 24-hour format (YYYY-MM-DD HH:MM:SS). Display it directly — do NOT re-parse with new Date(...).toLocaleString() since that would re-interpret it as local time and break the format.
+                    withdrawalHtml = '<tbody>' + withdrawals.map(w => `<tr><td>${w.date}</td><td>${w.method}</td><td>${w.amount} ETB</td><td style="color: ${w.status === 'Approved' ? 'var(--success)' : 'var(--danger)'}; font-weight: 700;">${w.status}</td></tr>`).join('') + '</tbody>';
+                }
+
+                body.innerHTML = `
+                    <h2 style="margin-bottom: 1.5rem; color: var(--text); font-size: 1.5rem;">Transaction History</h2>
+                    <div style="text-align: left; margin-bottom: 1.5rem;">
+                        <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--text); font-weight: 700;">Withdrawal History</h3>
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th><th>Method</th><th>Amount</th><th>Status</th>
+                                </tr>
+                            </thead>
+                            ${withdrawalHtml}
+                        </table>
+                    </div>
+                    <button class="btn-primary" onclick="closeHistoryModal()">Close</button>`;
+            } catch (e) {
+                body.innerHTML = `<p style="text-align:center; color:var(--danger); padding: 2rem 0;">Failed to load history.</p>`;
+            }
+        }
+
+        function closeHistoryModal() { document.getElementById('history-modal').classList.add("hidden"); }
+
+        function updateBalances() {
+            document.getElementById("bal-total").innerText = userState.total_balance.toFixed(2);
+            document.getElementById("bal-daily").innerText = (userState.daily_income_balance || 0).toFixed(2);
+            document.getElementById("bal-invite").innerText = (userState.invite_income || 0).toFixed(2);
+        }
+
+        function copyText(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => { showToast("Copied: " + text, 'success'); }).catch(() => fallbackCopy(text));
+            } else { fallbackCopy(text); }
+        }
+
+        function fallbackCopy(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text; textArea.style.position = "fixed";
+            document.body.appendChild(textArea); textArea.focus(); textArea.select();
+            try { document.execCommand('copy'); showToast("Copied: " + text, 'success'); } catch (err) { showToast("Failed to copy text.", 'error'); }
+            document.body.removeChild(textArea);
+        }
+
+        async function renderLeaderboard() {
+            const container = document.getElementById("lb-list");
+            if (!container) return;
+            container.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding: 2rem 0;">Loading leaderboard...</p>`;
+            
+            try {
+                const res = await apiFetch('/api/leaderboard');
+                if (res.ok) {
+                    const data = await res.json();
+                    container.innerHTML = "";
+                    if (!data || data.length === 0) {
+                        container.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding: 2rem 0;">No top investors yet. Be the first!</p>`;
+                        return;
+                    }
+                    data.forEach((item, index) => {
+                        let rankClass = "";
+                        let rank = index + 1;
+                        if (rank === 1) rankClass = "gold";
+                        else if (rank === 2) rankClass = "silver";
+                        else if (rank === 3) rankClass = "bronze";
+
+                        container.innerHTML += `
+                            <div class="lb-item">
+                                <div class="lb-rank ${rankClass}">${rank}</div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 700; font-size: 1rem; color: var(--text);">${item.name}</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-muted);">Total Balance</div>
+                                </div>
+                                <div style="font-weight: 800; font-size: 1.1rem; color: var(--success);">${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} ETB</div>
+                            </div>`;
+                    });
+                } else {
+                    container.innerHTML = `<p style="text-align:center; color:var(--danger); padding: 2rem 0;">Failed to load leaderboard.</p>`;
+                }
+            } catch (e) {
+                container.innerHTML = `<p style="text-align:center; color:var(--danger); padding: 2rem 0;">Network error loading leaderboard.</p>`;
+            }
+        }
+
+        generateCaptcha();
+    </script>
+</body>
+</html>

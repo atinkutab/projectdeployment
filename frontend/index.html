@@ -150,11 +150,7 @@
 
         /* BALANCE CARD */
         .balance-container { background: var(--grad); color: #fff; padding: 1.8rem 1.5rem 1.5rem; border-bottom-left-radius: 2rem; border-bottom-right-radius: 2rem; margin-bottom: 1rem; position: relative; overflow: hidden; }
-        .candlestick-bg { position: absolute; bottom: 0; left: 0; width: 100%; height: 55%; display: flex; align-items: flex-end; justify-content: space-around; padding: 0 8px; z-index: 0; pointer-events: none; }
-        .candle { width: 5px; background: linear-gradient(to top, rgba(255,255,255,0.05), rgba(255,255,255,0.3)); border-radius: 0; animation: pulse-candle 2.5s ease-in-out infinite; }
-        @keyframes pulse-candle { 0%,100% { height: 15%; opacity: 0.3; } 50% { height: 65%; opacity: 0.6; } }
-        .candle:nth-child(1) { animation-delay: 0s; height: 20%; } .candle:nth-child(2) { animation-delay: 0.3s; height: 40%; } .candle:nth-child(3) { animation-delay: 0.6s; height: 25%; } .candle:nth-child(4) { animation-delay: 0.9s; height: 50%; } .candle:nth-child(5) { animation-delay: 1.2s; height: 35%; } .candle:nth-child(6) { animation-delay: 0.2s; height: 55%; } .candle:nth-child(7) { animation-delay: 0.5s; height: 30%; } .candle:nth-child(8) { animation-delay: 0.8s; height: 45%; } .candle:nth-child(9) { animation-delay: 1.1s; height: 20%; } .candle:nth-child(10) { animation-delay: 0.1s; height: 50%; } .candle:nth-child(11) { animation-delay: 0.4s; height: 35%; } .candle:nth-child(12) { animation-delay: 0.7s; height: 40%; } .candle:nth-child(13) { animation-delay: 1.0s; height: 25%; } .candle:nth-child(14) { animation-delay: 0.3s; height: 45%; } .candle:nth-child(15) { animation-delay: 0.6s; height: 30%; }
-        .bal-main-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; position: relative; z-index: 1; }
+                                        .bal-main-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; position: relative; z-index: 1; }
         .bal-label { opacity: 0.8; font-size: 0.78rem; font-weight: 500; }
         .bal-amount { font-size: 2.4rem; font-weight: 900; margin-bottom: 0.2rem; letter-spacing: -1px; }
         .bal-user-info { font-size: 0.75rem; display: flex; gap: 8px; font-weight: 500; opacity: 0.9; }
@@ -162,7 +158,7 @@
         .btn-withdraw-header:active { transform: scale(0.95); }
         .sub-bals { display: flex; justify-content: space-between; position: relative; z-index: 1; }
         .sub-bal-item { text-align: left; }
-        .sub-bal-item:last-child { text-align: right; }
+        .sub-bal-item:last-child { text-align: left; }
 
         .mine-assets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; margin: 0 1.5rem 0.8rem; }
         .mine-asset-card { background: var(--card); padding: 1rem; border-radius: 0; border: 1px solid var(--border); text-align: center; transition: transform 0.2s; box-shadow: var(--shadow); }
@@ -351,7 +347,6 @@
         <div id="view-profile" class="app-view hidden">
             <div class="view-header"><div class="view-title">Profile</div></div>
             <div class="balance-container">
-                <div class="candlestick-bg"><div class="candle"></div><div class="candle"></div><div class="candle"></div><div class="candle"></div><div class="candle"></div><div class="candle"></div><div class="candle"></div><div class="candle"></div><div class="candle"></div><div class="candle"></div><div class="candle"></div><div class="candle"></div><div class="candle"></div><div class="candle"></div><div class="candle"></div></div>
                 <div class="bal-main-row">
                     <div>
                         <div class="bal-label">Total Balance (ETB)</div><div class="bal-amount" id="bal-total">0.00</div>
@@ -360,7 +355,6 @@
                     <button class="btn-withdraw-header" onclick="openWithdrawModal()">Withdraw</button>
                 </div>
                 <div class="sub-bals">
-                    <div class="sub-bal-item"><div class="bal-label" style="font-size: 0.72rem;">Daily Income</div><div style="font-weight: 700; font-size: 0.95rem;" id="bal-daily">0.00</div></div>
                     <div class="sub-bal-item"><div class="bal-label" style="font-size: 0.72rem;">Invite Income</div><div style="font-weight: 700; font-size: 0.95rem;" id="bal-invite">0.00</div></div>
                 </div>
             </div>
@@ -531,15 +525,15 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         function switchTab(v){document.querySelectorAll(".app-view").forEach(e=>e.classList.add("hidden"));document.getElementById(`view-${v}`).classList.remove("hidden");document.querySelectorAll(".nav-item").forEach(e=>e.classList.remove("active"));document.querySelector(`.nav-item[data-view="${v}"]`).classList.add("active");if(v==='myproduct')renderMyProducts();if(v!=='recharge'){document.getElementById("dep-step-1").classList.remove("hidden");document.getElementById("dep-step-2").classList.add("hidden");}}
 
         const products=[
-            {name:"Cloud Server",desc:"Renting server space.",img:"images/cloud_server.png",price:650,daily:100,days:60,total:6000},
-            {name:"Electronic Device",desc:"Flipping consumer tech.",img:"images/electronic_device.png",price:1000,daily:200,days:60,total:12000},
-            {name:"Crypto Mining Rig",desc:"Mining Bitcoin.",img:"images/crypto_rig.png",price:1600,daily:400,days:60,total:24000},
-            {name:"E-Commerce Node",desc:"Digital retail supply chain.",img:"images/ecommerce_node.png",price:3000,daily:800,days:60,total:48000},
-            {name:"Solar Energy Farm",desc:"Renewable energy grids.",img:"images/solar_farm.png",price:5000,daily:1400,days:60,total:84000},
-            {name:"Crude Oil Pump",desc:"Energy extraction.",img:"images/oil_pump.png",price:10000,daily:3000,days:60,total:180000},
-            {name:"Commercial Real Estate",desc:"High-rise office spaces.",img:"images/real_estate.png",price:20000,daily:6400,days:60,total:384000},
-            {name:"Luxury Resort",desc:"Hospitality property.",img:"images/luxury_resort.png",price:50000,daily:17000,days:60,total:1020000},
-            {name:"Global Index Fund",desc:"Diversified global stake.",img:"images/index_fund.png",price:100000,daily:36000,days:60,total:2160000},
+            {name:"AI Compute Server",desc:"Leasing GPU power for AI training.",img:"images/ai_compute_server.png",price:650,daily:100,days:60,total:6000},
+            {name:"Cloud Infrastructure Node",desc:"Enterprise cloud compute rental.",img:"images/cloud_infrastructure.png",price:1000,daily:200,days:60,total:12000},
+            {name:"EV Charging Station",desc:"High-speed electric vehicle charging.",img:"images/ev_charging.png",price:1600,daily:400,days:60,total:24000},
+            {name:"Solar Energy Farm",desc:"Utility-scale solar grid investment.",img:"images/solar_farm.png",price:3000,daily:800,days:60,total:48000},
+            {name:"Fintech Payment Gateway",desc:"Digital payment processing stake.",img:"images/fintech_payment.png",price:5000,daily:1400,days:60,total:84000},
+            {name:"E-Commerce Fulfillment Hub",desc:"Cross-border retail logistics.",img:"images/ecommerce_hub.png",price:10000,daily:3000,days:60,total:180000},
+            {name:"Crypto Mining Rig",desc:"Bitcoin mining infrastructure.",img:"images/crypto_rig.png",price:20000,daily:6400,days:60,total:384000},
+            {name:"Hyperscale Data Center",desc:"Tier-4 data center colocation.",img:"images/data_center.png",price:50000,daily:17000,days:60,total:1020000},
+            {name:"5G Tower Network",desc:"Telecom tower leasing portfolio.",img:"images/5g_tower.png",price:100000,daily:36000,days:60,total:2160000},
         ];
         function renderProducts(){const c=document.getElementById("product-list");c.innerHTML="";products.forEach(p=>{const cs=p.price>=20000&&p.price<=100000;let bh=cs?`<button class="btn-coming-soon" disabled>COMING SOON</button>`:`<button class="btn-buy" onclick="buyProduct('${p.name}',${p.price},${p.daily},${p.days},${p.total})">Buy Now</button>`;c.innerHTML+=`<div class="product-card"><img src="${p.img}" alt="${p.name}" class="product-img"><div class="product-header"><div class="product-title-desc"><span class="product-title">${p.name}</span><span class="product-desc">${p.desc}</span></div><span class="product-price">${p.price.toLocaleString()} ETB</span></div><div class="product-body"><div class="stats-grid"><div class="stat-item"><div class="stat-label">Daily Income</div><div class="stat-value highlight">${p.daily.toLocaleString()} ETB</div></div><div class="stat-item"><div class="stat-label">Validity</div><div class="stat-value">${p.days} Days</div></div><div class="stat-item"><div class="stat-label">Total Income</div><div class="stat-value highlight">${p.total.toLocaleString()} ETB</div></div><div class="stat-item"><div class="stat-label">Entry Price</div><div class="stat-value">${p.price.toLocaleString()} ETB</div></div></div>${bh}</div></div>`;});}
 
@@ -566,7 +560,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         async function openHistoryModal(){const b=document.getElementById('history-modal-body');document.getElementById('history-modal').classList.remove("hidden");b.innerHTML=`<p style="text-align:center;color:var(--muted);padding:2rem 0;">Loading...</p>`;try{const r=await apiFetch(`/api/user/transactions/${userState.telegram_id}`);let tx=[];if(r.ok)tx=await r.json();const w=tx.filter(t=>t.type==='Withdrawal');let wh='<tbody><tr><td colspan="4" style="text-align:center;">No history</td></tr></tbody>';if(w.length>0)wh='<tbody>'+w.map(x=>`<tr><td>${x.date}</td><td>${x.method}</td><td>${x.amount} ETB</td><td style="color:${x.status==='Approved'?'var(--success)':'var(--danger)'};font-weight:700;">${x.status}</td></tr>`).join('')+'</tbody>';b.innerHTML=`<h2 style="margin-bottom:1rem;font-size:1.2rem;">Transaction History</h2><div style="text-align:left;margin-bottom:1rem;"><h3 style="font-size:0.88rem;margin-bottom:0.3rem;font-weight:700;">Withdrawal History</h3><table class="history-table"><thead><tr><th>Timestamp</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead>${wh}</table></div><button class="btn-primary" onclick="closeHistoryModal()">Close</button>`;}catch(e){b.innerHTML=`<p style="text-align:center;color:var(--danger);padding:2rem 0;">Failed.</p>`;}}
         function closeHistoryModal(){document.getElementById('history-modal').classList.add("hidden");}
 
-        function updateBalances(){document.getElementById("bal-total").innerText=userState.total_balance.toFixed(2);document.getElementById("bal-daily").innerText=(userState.daily_income_balance||0).toFixed(2);document.getElementById("bal-invite").innerText=(userState.invite_income||0).toFixed(2);const h=document.getElementById("home-bal-total");if(h)h.innerHTML=`${userState.total_balance.toFixed(2)} <span>ETB</span>`;}
+        function updateBalances(){const bt=document.getElementById("bal-total"); if(bt) bt.innerText=userState.total_balance.toFixed(2);const bd=document.getElementById("bal-daily"); if(bd) bd.innerText=(userState.daily_income_balance||0).toFixed(2);const bi=document.getElementById("bal-invite"); if(bi) bi.innerText=(userState.invite_income||0).toFixed(2);const h=document.getElementById("home-bal-total");if(h)h.innerHTML=`${userState.total_balance.toFixed(2)} <span>ETB</span>`;}
         function copyText(t){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(()=>showToast("Copied: "+t,'success')).catch(()=>fallbackCopy(t));}else fallbackCopy(t);}
         function fallbackCopy(t){const ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');showToast("Copied: "+t,'success');}catch(e){showToast("Failed.",'error');}document.body.removeChild(ta);}
     </script>

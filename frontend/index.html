@@ -27,15 +27,15 @@
         a { color: var(--primary); text-decoration: none; }
 
         #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 8px; }
-        .toast { background: var(--card); color: var(--text); padding: 14px 20px; border-radius: 0; box-shadow: var(--shadow-lg); border: 1px solid var(--border); border-left: 4px solid var(--primary); font-size: 14px; font-weight: 500; text-align: center; animation: slideDown 0.3s ease; }
-        .toast.success { border-left-color: var(--success); }
-        .toast.error { border-left-color: var(--danger); }
+        .toast { background: transparent; color: var(--text); padding: 14px 20px; border-radius: 0; box-shadow: none; border: none; font-size: 1rem; font-weight: 700; text-align: center; animation: slideDown 0.3s ease; letter-spacing: 0.3px; text-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 0 10px rgba(255,255,255,0.85); }
+        .toast.success { color: var(--success); }
+        .toast.error { color: var(--danger); }
         .toast.hide { opacity: 0; transform: translateY(-20px); transition: all 0.3s; }
         @keyframes slideDown { from { transform: translateY(-80px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        #center-message { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 9999; background: var(--card); color: var(--text); padding: 18px 28px; border-radius: 0; box-shadow: var(--shadow-lg); border: 1px solid var(--border); font-size: 0.95rem; font-weight: 600; text-align: center; max-width: 82%; display: none; }
-        #center-message.error { color: var(--danger); border-color: var(--danger); }
-        #center-message.success { color: var(--success); border-color: var(--success); }
+        #center-message { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 9999; background: transparent; color: var(--text); padding: 24px 32px; border-radius: 0; box-shadow: none; border: none; font-size: 1.1rem; font-weight: 800; text-align: center; max-width: 86%; display: none; letter-spacing: 0.3px; line-height: 1.4; text-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 0 12px rgba(255,255,255,0.9); }
+        #center-message.error { color: var(--danger); }
+        #center-message.success { color: var(--success); }
 
         /* AUTH */
         #auth-view { padding: 2.5rem 1.5rem; display: flex; flex-direction: column; justify-content: center; min-height: 100dvh; background: var(--bg2); animation: fadeIn 0.5s ease; }
@@ -251,8 +251,8 @@
         <div id="signup-form">
             <div class="form-group">
                 <div class="input-prefix-group" id="su-phone-group">
-                    <span class="input-prefix">+251</span>
-                    <input type="tel" id="su-phone" class="input-field" placeholder="Please enter your mobile number" maxlength="9" oninput="validatePhoneLive(this.value, 'su-phone', 'su-phone-group')">
+                    <span class="input-prefix">+251 9</span>
+                    <input type="tel" id="su-phone" class="input-field" placeholder="Enter remaining 8 digits" maxlength="8" oninput="validatePhoneLive(this.value, 'su-phone', 'su-phone-group')">
                 </div>
             </div>
             <div class="form-group"><input type="password" id="su-pass" class="input-field" placeholder="Please enter the login password" oninput="checkPasswordLive()"></div>
@@ -265,8 +265,8 @@
         <div id="signin-form" class="hidden">
             <div class="form-group">
                 <div class="input-prefix-group" id="si-phone-group">
-                    <span class="input-prefix">+251</span>
-                    <input type="tel" id="si-phone" class="input-field" placeholder="Please enter your mobile number" maxlength="9" oninput="validatePhoneLive(this.value, 'si-phone', 'si-phone-group')">
+                    <span class="input-prefix">+251 9</span>
+                    <input type="tel" id="si-phone" class="input-field" placeholder="Enter remaining 8 digits" maxlength="8" oninput="validatePhoneLive(this.value, 'si-phone', 'si-phone-group')">
                 </div>
             </div>
             <div class="form-group"><input type="password" id="si-pass" class="input-field" placeholder="Please enter the password" oninput="this.classList.remove('input-error')"></div>
@@ -443,7 +443,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
             if (savedPhone && savedPass) {
                 const siPhone = document.getElementById("si-phone");
                 const siPass = document.getElementById("si-pass");
-                if (siPhone && savedPhone.startsWith("+251")) siPhone.value = savedPhone.substring(3);
+                if (siPhone && savedPhone.startsWith("+2519")) siPhone.value = savedPhone.substring(5);
                 if (siPass) siPass.value = savedPass;
                 const siRemember = document.getElementById("si-remember");
                 if (siRemember) siRemember.checked = true;
@@ -451,7 +451,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         };
 
         function toggleAuth(v) { document.getElementById("signup-form").classList.toggle("hidden", v !== 'signup'); document.getElementById("signin-form").classList.toggle("hidden", v !== 'signin'); }
-        function validatePhoneLive(val, iid, gid) { const inp = document.getElementById(iid); const grp = document.getElementById(gid); const d = val.replace(/\D/g, '').replace(/^251/, ''); if (d.length === 0) { inp.classList.remove('input-error'); if(grp) grp.classList.remove('input-error'); return false; } if (d.length !== 9 || d[0] !== '9') { inp.classList.add('input-error'); if(grp) grp.classList.add('input-error'); return false; } inp.classList.remove('input-error'); if(grp) grp.classList.remove('input-error'); return true; }
+        function validatePhoneLive(val, iid, gid) { const inp = document.getElementById(iid); const grp = document.getElementById(gid); const d = val.replace(/\D/g, ''); if (d.length === 0) { inp.classList.remove('input-error'); if(grp) grp.classList.remove('input-error'); return false; } if (d.length !== 8) { inp.classList.add('input-error'); if(grp) grp.classList.add('input-error'); return false; } inp.classList.remove('input-error'); if(grp) grp.classList.remove('input-error'); return true; }
         function checkPasswordLive() { const p1 = document.getElementById("su-pass"); const p2 = document.getElementById("su-pass2"); if (p1.value.length > 0 && p2.value.length > 0 && p1.value !== p2.value) { p1.classList.add('input-error'); p2.classList.add('input-error'); } else { p1.classList.remove('input-error'); p2.classList.remove('input-error'); } }
 
         function initWebSocket(uid) {
@@ -473,12 +473,12 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         }
 
         async function handleSignUp() {
-            const p1 = document.getElementById("su-pass").value, p2 = document.getElementById("su-pass2").value, pr = document.getElementById("su-phone").value, pd = pr.replace(/\D/g,'').replace(/^251/,'');
+            const p1 = document.getElementById("su-pass").value, p2 = document.getElementById("su-pass2").value, pr = document.getElementById("su-phone").value, pd = pr.replace(/\D/g,'');
             if (!validatePhoneLive(pr, 'su-phone', 'su-phone-group')) { showCenterMessage("Invalid phone number.", 'error'); return; }
             if (p1.length < 6) { document.getElementById("su-pass").classList.add('input-error'); showCenterMessage("Password must be at least 6 characters.", 'error'); return; }
             if (p1 !== p2) { showCenterMessage("Passwords do not match.", 'error'); return; }
-            const phone = "+251" + pd, btn = document.getElementById("signup-btn");
-            btn.disabled = true; btn.innerHTML = 'Processing... <span class="btn-spinner"></span>';
+            const phone = "+2519" + pd, btn = document.getElementById("signup-btn");
+            btn.disabled = true; btn.innerHTML = 'Authenticating... <span class="btn-spinner"></span>';
             const tid = Math.floor(Math.random()*1e9)+1e8, up = new URLSearchParams(window.location.search), ic = (up.get('start')||up.get('invite')||'').trim();
             try {
                 const res = await apiFetch('/api/register', { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ telegram_id: tid, phone_number: phone, password: p1, inviter_code: ic }) });
@@ -488,10 +488,10 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         }
 
         async function handleSignIn() {
-            const pr = document.getElementById("si-phone").value, pd = pr.replace(/\D/g,'').replace(/^251/,''), pass = document.getElementById("si-pass").value;
+            const pr = document.getElementById("si-phone").value, pd = pr.replace(/\D/g,''), pass = document.getElementById("si-pass").value;
             if (!validatePhoneLive(pr, 'si-phone', 'si-phone-group')) { showCenterMessage("Invalid phone number.", 'error'); return; }
             if (!pass) { document.getElementById("si-pass").classList.add('input-error'); showCenterMessage("Enter password.", 'error'); return; }
-            const phone = "+251"+pd, btn = document.getElementById("signin-btn"); btn.disabled=true; btn.innerHTML='Processing... <span class="btn-spinner"></span>';
+            const phone = "+2519"+pd, btn = document.getElementById("signin-btn"); btn.disabled=true; btn.innerHTML='Authenticating... <span class="btn-spinner"></span>';
             const rememberMe = document.getElementById("si-remember").checked;
             try {
                 const res = await apiFetch('/api/login', { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ phone_number: phone, password: pass }) });

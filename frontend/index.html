@@ -524,16 +524,16 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         function copyReferralLink(){copyText(`${APP_BASE_URL}/?start=${userState.invite_code}`);}
         function switchTab(v){document.querySelectorAll(".app-view").forEach(e=>e.classList.add("hidden"));document.getElementById(`view-${v}`).classList.remove("hidden");document.querySelectorAll(".nav-item").forEach(e=>e.classList.remove("active"));document.querySelector(`.nav-item[data-view="${v}"]`).classList.add("active");if(v==='myproduct')renderMyProducts();if(v!=='recharge'){document.getElementById("dep-step-1").classList.remove("hidden");document.getElementById("dep-step-2").classList.add("hidden");}}
 
-                const products=[
-            {name:"AI Compute Server",desc:"Leasing GPU power for AI training.",img:"images/ai_compute_server.png",price:650,daily:100,days:60,total:6000},
-            {name:"Cloud Infrastructure Node",desc:"Enterprise cloud compute rental.",img:"images/cloud_infrastructure.png",price:1000,daily:200,days:60,total:12000},
-            {name:"EV Charging Station",desc:"High-speed electric vehicle charging.",img:"images/ev_charging.png",price:1600,daily:400,days:60,total:24000},
-            {name:"Solar Energy Farm",desc:"Utility-scale solar grid investment.",img:"images/solar_farm.png",price:3000,daily:800,days:60,total:84000},
-            {name:"Fintech Payment Gateway",desc:"Digital payment processing stake.",img:"images/fintech_payment.png",price:5000,daily:1400,days:60,total:84000},
-            {name:"E-Commerce Fulfillment Hub",desc:"Cross-border retail logistics.",img:"images/ecommerce_hub.png",price:10000,daily:3000,days:60,total:180000},
-            {name:"Crypto Mining Rig",desc:"Bitcoin mining infrastructure.",img:"images/crypto_rig.png",price:20000,daily:6400,days:60,total:384000},
-            {name:"Hyperscale Data Center",desc:"Tier-4 data center colocation.",img:"images/data_center.png",price:50000,daily:17000,days:60,total:1020000},
-            {name:"5G Tower Network",desc:"Telecom tower leasing portfolio.",img:"images/5g_tower.png",price:100000,daily:36000,days:60,total:2160000},
+                        const products=[
+            {name:"AI Compute Server",desc:"Leasing GPU power for AI training.",img:"images/ai_compute_server.jpg",price:650,daily:100,days:60,total:6000},
+            {name:"Cloud Infrastructure Node",desc:"Enterprise cloud compute rental.",img:"images/cloud_infrastructure.jpg",price:1000,daily:200,days:60,total:12000},
+            {name:"EV Charging Station",desc:"High-speed electric vehicle charging.",img:"images/ev_charging.jpg",price:1600,daily:400,days:60,total:24000},
+            {name:"Solar Energy Farm",desc:"Utility-scale solar grid investment.",img:"images/solar_farm.jpg",price:3000,daily:800,days:60,total:84000},
+            {name:"Fintech Payment Gateway",desc:"Digital payment processing stake.",img:"images/fintech_payment.jpg",price:5000,daily:1400,days:60,total:84000},
+            {name:"E-Commerce Fulfillment Hub",desc:"Cross-border retail logistics.",img:"images/ecommerce_hub.jpg",price:10000,daily:3000,days:60,total:180000},
+            {name:"Crypto Mining Rig",desc:"Bitcoin mining infrastructure.",img:"images/crypto_rig.jpg",price:20000,daily:6400,days:60,total:384000},
+            {name:"Hyperscale Data Center",desc:"Tier-4 data center colocation.",img:"images/data_center.jpg",price:50000,daily:17000,days:60,total:1020000},
+            {name:"5G Tower Network",desc:"Telecom tower leasing portfolio.",img:"images/5g_tower.jpg",price:100000,daily:36000,days:60,total:2160000},
         ];
         function renderProducts(){const c=document.getElementById("product-list");c.innerHTML="";products.forEach(p=>{const cs=p.price>=20000&&p.price<=100000;let bh=cs?`<button class="btn-coming-soon" disabled>COMING SOON</button>`:`<button class="btn-buy" onclick="buyProduct('${p.name}',${p.price},${p.daily},${p.days},${p.total})">Buy Now</button>`;c.innerHTML+=`<div class="product-card"><img src="${p.img}" alt="${p.name}" class="product-img"><div class="product-header"><div class="product-title-desc"><span class="product-title">${p.name}</span><span class="product-desc">${p.desc}</span></div><span class="product-price">${p.price.toLocaleString()} ETB</span></div><div class="product-body"><div class="stats-grid"><div class="stat-item"><div class="stat-label">Daily Income</div><div class="stat-value highlight">${p.daily.toLocaleString()} ETB</div></div><div class="stat-item"><div class="stat-label">Validity</div><div class="stat-value">${p.days} Days</div></div><div class="stat-item"><div class="stat-label">Total Income</div><div class="stat-value highlight">${p.total.toLocaleString()} ETB</div></div><div class="stat-item"><div class="stat-label">Entry Price</div><div class="stat-value">${p.price.toLocaleString()} ETB</div></div></div>${bh}</div></div>`;});}
 

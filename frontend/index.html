@@ -7,21 +7,21 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>WealthNest</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><rect width='30' height='30' rx='6' fill='%2300B853'/><path d='M7 21 L12 13 L17 17 L23 9' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/><circle cx='23' cy='9' r='2.5' fill='white'/></svg>" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><rect width='30' height='30' rx='6' fill='%231E40AF'/><path d='M7 21 L12 13 L17 17 L23 9' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/><circle cx='23' cy='9' r='2.5' fill='white'/></svg>" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #f5f5f7; --bg2: #ffffff; --card: #ffffff; --card-h: #fafafa;
-            --text: #1a1a2e; --muted: #8e8e93;
-            --primary: #00B853; --primary-l: #00C853; --primary-d: #00A043; --primary-glow: rgba(0,184,83,0.12);
-            --success: #00B853; --danger: #ff3b30; --warn: #fbbf24;
-            --border: #e5e5ea; --border-l: #d1d1d6;
-            --shadow: 0 2px 12px rgba(0,0,0,0.05); --shadow-lg: 0 8px 30px rgba(0,0,0,0.08);
-            --grad: linear-gradient(135deg, #00B853 0%, #00C853 100%);
+            --bg: #f5f6fa; --bg2: #ffffff; --card: #ffffff; --card-h: #fafbfc;
+            --text: #0f172a; --muted: #64748b;
+            --primary: #1E40AF; --primary-l: #3B82F6; --primary-d: #1E3A8A; --primary-glow: rgba(30,64,175,0.12);
+            --success: #10B981; --danger: #ef4444; --warn: #f59e0b;
+            --border: #e2e8f0; --border-l: #cbd5e1;
+            --shadow: 0 2px 12px rgba(15,23,42,0.06); --shadow-lg: 0 8px 30px rgba(15,23,42,0.10);
+            --grad: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        html { background-color: #e9e9ee; }
-        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100dvh; position: relative; overflow-x: hidden; padding-top: env(safe-area-inset-top); box-shadow: 0 0 40px rgba(0,0,0,0.08); }
+        html { background-color: #ffffff; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); max-width: 100%; margin: 0; min-height: 100dvh; position: relative; overflow-x: hidden; padding-top: env(safe-area-inset-top); box-shadow: none; }
         .hidden { display: none !important; }
         button { font-family: inherit; }
         a { color: var(--primary); text-decoration: none; }
@@ -68,15 +68,34 @@
         .btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: btn-spin 0.8s linear infinite; }
         @keyframes btn-spin { to { transform: rotate(360deg); } }
 
+        /* HERO HEADER (Product tab — Creality-style) */
+        .hero-header { background: var(--grad); color: #fff; padding: 1rem 1rem 0.8rem; position: sticky; top: 0; z-index: 10; box-shadow: 0 4px 16px rgba(30,64,175,0.18); }
+        .hero-top-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.9rem; }
+        .hero-logo { font-size: 1.05rem; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; gap: 6px; color: #fff; }
+        .hero-brand { color: #fff; }
+        .hero-brand-accent { color: #fde68a; }
+        .hero-balance-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.9rem; }
+        .hero-balance-left { flex: 1; }
+        .hero-bal-label { font-size: 0.74rem; color: rgba(255,255,255,0.85); font-weight: 500; margin-top: 0.2rem; }
+        .hero-bal-amount { font-size: 1.7rem; font-weight: 900; letter-spacing: -0.5px; color: #fff; }
+        .hero-bal-amount span { font-size: 0.78rem; font-weight: 600; color: rgba(255,255,255,0.85); }
+        .hero-recharge-btn { background: rgba(255,255,255,0.22); color: #fff; border: 1px solid rgba(255,255,255,0.35); padding: 9px 18px; border-radius: 0; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: transform 0.1s; white-space: nowrap; backdrop-filter: blur(4px); }
+        .hero-recharge-btn:active { transform: scale(0.95); }
+        .hero-quick-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; background: rgba(255,255,255,0.12); padding: 0.6rem; border-radius: 0; }
+        .hero-qa-btn { background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.18); border-radius: 0; padding: 0.7rem 0.3rem; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; cursor: pointer; transition: all 0.2s; color: #fff; }
+        .hero-qa-btn:active { transform: scale(0.96); background: rgba(255,255,255,0.20); }
+        .hero-qa-btn .qa-icon { font-size: 1.3rem; }
+        .hero-qa-btn .qa-label { font-size: 0.68rem; font-weight: 600; color: rgba(255,255,255,0.92); }
+
         /* DASHBOARD */
         #dashboard-view { padding-bottom: calc(72px + env(safe-area-inset-bottom)); animation: fadeIn 0.4s ease; }
-        .view-header { background: var(--bg2); padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; }
-        .view-title { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.5px; }
-        .top-nav-bar { display: flex; align-items: center; justify-content: space-between; padding: 0.8rem 1.5rem; background: var(--bg2); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+        .view-header { background: var(--grad); color: #fff; padding: 1rem 1rem; border-bottom: none; position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 16px rgba(30,64,175,0.18); }
+        .view-title { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.5px; color: #fff; }
+        .top-nav-bar { display: flex; align-items: center; justify-content: space-between; padding: 0.8rem 1rem; background: var(--grad); color: #fff; border-bottom: none; position: sticky; top: 0; z-index: 10; box-shadow: 0 4px 16px rgba(30,64,175,0.18); }
         .nav-left-group { display: flex; align-items: center; gap: 0.75rem; }
-        .nav-back-btn { font-size: 1.5rem; background: none; border: none; color: var(--text); cursor: pointer; line-height: 1; padding: 0.3rem; transition: transform 0.2s; }
+        .nav-back-btn { font-size: 1.5rem; background: none; border: none; color: #fff; cursor: pointer; line-height: 1; padding: 0.3rem; transition: transform 0.2s; }
         .nav-back-btn:active { transform: scale(1.2); }
-        .nav-title { font-size: 1.1rem; font-weight: 700; }
+        .nav-title { font-size: 1.1rem; font-weight: 700; color: #fff; }
 
         /* HOME BANNER */
         .home-banner { margin: 0.8rem 1.5rem; background: var(--card); border-radius: 0; padding: 1.1rem 1.2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow); border: 1px solid var(--border); }
@@ -96,9 +115,9 @@
         .qa-label { font-size: 0.68rem; font-weight: 600; color: var(--muted); }
 
         /* PRODUCT CARDS */
-        .product-card { background: var(--card); margin: 0.4rem 1.5rem 0.8rem; border-radius: 0; border: 1px solid var(--border); overflow: hidden; transition: transform 0.2s; box-shadow: var(--shadow); animation: slideUp 0.4s ease; }
+        .product-card { background: var(--card); margin: 0 0 0.7rem; border-radius: 0; border: none; border-bottom: 1px solid var(--border); overflow: hidden; transition: transform 0.2s; box-shadow: none; animation: slideUp 0.4s ease; }
         .product-card:active { transform: translateY(-2px); }
-        .product-img { width: 100%; height: 165px; object-fit: cover; display: block; background: #f0f0f3; }
+        .product-img { width: 100%; height: 180px; object-fit: cover; display: block; background: #f1f5f9; }
         .product-header { background: var(--grad); color: #fff; padding: 0.9rem 1.2rem; display: flex; justify-content: space-between; align-items: center; }
         .product-title-desc { flex: 1; margin-right: 0.7rem; }
         .product-title { font-size: 0.95rem; font-weight: 700; }
@@ -160,14 +179,14 @@
         .sub-bal-item { text-align: left; }
         .sub-bal-item:last-child { text-align: left; }
 
-        .mine-assets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; margin: 0 1.5rem 0.8rem; }
+        .mine-assets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin: 0 0.75rem 0.7rem; }
         .mine-asset-card { background: var(--card); padding: 1rem; border-radius: 0; border: 1px solid var(--border); text-align: center; transition: transform 0.2s; box-shadow: var(--shadow); }
         .mine-asset-card:active { transform: scale(0.97); }
         .mine-asset-card.clickable { cursor: pointer; border-color: var(--primary); }
         .mine-asset-label { font-size: 0.72rem; color: var(--muted); margin-bottom: 0.2rem; font-weight: 500; }
         .mine-asset-value { font-size: 1.2rem; font-weight: 800; }
 
-        .action-card { background: var(--card); margin: 0 1.5rem 0.8rem; padding: 1.1rem; border-radius: 0; border: 1px solid var(--border); box-shadow: var(--shadow); }
+        .action-card { background: var(--card); margin: 0 0.75rem 0.7rem; padding: 1rem; border-radius: 0; border: 1px solid var(--border); box-shadow: var(--shadow); }
         .referral-box { background: #f8f8fa; border: 1px dashed var(--success); padding: 1rem; border-radius: 0; margin-top: 0.6rem; }
         .ref-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.7rem; }
         .ref-row:last-child { margin-bottom: 0; }
@@ -183,16 +202,16 @@
         .stat-mini-val { font-weight: 800; font-size: 0.95rem; }
         .stat-mini-lbl { font-size: 0.68rem; color: var(--muted); }
 
-        .menu-list { margin: 0 1.5rem 1rem; background: var(--card); border-radius: 0; border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow); }
+        .menu-list { margin: 0 0.75rem 0.7rem; background: var(--card); border-radius: 0; border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow); }
         .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 0.88rem; cursor: pointer; transition: background 0.2s; color: var(--text); }
         .menu-item:active { background: #f8f8fa; }
         .menu-item:last-child { border-bottom: none; }
         .menu-arrow { color: var(--muted); font-size: 1.1rem; }
 
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto; background: var(--bg2); display: flex; justify-content: space-around; border-top: 1px solid var(--border); padding: 0.5rem 0; padding-bottom: env(safe-area-inset-bottom, 0); z-index: 100; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--muted); font-size: 0.65rem; font-weight: 600; cursor: pointer; padding: 0.3rem; flex: 1; transition: color 0.2s; }
-        .nav-item.active { color: var(--primary); }
-        .nav-icon { font-size: 1.25rem; margin-bottom: 0.1rem; transition: transform 0.2s; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; max-width: 100%; margin: 0; background: var(--bg2); display: flex; justify-content: space-around; border-top: 1px solid var(--border); padding: 0.7rem 0; padding-bottom: env(safe-area-inset-bottom, 0); z-index: 100; box-shadow: 0 -2px 12px rgba(15,23,42,0.06); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--muted); font-size: 0.66rem; font-weight: 600; cursor: pointer; padding: 0.3rem; flex: 1; transition: color 0.2s; }
+        .nav-item.active { color: var(--primary); font-weight: 800; }
+        .nav-icon { font-size: 1.35rem; margin-bottom: 0.15rem; transition: transform 0.2s; }
         .nav-item.active .nav-icon { transform: translateY(-2px); }
 
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: flex; align-items: flex-end; justify-content: center; z-index: 200; padding: 1rem; backdrop-filter: blur(3px); animation: fadeIn 0.2s ease; }
@@ -238,7 +257,7 @@
     <!-- AUTH VIEW -->
     <div id="auth-view">
         <div class="logo">
-            <svg width="30" height="30" viewBox="0 0 30 30"><rect width="30" height="30" rx="6" fill="#00B853"/><path d="M7 21 L12 13 L17 17 L23 9" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="23" cy="9" r="2.5" fill="white"/></svg>
+            <svg width="30" height="30" viewBox="0 0 30 30"><rect width="30" height="30" rx="6" fill="#1E40AF"/><path d="M7 21 L12 13 L17 17 L23 9" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="23" cy="9" r="2.5" fill="white"/></svg>
             Wealth<span>Nest</span>
         </div>
         <p class="welcome-text">Welcome! Please sign in or create an account.</p>
@@ -279,22 +298,23 @@
     <div id="dashboard-view" class="hidden">
         <!-- PRODUCT TAB -->
         <div id="view-product" class="app-view">
-            <div class="view-header">
-                <div class="view-title">Product</div>
-                <div class="logo-sm"><svg width="20" height="20" viewBox="0 0 30 30"><rect width="30" height="30" rx="6" fill="#00B853"/><path d="M7 21 L12 13 L17 17 L23 9" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="23" cy="9" r="2.5" fill="white"/></svg> Wealth<span>Nest</span></div>
-            </div>
-            <div class="home-banner">
-                <div class="banner-left">
-                    <span class="hot-badge">🔥 Hot</span>
-                    <div class="banner-label">Total Balance</div>
-                    <div class="banner-amount" id="home-bal-total">0.00 <span>ETB</span></div>
+            <div class="hero-header">
+                <div class="hero-top-row">
+                    <div class="hero-logo"><svg width="22" height="22" viewBox="0 0 30 30"><rect width="30" height="30" rx="6" fill="#ffffff"/><path d="M7 21 L12 13 L17 17 L23 9" stroke="#1E40AF" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="23" cy="9" r="2.5" fill="#1E40AF"/></svg> <span class="hero-brand">Wealth<span class="hero-brand-accent">Nest</span></span></div>
                 </div>
-                <button class="banner-btn" onclick="switchTab('recharge')">Recharge</button>
-            </div>
-            <div class="quick-actions">
-                <button class="qa-btn" onclick="switchTab('recharge')"><span class="qa-icon">💳</span><span class="qa-label">Payment</span></button>
-                <button class="qa-btn" onclick="openWithdrawModal()"><span class="qa-icon">💸</span><span class="qa-label">Withdrawal</span></button>
-                <button class="qa-btn" onclick="openInfoModal('service')"><span class="qa-icon">🎧</span><span class="qa-label">Service</span></button>
+                <div class="hero-balance-row">
+                    <div class="hero-balance-left">
+                        <span class="hot-badge">🔥 Hot</span>
+                        <div class="hero-bal-label">Total Balance</div>
+                        <div class="hero-bal-amount" id="home-bal-total">0.00 <span>ETB</span></div>
+                    </div>
+                    <button class="hero-recharge-btn" onclick="switchTab('recharge')">Recharge</button>
+                </div>
+                <div class="hero-quick-actions">
+                    <button class="hero-qa-btn" onclick="switchTab('recharge')"><span class="qa-icon">💳</span><span class="qa-label">Payment</span></button>
+                    <button class="hero-qa-btn" onclick="openWithdrawModal()"><span class="qa-icon">💸</span><span class="qa-label">Withdrawal</span></button>
+                    <button class="hero-qa-btn" onclick="openInfoModal('service')"><span class="qa-icon">🎧</span><span class="qa-label">Service</span></button>
+                </div>
             </div>
             <div id="product-list"></div>
         </div>
@@ -524,11 +544,11 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         function copyReferralLink(){copyText(`${APP_BASE_URL}/?start=${userState.invite_code}`);}
         function switchTab(v){document.querySelectorAll(".app-view").forEach(e=>e.classList.add("hidden"));document.getElementById(`view-${v}`).classList.remove("hidden");document.querySelectorAll(".nav-item").forEach(e=>e.classList.remove("active"));document.querySelector(`.nav-item[data-view="${v}"]`).classList.add("active");if(v==='myproduct')renderMyProducts();if(v!=='recharge'){document.getElementById("dep-step-1").classList.remove("hidden");document.getElementById("dep-step-2").classList.add("hidden");}}
 
-                        const products=[
+        const products=[
             {name:"AI Compute Server",desc:"Leasing GPU power for AI training.",img:"images/ai_compute_server.jpg",price:650,daily:100,days:60,total:6000},
             {name:"Cloud Infrastructure Node",desc:"Enterprise cloud compute rental.",img:"images/cloud_infrastructure.jpg",price:1000,daily:200,days:60,total:12000},
             {name:"EV Charging Station",desc:"High-speed electric vehicle charging.",img:"images/ev_charging.jpg",price:1600,daily:400,days:60,total:24000},
-            {name:"Solar Energy Farm",desc:"Utility-scale solar grid investment.",img:"images/solar_farm.jpg",price:3000,daily:800,days:60,total:84000},
+            {name:"Solar Energy Farm",desc:"Utility-scale solar grid investment.",img:"images/solar_farm.jpg",price:3000,daily:800,days:60,total:48000},
             {name:"Fintech Payment Gateway",desc:"Digital payment processing stake.",img:"images/fintech_payment.jpg",price:5000,daily:1400,days:60,total:84000},
             {name:"E-Commerce Fulfillment Hub",desc:"Cross-border retail logistics.",img:"images/ecommerce_hub.jpg",price:10000,daily:3000,days:60,total:180000},
             {name:"Crypto Mining Rig",desc:"Bitcoin mining infrastructure.",img:"images/crypto_rig.jpg",price:20000,daily:6400,days:60,total:384000},

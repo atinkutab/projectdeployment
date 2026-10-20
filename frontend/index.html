@@ -14,7 +14,7 @@
             --bg: #f5f6fa; --bg2: #ffffff; --card: #ffffff; --card-h: #fafbfc;
             --text: #0f172a; --muted: #64748b;
             --primary: #1E40AF; --primary-l: #3B82F6; --primary-d: #1E3A8A; --primary-glow: rgba(30,64,175,0.12);
-            --success: #10B981; --danger: #ef4444; --warn: #f59e0b;
+            --success: #1E40AF; --danger: #ef4444; --warn: #64748b;
             --border: #e2e8f0; --border-l: #cbd5e1;
             --shadow: 0 2px 12px rgba(15,23,42,0.06); --shadow-lg: 0 8px 30px rgba(15,23,42,0.10);
             --grad: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
@@ -46,8 +46,8 @@
         .logo-sm span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .welcome-text { text-align: center; color: var(--muted); margin-bottom: 2rem; font-size: 0.9rem; }
         .form-group { margin-bottom: 1rem; }
-        .form-group label { display: block; margin-bottom: 0.35rem; font-weight: 600; font-size: 0.82rem; color: var(--text); }
-        .input-field { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 0; font-size: 0.95rem; transition: all 0.2s; background: var(--bg2); color: var(--text); -webkit-appearance: none; appearance: none; }
+        .form-group label { display: block; margin-bottom: 0.4rem; font-weight: 700; font-size: 0.78rem; color: var(--text); letter-spacing: 0.2px; text-transform: uppercase; }
+        .input-field { width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: 0; font-size: 0.95rem; transition: all 0.2s; background: var(--bg2); color: var(--text); -webkit-appearance: none; appearance: none; font-weight: 500; }
         .input-field::placeholder { color: #c7c7cc; }
         .input-field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-glow); }
         .input-field.input-error, .input-prefix-group.input-error { border-color: var(--danger) !important; border-width: 2px !important; box-shadow: 0 0 6px rgba(255,59,48,0.12) !important; }
@@ -56,7 +56,7 @@
         .input-prefix-group input { border: none; padding: 10px 0; flex: 1; font-size: 0.95rem; background: transparent; color: var(--text); }
         .input-prefix-group input::placeholder { color: #c7c7cc; }
         .input-prefix-group input:focus { outline: none; }
-        .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; border-radius: 0; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-primary { width: 100%; background: var(--primary); color: #fff; border: none; padding: 13px; border-radius: 0; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; letter-spacing: 0.2px; }
         .btn-primary:active { transform: scale(0.98); }
         .btn-primary:disabled { background: #c7c7cc; cursor: not-allowed; }
         .toggle-text { text-align: center; margin-top: 1.5rem; color: var(--muted); font-weight: 500; font-size: 0.85rem; }
@@ -77,7 +77,7 @@
         .hero-balance-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.9rem; }
         .hero-balance-left { flex: 1; }
         .hero-bal-label { font-size: 0.74rem; color: rgba(255,255,255,0.85); font-weight: 500; margin-top: 0.2rem; }
-        .hero-bal-amount { font-size: 1.7rem; font-weight: 900; letter-spacing: -0.5px; color: #fff; }
+        .hero-bal-amount { font-size: 1.85rem; font-weight: 900; letter-spacing: -0.8px; color: #fff; line-height: 1; }
         .hero-bal-amount span { font-size: 0.78rem; font-weight: 600; color: rgba(255,255,255,0.85); }
         .hero-recharge-btn { background: rgba(255,255,255,0.22); color: #fff; border: 1px solid rgba(255,255,255,0.35); padding: 9px 18px; border-radius: 0; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: transform 0.1s; white-space: nowrap; backdrop-filter: blur(4px); }
         .hero-recharge-btn:active { transform: scale(0.95); }
@@ -89,9 +89,9 @@
 
         /* DASHBOARD */
         #dashboard-view { padding-bottom: calc(72px + env(safe-area-inset-bottom)); animation: fadeIn 0.4s ease; }
-        .view-header { background: var(--grad); color: #fff; padding: 1rem 1rem; border-bottom: none; position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 16px rgba(30,64,175,0.18); }
-        .view-title { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.5px; color: #fff; }
-        .top-nav-bar { display: flex; align-items: center; justify-content: space-between; padding: 0.8rem 1rem; background: var(--grad); color: #fff; border-bottom: none; position: sticky; top: 0; z-index: 10; box-shadow: 0 4px 16px rgba(30,64,175,0.18); }
+        .view-header { background: linear-gradient(135deg, #0F172A 0%, #334155 100%); color: #fff; padding: 1rem 1rem; border-bottom: none; position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 16px rgba(15,23,42,0.22); }
+        .view-title { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.6px; color: #fff; }
+        .top-nav-bar { display: flex; align-items: center; justify-content: space-between; padding: 0.8rem 1rem; background: linear-gradient(135deg, #0F172A 0%, #334155 100%); color: #fff; border-bottom: none; position: sticky; top: 0; z-index: 10; box-shadow: 0 4px 16px rgba(15,23,42,0.22); }
         .nav-left-group { display: flex; align-items: center; gap: 0.75rem; }
         .nav-back-btn { font-size: 1.5rem; background: none; border: none; color: #fff; cursor: pointer; line-height: 1; padding: 0.3rem; transition: transform 0.2s; }
         .nav-back-btn:active { transform: scale(1.2); }
@@ -127,17 +127,17 @@
         .product-header::after { content: ''; position: absolute; top: 0; left: -50%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent); animation: shimmer 3s ease-in-out infinite; pointer-events: none; }
         @keyframes shimmer { 0% { left: -50%; } 60%,100% { left: 100%; } }
         .product-title-desc { flex: 1; margin-right: 0.7rem; }
-        .product-title { font-size: 0.95rem; font-weight: 700; }
+        .product-title { font-size: 1rem; font-weight: 800; letter-spacing: -0.2px; }
         .product-desc { font-size: 0.72rem; color: rgba(255,255,255,0.8); margin-top: 2px; }
-        .product-price { font-size: 1.15rem; font-weight: 800; white-space: nowrap; }
+        .product-price { font-size: 1.2rem; font-weight: 800; white-space: nowrap; letter-spacing: -0.3px; }
         .product-body { padding: 1.1rem; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem; }
         .stat-item .stat-label { font-size: 0.7rem; color: var(--muted); margin-bottom: 0.1rem; font-weight: 500; }
-        .stat-item .stat-value { font-size: 0.95rem; font-weight: 700; }
+        .stat-item .stat-value { font-size: 1rem; font-weight: 800; letter-spacing: -0.2px; }
         .stat-item .stat-value.highlight { color: var(--success); }
         .btn-buy { width: 100%; background: var(--primary); color: #fff; border: none; padding: 11px; border-radius: 0; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: transform 0.1s; }
         .btn-buy:active { transform: scale(0.98); }
-        .btn-coming-soon { width: 100%; padding: 11px; border-radius: 0; font-weight: 600; font-size: 0.9rem; background: rgba(251,191,36,0.1); color: var(--warn); border: 1px solid rgba(251,191,36,0.3); cursor: not-allowed; text-align: center; }
+        .btn-coming-soon { width: 100%; padding: 11px; border-radius: 0; font-weight: 600; font-size: 0.9rem; background: rgba(100,116,139,0.10); color: var(--muted); border: 1px solid rgba(100,116,139,0.30); cursor: not-allowed; text-align: center; }
 
         /* MY PRODUCT */
         .empty-state { text-align: center; padding: 3.5rem 2rem; }
@@ -147,18 +147,18 @@
         .mp-card { background: var(--card); margin: 0.4rem 1.5rem 0.8rem; border: 1px solid var(--border); border-radius: 0; padding: 0.9rem 1.1rem; box-shadow: var(--shadow); }
         .mp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
         .mp-name { font-size: 0.95rem; font-weight: 700; color: var(--primary); }
-        .mp-badge { font-size: 0.68rem; font-weight: 600; color: var(--success); background: rgba(0,184,83,0.08); padding: 3px 8px; border-radius: 0; }
+        .mp-badge { font-size: 0.68rem; font-weight: 600; color: var(--success); background: rgba(30,64,175,0.08); padding: 3px 8px; border-radius: 0; }
         .mp-stat { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px; }
         .mp-stat-lbl { color: var(--muted); }
         .mp-stat-val { font-weight: 600; }
 
         /* DEPOSIT */
         .dep-step { padding: 1.2rem 1.5rem; }
-        .section-title { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.8rem; }
+        .section-title { font-size: 0.78rem; font-weight: 800; margin-bottom: 0.8rem; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); }
         .quick-amounts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 1rem; }
         .btn-quick-amt { padding: 10px 0; background: var(--bg2); border: 1px solid var(--border); border-radius: 0; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; color: var(--text); }
         .btn-quick-amt.active { border-color: var(--primary); color: var(--primary); background: var(--primary-glow); }
-        .btn-black { display: block; width: 100%; margin: 1rem 0 0.3rem; background: var(--text); color: #fff; border: none; padding: 12px; border-radius: 0; font-weight: 700; font-size: 1rem; cursor: pointer; transition: transform 0.1s; }
+        .btn-black { display: block; width: 100%; margin: 1rem 0 0.3rem; background: var(--text); color: #fff; border: none; padding: 13px; border-radius: 0; font-weight: 700; font-size: 1rem; cursor: pointer; transition: transform 0.1s; letter-spacing: 0.2px; }
         .btn-black:active { transform: scale(0.98); }
         .btn-upload-voucher { display: block; width: 100%; margin: 0.3rem 0; background: transparent; color: var(--muted); border: 1px solid var(--border); padding: 11px; border-radius: 0; font-weight: 600; font-size: 0.85rem; cursor: pointer; }
         .payment-notes { margin-top: 1.2rem; background: var(--card); padding: 1rem; border-radius: 0; border: 1px solid var(--border); }
@@ -172,13 +172,13 @@
         .inv-label { color: var(--muted); width: 40%; font-weight: 500; }
         .inv-val { font-weight: 700; text-align: right; display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
         .btn-copy-inline { background: var(--bg); border: 1px solid var(--border); padding: 3px 7px; border-radius: 0; font-size: 0.68rem; cursor: pointer; color: var(--muted); }
-        .warning-notes { background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.2); color: var(--warn); padding: 10px; border-radius: 0; font-size: 0.78rem; margin-bottom: 1rem; }
+        .warning-notes { background: rgba(100,116,139,0.06); border: 1px solid rgba(100,116,139,0.20); color: var(--warn); padding: 10px; border-radius: 0; font-size: 0.78rem; margin-bottom: 1rem; }
 
         /* BALANCE CARD */
-        .balance-container { background: var(--grad); color: #fff; padding: 1.8rem 1.5rem 1.5rem; border-bottom-left-radius: 2rem; border-bottom-right-radius: 2rem; margin-bottom: 1rem; position: relative; overflow: hidden; }
+        .balance-container { background: linear-gradient(135deg, #0F172A 0%, #334155 100%); color: #fff; padding: 1.8rem 1.5rem 1.5rem; border-bottom-left-radius: 2rem; border-bottom-right-radius: 2rem; margin-bottom: 1rem; position: relative; overflow: hidden; }
                                         .bal-main-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; position: relative; z-index: 1; }
         .bal-label { opacity: 0.8; font-size: 0.78rem; font-weight: 500; }
-        .bal-amount { font-size: 2.4rem; font-weight: 900; margin-bottom: 0.2rem; letter-spacing: -1px; }
+        .bal-amount { font-size: 2.6rem; font-weight: 900; margin-bottom: 0.2rem; letter-spacing: -1.5px; line-height: 1; }
         .bal-user-info { font-size: 0.75rem; display: flex; gap: 8px; font-weight: 500; opacity: 0.9; }
         .btn-withdraw-header { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); padding: 7px 14px; border-radius: 0; font-weight: 700; font-size: 0.85rem; cursor: pointer; align-self: flex-start; transition: transform 0.1s; }
         .btn-withdraw-header:active { transform: scale(0.95); }
@@ -200,7 +200,7 @@
         .ref-label { font-size: 0.82rem; color: var(--muted); font-weight: 500; }
         .ref-val-group { display: flex; align-items: center; gap: 8px; }
         .ref-val { font-weight: 700; font-size: 0.88rem; }
-        .btn-copy-sm { background: var(--danger); color: #fff; border: none; padding: 3px 10px; border-radius: 0; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
+        .btn-copy-sm { background: var(--primary); color: #fff; border: none; padding: 3px 10px; border-radius: 0; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
         .commission-table { width: 100%; border-collapse: collapse; margin: 0.6rem 0; font-size: 0.8rem; border-radius: 0; overflow: hidden; border: 1px solid var(--border); }
         .commission-table th, .commission-table td { border: 1px solid var(--border); padding: 9px; text-align: center; }
         .commission-table th { background: #f8f8fa; color: var(--muted); font-weight: 600; }
@@ -216,7 +216,7 @@
         .menu-arrow { color: var(--muted); font-size: 1.1rem; }
 
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; max-width: 100%; margin: 0; background: var(--bg2); display: flex; justify-content: space-around; border-top: 1px solid var(--border); padding: 0.7rem 0; padding-bottom: env(safe-area-inset-bottom, 0); z-index: 100; box-shadow: 0 -2px 12px rgba(15,23,42,0.06); }
-        .nav-item { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--muted); font-size: 0.66rem; font-weight: 600; cursor: pointer; padding: 0.3rem; flex: 1; transition: color 0.2s; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--muted); font-size: 0.68rem; font-weight: 600; cursor: pointer; padding: 0.3rem; flex: 1; transition: color 0.2s; letter-spacing: 0.2px; }
         .nav-item.active { color: var(--primary); font-weight: 800; }
         .nav-icon { font-size: 1.35rem; margin-bottom: 0.15rem; transition: transform 0.2s; }
         .nav-item.active .nav-icon { transform: translateY(-2px); }
@@ -279,7 +279,7 @@
             </div>
             <div class="form-group"><input type="password" id="su-pass" class="input-field" placeholder="Please enter the login password" oninput="checkPasswordLive()"></div>
             <div class="form-group"><input type="password" id="su-pass2" class="input-field" placeholder="Please repeat the password" oninput="checkPasswordLive()"></div>
-            <button class="btn-primary" id="signup-btn" onclick="handleSignUp()">Register now</button>
+            <button class="btn-primary" id="signup-btn" onclick="handleSignUp()">Create Account</button>
             <p class="toggle-text">Already registered? <span onclick="toggleAuth('signin')">Log in</span></p>
         </div>
 
@@ -296,7 +296,7 @@
                 <input type="checkbox" id="si-remember">
                 <label for="si-remember">Remember the password</label>
             </div>
-            <button class="btn-primary" id="signin-btn" onclick="handleSignIn()">Log in now</button>
+            <button class="btn-primary" id="signin-btn" onclick="handleSignIn()">Log In</button>
             <p class="toggle-text">No account? <span onclick="toggleAuth('signup')">Create an account</span></p>
         </div>
     </div>
@@ -340,8 +340,8 @@
                     <button class="btn-quick-amt" onclick="selectQuickAmount(3000, this)">3000</button>
                 </div>
                 <div class="input-prefix-group"><span class="input-prefix">ETB</span><input type="number" id="dep-amount-input" placeholder="Please enter the amount"></div>
-                <button class="btn-black" onclick="proceedToPayment()">Recharge Now</button>
-                <button class="btn-upload-voucher" onclick="showCenterMessage('Upload voucher feature coming soon!', 'error')">Payment failed? Upload voucher</button>
+                <button class="btn-black" onclick="proceedToPayment()">Continue to Payment</button>
+                <button class="btn-upload-voucher" onclick="showCenterMessage('Upload voucher feature coming soon!', 'error')">Payment Failed? Upload Receipt</button>
                 <div class="payment-notes">
                     <p>1. Minimum recharge is 650 ETB.</p>
                     <p>2. Do not modify account info in background.</p>
@@ -360,7 +360,7 @@
                     <tr><td class="inv-label">Order Code</td><td class="inv-val"><span id="inv-order-code">PNXXXXXX</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-order-code').innerText)">Copy</button></td></tr>
                 </table>
                 <div class="warning-notes">⚠️ Put the <strong>Order Code</strong> in your transfer remarks. Do NOT transfer from a different bank.</div>
-                <button class="btn-primary" onclick="openConfirmModal()">I have made the payment</button>
+                <button class="btn-primary" onclick="openConfirmModal()">I've Paid — Submit Receipt</button>
             </div>
         </div>
 
@@ -458,7 +458,7 @@ Welcome to WealthNest, Ethiopia's most trusted investment platform💯.
 🎁 No time restrictions, 24/7 service.
 ❤️ All products can be purchased multiple times.
 🎬 Referral Commission: 30%
-Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: flex; gap: 10px; margin-top: 1rem;"><button class="btn-primary" style="background: var(--success);" onclick="window.open('https://t.me/Assetcorecommunity', '_blank')">Telegram Group</button><button class="btn-primary" onclick="closePromoModal()">OK</button></div></div></div>
+Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: flex; gap: 10px; margin-top: 1rem;"><button class="btn-primary" style="background: var(--primary);" onclick="window.open('https://t.me/Assetcorecommunity', '_blank')">Telegram Group</button><button class="btn-primary" onclick="closePromoModal()">OK</button></div></div></div>
     <div id="select-method-modal" class="modal-overlay hidden"><div class="modal-content"><h2 style="margin-bottom: 1rem; font-size: 1.2rem;">Select Payment Method</h2><p style="margin-bottom: 1rem; color: var(--muted); font-size: 0.82rem;">Depositing <strong id="method-select-amount" style="color: var(--primary);">0 ETB</strong>. Choose bank:</p><button class="btn-primary" style="margin-bottom: 8px;" onclick="confirmMethodSelection('CBE')">Pay with CBE</button><button class="btn-primary" style="background: #8b5cf6;" onclick="confirmMethodSelection('Abyssinia')">Pay with Abyssinia</button><button class="btn-primary" style="background: #f0f0f3; border: 1px solid var(--border); color: var(--text); margin-top: 10px;" onclick="closeMethodSelect()">Cancel</button></div></div>
     <div id="bank-warning-modal" class="modal-overlay hidden"><div class="modal-content"><div style="font-size: 2.5rem; margin-bottom: 0.3rem;">⚠️</div><h2 style="margin-bottom: 0.6rem; color: var(--danger); font-size: 1.1rem;">Warning</h2><p style="margin-bottom: 1.2rem; font-size: 0.88rem; line-height: 1.6;">Select your bank carefully! Do <strong style="color: var(--danger);">NOT</strong> transfer from a different bank!</p><button class="btn-primary" onclick="acceptBankWarning()">I Understand</button></div></div>
     <div id="confirm-transfer-modal" class="modal-overlay hidden"><div class="modal-content"><h2 style="margin-bottom: 1rem; font-size: 1.2rem;">Submit Transaction ID</h2><p style="margin-bottom: 0.8rem; color: var(--muted); font-size: 0.82rem;">Enter the Transaction ID from your banking app.</p><div class="form-group"><input type="text" id="tx-id" class="input-field" placeholder="e.g. FT12345678"></div><div style="display: flex; gap: 10px;"><button class="btn-primary" style="background: #f0f0f3; color: var(--text); border: 1px solid var(--border);" onclick="closeConfirmModal()">Cancel</button><button class="btn-primary" onclick="submitPayment()">Submit</button></div></div></div>
@@ -534,8 +534,8 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
             try {
                 const res = await apiFetch('/api/register', { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ telegram_id: tid, phone_number: phone, password: p1, inviter_code: ic }) });
                 if (res.ok) { const d = await res.json(); userState.telegram_id = d.telegram_id; userState.total_balance = d.registration_bonus; userState.telegram_username = phone; userState.phone_number = phone; userState.invite_code = d.invitation_code; showCenterMessage("300 ETB Bonus Awarded!", 'success'); loginSuccess(); }
-                else { const e = await res.json().catch(()=>({})); const m = extractErrorMessage(e,"Registration failed."); if (res.status===400||m.toLowerCase().includes("already")) { showCenterMessage("Account exists! Please log in.", 'error'); toggleAuth('signin'); } else showCenterMessage(m,'error'); btn.innerHTML='Register now'; btn.disabled=false; }
-            } catch(err) { showCenterMessage("Network error.", 'error'); btn.innerHTML='Register now'; btn.disabled=false; }
+                else { const e = await res.json().catch(()=>({})); const m = extractErrorMessage(e,"Registration failed."); if (res.status===400||m.toLowerCase().includes("already")) { showCenterMessage("Account exists! Please log in.", 'error'); toggleAuth('signin'); } else showCenterMessage(m,'error'); btn.innerHTML='Create Account'; btn.disabled=false; }
+            } catch(err) { showCenterMessage("Network error.", 'error'); btn.innerHTML='Create Account'; btn.disabled=false; }
         }
 
         async function handleSignIn() {
@@ -564,14 +564,14 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
                     else { localStorage.removeItem("ac_phone"); localStorage.removeItem("ac_pass"); }
 
                     showCenterMessage("Welcome back!", 'success'); loginSuccess();
-                } else { const e=await res.json().catch(()=>({})); showCenterMessage(extractErrorMessage(e,"Invalid credentials."), 'error'); document.getElementById("si-pass").classList.add('input-error'); document.getElementById("si-phone").classList.add('input-error'); document.getElementById("si-phone-group").classList.add('input-error'); btn.innerHTML='Log in now'; btn.disabled=false; }
-            } catch(err) { showCenterMessage("Network error.", 'error'); btn.innerHTML='Log in now'; btn.disabled=false; }
+                } else { const e=await res.json().catch(()=>({})); showCenterMessage(extractErrorMessage(e,"Invalid credentials."), 'error'); document.getElementById("si-pass").classList.add('input-error'); document.getElementById("si-phone").classList.add('input-error'); document.getElementById("si-phone-group").classList.add('input-error'); btn.innerHTML='Log In'; btn.disabled=false; }
+            } catch(err) { showCenterMessage("Network error.", 'error'); btn.innerHTML='Log In'; btn.disabled=false; }
         }
 
         function loginSuccess() { document.getElementById("auth-view").classList.add("hidden"); document.getElementById("dashboard-view").classList.remove("hidden"); document.getElementById("user-tg-name").innerText = userState.telegram_username; document.getElementById("user-phone").innerText = userState.phone_number; initApp(); document.getElementById("login-promo-modal").classList.remove("hidden"); initWebSocket(userState.telegram_id); sessionStorage.setItem("ac_user_state", JSON.stringify(userState)); }
         function closePromoModal(){document.getElementById("login-promo-modal").classList.add("hidden");}
         function handleLogout(){confirmLogout();}
-                function confirmLogout(){if(socket)socket.close();sessionStorage.removeItem("ac_user_state");__currentTab='product';__previousTab='product';const sb=document.getElementById("signin-btn");if(sb){sb.innerHTML='Log in now';sb.disabled=false;}const sp=document.getElementById("signup-btn");if(sp){sp.innerHTML='Register now';sp.disabled=false;}const p=document.getElementById("si-phone"),s=document.getElementById("si-pass"),r=document.getElementById("si-remember");if(p)p.value="";if(s)s.value="";if(r)r.checked=false;document.getElementById("dashboard-view").classList.add("hidden");document.getElementById("auth-view").classList.remove("hidden");}
+                function confirmLogout(){if(socket)socket.close();sessionStorage.removeItem("ac_user_state");__currentTab='product';__previousTab='product';const sb=document.getElementById("signin-btn");if(sb){sb.innerHTML='Log In';sb.disabled=false;}const sp=document.getElementById("signup-btn");if(sp){sp.innerHTML='Create Account';sp.disabled=false;}const p=document.getElementById("si-phone"),s=document.getElementById("si-pass"),r=document.getElementById("si-remember");if(p)p.value="";if(s)s.value="";if(r)r.checked=false;document.getElementById("dashboard-view").classList.add("hidden");document.getElementById("auth-view").classList.remove("hidden");}
 
         function initApp(){renderProducts();document.getElementById("user-invite-code").innerText=userState.invite_code;document.getElementById("user-invite-link-display").innerText=`${APP_BASE_URL}/?start=${userState.invite_code}`;updateBalances();updateMineStats();updateReferralStats();updatePurchasedProductImage();}
         function updateReferralStats(){const vc=userState.valid_referrals||0,ii=userState.invite_income||0,fi=`${ii.toFixed(2)} ETB`;const a=document.getElementById("ref-table-count");if(a)a.innerText=vc;const b=document.getElementById("ref-table-income");if(b)b.innerText=fi;const c=document.getElementById("ref-valid-count");if(c)c.innerText=vc;const d=document.getElementById("ref-invite-income");if(d)d.innerText=fi;}
@@ -606,7 +606,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         async function submitPayment(){const t=document.getElementById("tx-id").value;if(!t.trim()){return showCenterMessage("Enter Transaction ID.", 'error');}try{const r=await apiFetch('/api/paynow-webhook',{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({reference:t,status:"Paid",amount:currentProductAmount,telegram_id:parseInt(userState.telegram_id),payment_method:currentPaymentMethod,assigned_account:currentAssignedAccount})});if(r.ok){showCenterMessage("Submitted! Awaiting approval.", 'success');userState.transactions.push({id:t,type:'Purchase',method:currentPaymentMethod,amount:currentProductAmount,status:'Pending',timestamp:new Date().toLocaleString()});closeConfirmModal();document.getElementById("tx-id").value="";document.getElementById("dep-step-1").classList.remove("hidden");document.getElementById("dep-step-2").classList.add("hidden");switchTab('product');}else{const e=await r.json().catch(()=>({}));showCenterMessage(extractErrorMessage(e,"Failed."),'error');}}catch(err){showCenterMessage("Network error.",'error');}}
 
         function calculateWdFee(){const a=parseFloat(document.getElementById("withdraw-amount").value)||0,f=a*0.2,p=a-f;document.getElementById("wd-fee-breakdown").innerHTML=`Fee (20%): <strong style="color:var(--danger)">${f.toFixed(2)} ETB</strong><br>Receive: <strong style="color:var(--success)">${p.toFixed(2)} ETB</strong>`;}
-        function openWithdrawModal(){const b=document.getElementById("withdraw-view-body");if(!withdrawalAccount){b.innerHTML=`<h2 style="margin-bottom:1rem;font-size:1.2rem;">Add Withdrawal Account</h2><button class="btn-primary" style="background:#f0f0f3;color:var(--text);border:1px solid var(--border);margin-bottom:10px;" onclick="openHistoryModal();">View History</button><p style="margin-bottom:0.7rem;color:var(--danger);font-size:0.8rem;font-weight:600;text-align:left;">⚠️ Enter CBE details carefully. Cannot change later.</p><div class="form-group" style="text-align:left;"><label>CBE Account Name</label><input type="text" id="wd-name" class="input-field" placeholder="Enter name"></div><div class="form-group" style="text-align:left;"><label>Account Number</label><input type="text" id="wd-number" class="input-field" placeholder="Enter number"></div><div style="display:flex;gap:10px;margin-top:1rem;"><button class="btn-primary" style="background:#f0f0f3;color:var(--text);border:1px solid var(--border);" onclick="goBack()">Cancel</button><button class="btn-primary" onclick="saveWithdrawalAccount()">Save & Lock</button></div>`;}else{b.innerHTML=`<h2 style="margin-bottom:1rem;font-size:1.2rem;">Withdraw Funds</h2><button class="btn-primary" style="background:#f0f0f3;color:var(--text);border:1px solid var(--border);margin-bottom:10px;" onclick="openHistoryModal();">View History</button><div class="saved-account-box"><div class="saved-account-label">Saved Method:</div><div class="saved-account-name">${withdrawalAccount.method}</div><div style="margin-top:0.2rem;font-size:0.82rem;"><strong>${withdrawalAccount.name}</strong><br><span style="color:var(--muted)">${withdrawalAccount.number}</span></div></div><div class="warning-notes" style="margin-bottom:1rem;text-align:left;">⚠️ Contact support to change method.</div><div class="form-group" style="text-align:left;"><label>Amount (ETB)</label><input type="number" id="withdraw-amount" class="input-field" placeholder="Min 300 ETB" oninput="calculateWdFee()"><div class="fee-breakdown" id="wd-fee-breakdown">Fee (20%): <strong style="color:var(--danger)">0.00 ETB</strong><br>Receive: <strong style="color:var(--success)">0.00 ETB</strong></div></div><div style="display:flex;gap:10px;margin-top:1rem;"><button class="btn-primary" style="background:#f0f0f3;color:var(--text);border:1px solid var(--border);" onclick="goBack()">Cancel</button><button class="btn-primary" style="background:var(--danger);" onclick="handleWithdraw()">Withdraw</button></div>`;}switchTab("withdraw");}
+        function openWithdrawModal(){const b=document.getElementById("withdraw-view-body");if(!withdrawalAccount){b.innerHTML=`<h2 style="margin-bottom:1rem;font-size:1.2rem;">Add Withdrawal Account</h2><button class="btn-primary" style="background:#f0f0f3;color:var(--text);border:1px solid var(--border);margin-bottom:10px;" onclick="openHistoryModal();">View History</button><p style="margin-bottom:0.7rem;color:var(--danger);font-size:0.8rem;font-weight:600;text-align:left;">⚠️ Enter CBE details carefully. Cannot change later.</p><div class="form-group" style="text-align:left;"><label>CBE Account Name</label><input type="text" id="wd-name" class="input-field" placeholder="Enter name"></div><div class="form-group" style="text-align:left;"><label>Account Number</label><input type="text" id="wd-number" class="input-field" placeholder="Enter number"></div><div style="display:flex;gap:10px;margin-top:1rem;"><button class="btn-primary" style="background:#f0f0f3;color:var(--text);border:1px solid var(--border);" onclick="goBack()">Cancel</button><button class="btn-primary" onclick="saveWithdrawalAccount()">Save Account</button></div>`;}else{b.innerHTML=`<h2 style="margin-bottom:1rem;font-size:1.2rem;">Withdraw Funds</h2><button class="btn-primary" style="background:#f0f0f3;color:var(--text);border:1px solid var(--border);margin-bottom:10px;" onclick="openHistoryModal();">View History</button><div class="saved-account-box"><div class="saved-account-label">Saved Method:</div><div class="saved-account-name">${withdrawalAccount.method}</div><div style="margin-top:0.2rem;font-size:0.82rem;"><strong>${withdrawalAccount.name}</strong><br><span style="color:var(--muted)">${withdrawalAccount.number}</span></div></div><div class="warning-notes" style="margin-bottom:1rem;text-align:left;">⚠️ Contact support to change method.</div><div class="form-group" style="text-align:left;"><label>Amount (ETB)</label><input type="number" id="withdraw-amount" class="input-field" placeholder="Min 300 ETB" oninput="calculateWdFee()"><div class="fee-breakdown" id="wd-fee-breakdown">Fee (20%): <strong style="color:var(--danger)">0.00 ETB</strong><br>Receive: <strong style="color:var(--success)">0.00 ETB</strong></div></div><div style="display:flex;gap:10px;margin-top:1rem;"><button class="btn-primary" style="background:#f0f0f3;color:var(--text);border:1px solid var(--border);" onclick="goBack()">Cancel</button><button class="btn-primary" style="background:var(--danger);" onclick="handleWithdraw()">Withdraw</button></div>`;}switchTab("withdraw");}
         function closeWithdrawModal(){goBack();}
         async function saveWithdrawalAccount(){const n=document.getElementById("wd-name").value.trim(),num=document.getElementById("wd-number").value.trim();if(!n||!num){return showCenterMessage("Fill all fields.", 'error');}try{const r=await apiFetch('/api/save-withdrawal-account',{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({telegram_id:parseInt(userState.telegram_id),name:n,number:num})});if(r.ok){withdrawalAccount={method:"CBE",name:n,number:num};userState.wd_method="CBE";userState.wd_account_name=n;userState.wd_account_number=num;sessionStorage.setItem("ac_user_state",JSON.stringify(userState));showCenterMessage("Account saved!", 'success');openWithdrawModal();}else showCenterMessage("Failed.", 'error');}catch(e){showCenterMessage("Network error.", 'error');}}
         async function handleWithdraw(){const a=parseFloat(document.getElementById("withdraw-amount").value);if(isNaN(a)||a<300){return showCenterMessage("Min 300 ETB.", 'error');}if(a>userState.total_balance){return showCenterMessage("Insufficient balance.", 'error');}try{const r=await apiFetch('/api/request-withdrawal',{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({telegram_id:parseInt(userState.telegram_id),amount:a,method:"CBE",account_details:`${withdrawalAccount.name} - ${withdrawalAccount.number}`})});if(r.ok){showCenterMessage(`Withdrawal of ${a} ETB submitted!`, 'success');userState.total_balance-=a;updateBalances();goBack();sessionStorage.setItem("ac_user_state",JSON.stringify(userState));}else{const e=await r.json().catch(()=>({}));showCenterMessage(extractErrorMessage(e,"Failed."),'error');}}catch(err){showCenterMessage("Network error.", 'error');}}
@@ -614,7 +614,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         function openInfoModal(t){let c='',bodyId='',viewName='';if(t==='account'){const m=withdrawalAccount?withdrawalAccount.method:'Not set',an=withdrawalAccount?withdrawalAccount.name:'Not set',an2=withdrawalAccount?withdrawalAccount.number:'Not set';c=`<div class="info-content"><p style="margin-bottom:0.5rem;"><strong>Method:</strong> ${m}</p><p style="margin-bottom:0.5rem;"><strong>Name:</strong> ${an}</p><p style="margin-bottom:0.5rem;"><strong>Number:</strong> ${an2}</p><p style="margin-top:0.7rem;font-size:0.8rem;color:var(--danger);">⚠️ Contact support to change.</p></div>`;bodyId='account-view-body';viewName='account';}else if(t==='service'){c=`<div class="info-content"><p style="margin-bottom:0.5rem;"><strong>Support:</strong> <a href="https://t.me/mrFinances" target="_blank">@mrFinances</a></p><p style="margin-bottom:0.5rem;"><strong>Channel:</strong> <a href="https://t.me/assetcoreofficial" target="_blank">@assetcoreofficial</a></p><p style="margin-bottom:0.5rem;"><strong>Group:</strong> <a href="https://t.me/Assetcorecommunity" target="_blank">@Assetcorecommunity</a></p></div>`;bodyId='service-view-body';viewName='service';}else if(t==='about'){c=`<div class="info-content" style="font-size:0.85rem;line-height:1.6;"><p style="margin-bottom:0.5rem;">Welcome to WealthNest, Ethiopia's premier investment platform! 🚀📈</p><p style="margin-bottom:0.5rem;">WealthNest is a digital asset management platform aggregating micro-investments to access institutional-grade yield opportunities.</p><h4 style="margin-top:0.7rem;margin-bottom:0.3rem;color:var(--primary);">How We Profit</h4><p style="margin-bottom:0.5rem;"><strong>1. Yield Spread:</strong> We pool capital for high-yield projects, keeping the spread between institutional returns and user payouts.</p><p style="margin-bottom:0.5rem;"><strong>2. Transaction Fees:</strong> 20% withdrawal fee prevents capital drain and creates revenue.</p><p style="margin-bottom:0.5rem;"><strong>3. Float:</strong> Idle capital is deployed in short-term low-risk yield farms.</p><p style="margin-bottom:0.5rem;"><strong>4. Referral Economics:</strong> 30% commission is a customer acquisition cost paid from yield, not pocket.</p><h4 style="margin-top:0.7rem;margin-bottom:0.3rem;color:var(--primary);">📞 Contact</h4><p style="margin-bottom:0.5rem;">Support: <a href="https://t.me/mrFinances" target="_blank">@mrFinances</a></p><p style="margin-bottom:0.5rem;">Channel: <a href="https://t.me/assetcoreofficial" target="_blank">https://t.me/assetcoreofficial</a></p><p style="margin-bottom:0.5rem;">Group: <a href="https://t.me/Assetcorecommunity" target="_blank">https://t.me/Assetcorecommunity</a></p></div>`;bodyId='about-view-body';viewName='about';} if(bodyId){document.getElementById(bodyId).innerHTML=c; switchTab(viewName);}}
         function closeInfoModal(){goBack();}
 
-        async function openHistoryModal(){const b=document.getElementById('history-view-body'); if(!b) return; switchTab("history"); b.innerHTML=`<p style="text-align:center;color:var(--muted);padding:2rem 0;">Loading...</p>`;try{const r=await apiFetch(`/api/user/transactions/${userState.telegram_id}`);let tx=[];if(r.ok)tx=await r.json();const w=tx.filter(t=>t.type==='Withdrawal');let wh='<tbody><tr><td colspan="4" style="text-align:center;">No history</td></tr></tbody>';if(w.length>0)wh='<tbody>'+w.map(x=>`<tr><td>${x.date}</td><td>${x.method}</td><td>${x.amount} ETB</td><td style="color:${x.status==='Approved'?'var(--success)':'var(--danger)'};font-weight:700;">${x.status}</td></tr>`).join('')+'</tbody>';b.innerHTML=`<div style="text-align:left;margin-bottom:1rem;"><h3 style="font-size:0.88rem;margin-bottom:0.3rem;font-weight:700;">Withdrawal History</h3><table class="history-table"><thead><tr><th>Timestamp</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead>${wh}</table></div><button class="btn-primary" onclick="goBack()">Close</button>`;}catch(e){b.innerHTML=`<p style="text-align:center;color:var(--danger);padding:2rem 0;">Failed.</p>`;}}
+        async function openHistoryModal(){const b=document.getElementById('history-view-body'); if(!b) return; switchTab("history"); b.innerHTML=`<p style="text-align:center;color:var(--muted);padding:2rem 0;">Loading...</p>`;try{const r=await apiFetch(`/api/user/transactions/${userState.telegram_id}`);let tx=[];if(r.ok)tx=await r.json();const w=tx.filter(t=>t.type==='Withdrawal');let wh='<tbody><tr><td colspan="4" style="text-align:center;">No history</td></tr></tbody>';if(w.length>0)wh='<tbody>'+w.map(x=>`<tr><td>${x.date}</td><td>${x.method}</td><td>${x.amount} ETB</td><td style="color:${x.status==='Approved'?'var(--success)':'var(--danger)'};font-weight:700;">${x.status}</td></tr>`).join('')+'</tbody>';const ps=userState.products||[];let ph='<tbody><tr><td colspan="4" style="text-align:center;">No purchases yet</td></tr></tbody>';if(ps.length>0)ph='<tbody>'+ps.map(x=>`<tr><td>${x.purchase_time}</td><td>${x.name}</td><td>${x.price.toLocaleString()} ETB</td><td style="color:var(--success);font-weight:700;">${x.daily_income} ETB</td></tr>`).join('')+'</tbody>';b.innerHTML=`<div style="text-align:left;margin-bottom:1rem;"><h3 style="font-size:0.88rem;margin-bottom:0.3rem;font-weight:700;">Purchase History</h3><table class="history-table"><thead><tr><th>Timestamp</th><th>Product</th><th>Amount</th><th>Daily Income</th></tr></thead>${ph}</table></div><div style="text-align:left;margin-bottom:1rem;"><h3 style="font-size:0.88rem;margin-bottom:0.3rem;font-weight:700;">Withdrawal History</h3><table class="history-table"><thead><tr><th>Timestamp</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead>${wh}</table></div><button class="btn-primary" onclick="goBack()">Close</button>`;}catch(e){b.innerHTML=`<p style="text-align:center;color:var(--danger);padding:2rem 0;">Failed.</p>`;}}
         function closeHistoryModal(){goBack();}
 
         function updateBalances(){const bt=document.getElementById("bal-total"); if(bt) bt.innerText=userState.total_balance.toFixed(2);const bd=document.getElementById("bal-daily"); if(bd) bd.innerText=(userState.daily_income_balance||0).toFixed(2);const bi=document.getElementById("bal-invite"); if(bi) bi.innerText=(userState.invite_income||0).toFixed(2);const h=document.getElementById("home-bal-total");if(h)h.innerHTML=`${userState.total_balance.toFixed(2)} <span>ETB</span>`;}

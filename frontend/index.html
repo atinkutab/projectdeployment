@@ -123,7 +123,9 @@
         .product-card { background: var(--card); margin: 0 0 0.7rem; border-radius: 0; border: none; border-bottom: 1px solid var(--border); overflow: hidden; transition: transform 0.2s; box-shadow: none; animation: slideUp 0.4s ease; }
         .product-card:active { transform: translateY(-2px); }
         .product-img { width: 100%; height: 180px; object-fit: cover; display: block; background: #f1f5f9; }
-        .product-header { background: var(--grad); color: #fff; padding: 0.9rem 1.2rem; display: flex; justify-content: space-between; align-items: center; }
+        .product-header { background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color: #fff; padding: 0.9rem 1.2rem; display: flex; justify-content: space-between; align-items: center; position: relative; overflow: hidden; }
+        .product-header::after { content: ''; position: absolute; top: 0; left: -50%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent); animation: shimmer 3s ease-in-out infinite; pointer-events: none; }
+        @keyframes shimmer { 0% { left: -50%; } 60%,100% { left: 100%; } }
         .product-title-desc { flex: 1; margin-right: 0.7rem; }
         .product-title { font-size: 0.95rem; font-weight: 700; }
         .product-desc { font-size: 0.72rem; color: rgba(255,255,255,0.8); margin-top: 2px; }
@@ -219,8 +221,8 @@
         .nav-icon { font-size: 1.35rem; margin-bottom: 0.15rem; transition: transform 0.2s; }
         .nav-item.active .nav-icon { transform: translateY(-2px); }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: flex; align-items: flex-end; justify-content: center; z-index: 200; padding: 1rem; backdrop-filter: blur(3px); animation: fadeIn 0.2s ease; }
-        .modal-content { background: var(--card); width: 100%; max-width: 480px; padding: 1.6rem; border-radius: 16px 16px 0 0; max-height: 88dvh; overflow-y: auto; text-align: center; animation: slideUp 0.3s ease; color: var(--text); border-top: 1px solid var(--border-l); }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 1rem; backdrop-filter: blur(3px); animation: fadeIn 0.2s ease; }
+        .modal-content { background: var(--card); width: 100%; max-width: 480px; padding: 1.6rem; border-radius: 0; max-height: 88dvh; overflow-y: auto; text-align: center; animation: fadeIn 0.2s ease; color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow-lg); }
         .info-content { text-align: left; line-height: 1.6; font-size: 0.88rem; }
         .info-content p { margin-bottom: 0.5rem; }
         .info-content h4 { margin-top: 0.7rem; margin-bottom: 0.3rem; color: var(--primary); }
@@ -439,19 +441,6 @@
             <div id="history-view-body" class="dep-step"></div>
         </div>
 
-        <!-- LOGOUT VIEW -->
-        <div id="view-logout" class="app-view hidden">
-            <div class="top-nav-bar"><div class="nav-left-group"><button class="nav-back-btn" onclick="goBack()">‹</button><div class="nav-title">Secure Exit</div></div></div>
-            <div id="logout-view-body" class="dep-step" style="text-align:center; padding-top: 2rem;">
-                <div style="font-size: 2.8rem; margin-bottom: 0.5rem;">🚪</div>
-                <h2 style="margin-bottom: 0.5rem; font-size: 1.2rem;">Secure Exit</h2>
-                <p style="margin-bottom: 1.5rem; font-size: 0.88rem; color: var(--muted);">Are you sure you want to securely exit?</p>
-                <div style="display: flex; gap: 10px; max-width: 320px; margin: 0 auto;">
-                    <button class="btn-primary" style="background: #f0f0f3; color: var(--text); border: 1px solid var(--border);" onclick="goBack()">Cancel</button>
-                    <button class="btn-primary" style="background: var(--danger);" onclick="confirmLogout()">Exit</button>
-                </div>
-            </div>
-        </div>
         <nav class="bottom-nav">
             <button class="nav-item active" data-view="product" onclick="switchTab('product')"><span class="nav-icon">🏠</span> Product</button>
             <button class="nav-item" data-view="recharge" onclick="switchTab('recharge')"><span class="nav-icon">💳</span> Recharge</button>
@@ -581,9 +570,8 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
 
         function loginSuccess() { document.getElementById("auth-view").classList.add("hidden"); document.getElementById("dashboard-view").classList.remove("hidden"); document.getElementById("user-tg-name").innerText = userState.telegram_username; document.getElementById("user-phone").innerText = userState.phone_number; initApp(); document.getElementById("login-promo-modal").classList.remove("hidden"); initWebSocket(userState.telegram_id); sessionStorage.setItem("ac_user_state", JSON.stringify(userState)); }
         function closePromoModal(){document.getElementById("login-promo-modal").classList.add("hidden");}
-        function handleLogout(){switchTab("logout");}
-        function closeLogoutModal(){goBack();}
-        function confirmLogout(){if(socket)socket.close();sessionStorage.removeItem("ac_user_state");__currentTab='product';__previousTab='product';const sb=document.getElementById("signin-btn");if(sb){sb.innerHTML='Log in now';sb.disabled=false;}const sp=document.getElementById("signup-btn");if(sp){sp.innerHTML='Register now';sp.disabled=false;}const p=document.getElementById("si-phone"),s=document.getElementById("si-pass"),r=document.getElementById("si-remember");if(p)p.value="";if(s)s.value="";if(r)r.checked=false;document.getElementById("dashboard-view").classList.add("hidden");document.getElementById("auth-view").classList.remove("hidden");}
+        function handleLogout(){confirmLogout();}
+                function confirmLogout(){if(socket)socket.close();sessionStorage.removeItem("ac_user_state");__currentTab='product';__previousTab='product';const sb=document.getElementById("signin-btn");if(sb){sb.innerHTML='Log in now';sb.disabled=false;}const sp=document.getElementById("signup-btn");if(sp){sp.innerHTML='Register now';sp.disabled=false;}const p=document.getElementById("si-phone"),s=document.getElementById("si-pass"),r=document.getElementById("si-remember");if(p)p.value="";if(s)s.value="";if(r)r.checked=false;document.getElementById("dashboard-view").classList.add("hidden");document.getElementById("auth-view").classList.remove("hidden");}
 
         function initApp(){renderProducts();document.getElementById("user-invite-code").innerText=userState.invite_code;document.getElementById("user-invite-link-display").innerText=`${APP_BASE_URL}/?start=${userState.invite_code}`;updateBalances();updateMineStats();updateReferralStats();updatePurchasedProductImage();}
         function updateReferralStats(){const vc=userState.valid_referrals||0,ii=userState.invite_income||0,fi=`${ii.toFixed(2)} ETB`;const a=document.getElementById("ref-table-count");if(a)a.innerText=vc;const b=document.getElementById("ref-table-income");if(b)b.innerText=fi;const c=document.getElementById("ref-valid-count");if(c)c.innerText=vc;const d=document.getElementById("ref-invite-income");if(d)d.innerText=fi;}

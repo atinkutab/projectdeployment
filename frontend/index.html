@@ -45,6 +45,13 @@
         .logo-sm { font-size: 1.1rem; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; gap: 5px; }
         .logo-sm span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .welcome-text { text-align: center; color: var(--muted); margin-bottom: 2rem; font-size: 0.9rem; }
+        .auth-hero-banner { position: relative; width: 100%; height: 160px; margin: 0 auto 1.5rem; overflow: hidden; border-radius: 0; box-shadow: 0 8px 24px rgba(15,23,42,0.15); animation: authHeroFadeIn 0.8s ease-out; }
+        .auth-hero-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .auth-hero-overlay { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(15,23,42,0.55) 0%, rgba(30,64,175,0.35) 100%); }
+        .auth-hero-tagline { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; text-align: center; padding: 0 1rem; }
+        .auth-hero-tagline-title { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.3px; text-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+        .auth-hero-tagline-sub { font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,0.92); margin-top: 0.3rem; letter-spacing: 1px; text-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+        @keyframes authHeroFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         .form-group { margin-bottom: 1rem; }
         .form-group label { display: block; margin-bottom: 0.4rem; font-weight: 700; font-size: 0.78rem; color: var(--text); letter-spacing: 0.2px; text-transform: uppercase; }
         .input-field { width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: 0; font-size: 0.95rem; transition: all 0.2s; background: var(--bg2); color: var(--text); -webkit-appearance: none; appearance: none; font-weight: 500; }
@@ -160,7 +167,6 @@
         .btn-quick-amt.active { border-color: var(--primary); color: var(--primary); background: var(--primary-glow); }
         .btn-black { display: block; width: 100%; margin: 1rem 0 0.3rem; background: var(--text); color: #fff; border: none; padding: 13px; border-radius: 0; font-weight: 700; font-size: 1rem; cursor: pointer; transition: transform 0.1s; letter-spacing: 0.2px; }
         .btn-black:active { transform: scale(0.98); }
-        .btn-upload-voucher { display: block; width: 100%; margin: 0.3rem 0; background: transparent; color: var(--muted); border: 1px solid var(--border); padding: 11px; border-radius: 0; font-weight: 600; font-size: 0.85rem; cursor: pointer; }
         .payment-notes { margin-top: 1.2rem; background: var(--card); padding: 1rem; border-radius: 0; border: 1px solid var(--border); }
         .payment-notes p { font-size: 0.78rem; color: var(--muted); line-height: 1.6; margin-bottom: 0.3rem; }
         .invoice-header { text-align: center; margin: 1rem 0; }
@@ -194,7 +200,7 @@
         .mine-asset-value { font-size: 1.2rem; font-weight: 800; }
 
         .action-card { background: var(--card); margin: 0 0.75rem 0.7rem; padding: 1rem; border-radius: 0; border: 1px solid var(--border); box-shadow: var(--shadow); }
-        .referral-box { background: #f8f8fa; border: 1px dashed var(--success); padding: 1rem; border-radius: 0; margin-top: 0.6rem; }
+        .referral-box { background: #ffffff; border: none; padding: 1.1rem; border-radius: 0; margin-top: 0.8rem; box-shadow: 0 4px 14px rgba(15,23,42,0.08); position: relative; }
         .ref-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.7rem; }
         .ref-row:last-child { margin-bottom: 0; }
         .ref-label { font-size: 0.82rem; color: var(--muted); font-weight: 500; }
@@ -266,6 +272,14 @@
         <div class="logo">
             <svg width="30" height="30" viewBox="0 0 30 30"><rect width="30" height="30" rx="6" fill="#1E40AF"/><path d="M7 21 L12 13 L17 17 L23 9" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="23" cy="9" r="2.5" fill="white"/></svg>
             Wealth<span>Nest</span>
+        </div>
+        <div class="auth-hero-banner">
+            <img src="images/auth_banner.jpg" alt="WealthNest investment platform" class="auth-hero-img" />
+            <div class="auth-hero-overlay"></div>
+            <div class="auth-hero-tagline">
+                <div class="auth-hero-tagline-title">Invest in Tomorrow's Tech</div>
+                <div class="auth-hero-tagline-sub">AI &middot; Cloud &middot; Solar &middot; 5G &middot; Crypto</div>
+            </div>
         </div>
         <p class="welcome-text">Welcome! Please sign in or create an account.</p>
 
@@ -341,7 +355,6 @@
                 </div>
                 <div class="input-prefix-group"><span class="input-prefix">ETB</span><input type="number" id="dep-amount-input" placeholder="Please enter the amount"></div>
                 <button class="btn-black" onclick="proceedToPayment()">Continue to Payment</button>
-                <button class="btn-upload-voucher" onclick="showCenterMessage('Upload voucher feature coming soon!', 'error')">Payment Failed? Upload Receipt</button>
                 <div class="payment-notes">
                     <p>1. Minimum recharge is 650 ETB.</p>
                     <p>2. Do not modify account info in background.</p>
@@ -399,7 +412,6 @@
                     <div class="ref-row"><span class="ref-label">Invitation Code:</span><div class="ref-val-group"><strong id="user-invite-code">DEMO01</strong><button class="btn-copy-sm" onclick="copyText(document.getElementById('user-invite-code').innerText)">Copy</button></div></div>
                     <div class="ref-row"><span class="ref-label">Invitation Link:</span><div class="ref-val-group"><strong id="user-invite-link-display" style="font-size: 0.7rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">link</strong><button class="btn-copy-sm" onclick="copyReferralLink()">Copy</button></div></div>
                     <table class="commission-table"><thead><tr><th>Valid Users</th><th>Income</th></tr></thead><tbody><tr><td id="ref-table-count">0</td><td id="ref-table-income">0 ETB</td></tr></tbody></table>
-                    <div class="stat-mini-row"><div class="stat-mini"><div class="stat-mini-val" id="ref-valid-count">0</div><div class="stat-mini-lbl">Valid users</div></div><div class="stat-mini"><div class="stat-mini-val" id="ref-invite-income">0 ETB</div><div class="stat-mini-lbl">Invited income</div></div></div>
                 </div>
             </div>
             <div class="menu-list">
@@ -571,7 +583,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         function loginSuccess() { document.getElementById("auth-view").classList.add("hidden"); document.getElementById("dashboard-view").classList.remove("hidden"); document.getElementById("user-tg-name").innerText = userState.telegram_username; document.getElementById("user-phone").innerText = userState.phone_number; initApp(); document.getElementById("login-promo-modal").classList.remove("hidden"); initWebSocket(userState.telegram_id); sessionStorage.setItem("ac_user_state", JSON.stringify(userState)); }
         function closePromoModal(){document.getElementById("login-promo-modal").classList.add("hidden");}
         function handleLogout(){confirmLogout();}
-                function confirmLogout(){if(socket)socket.close();sessionStorage.removeItem("ac_user_state");__currentTab='product';__previousTab='product';const sb=document.getElementById("signin-btn");if(sb){sb.innerHTML='Log In';sb.disabled=false;}const sp=document.getElementById("signup-btn");if(sp){sp.innerHTML='Create Account';sp.disabled=false;}const p=document.getElementById("si-phone"),s=document.getElementById("si-pass"),r=document.getElementById("si-remember");if(p)p.value="";if(s)s.value="";if(r)r.checked=false;document.getElementById("dashboard-view").classList.add("hidden");document.getElementById("auth-view").classList.remove("hidden");}
+                function confirmLogout(){if(socket)socket.close();sessionStorage.removeItem("ac_user_state");__currentTab='product';__tabStack=[];const sb=document.getElementById("signin-btn");if(sb){sb.innerHTML='Log In';sb.disabled=false;}const sp=document.getElementById("signup-btn");if(sp){sp.innerHTML='Create Account';sp.disabled=false;}const p=document.getElementById("si-phone"),s=document.getElementById("si-pass"),r=document.getElementById("si-remember");if(p)p.value="";if(s)s.value="";if(r)r.checked=false;document.getElementById("dashboard-view").classList.add("hidden");document.getElementById("auth-view").classList.remove("hidden");}
 
         function initApp(){renderProducts();document.getElementById("user-invite-code").innerText=userState.invite_code;document.getElementById("user-invite-link-display").innerText=`${APP_BASE_URL}/?start=${userState.invite_code}`;updateBalances();updateMineStats();updateReferralStats();updatePurchasedProductImage();}
         function updateReferralStats(){const vc=userState.valid_referrals||0,ii=userState.invite_income||0,fi=`${ii.toFixed(2)} ETB`;const a=document.getElementById("ref-table-count");if(a)a.innerText=vc;const b=document.getElementById("ref-table-income");if(b)b.innerText=fi;const c=document.getElementById("ref-valid-count");if(c)c.innerText=vc;const d=document.getElementById("ref-invite-income");if(d)d.innerText=fi;}
@@ -579,7 +591,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         function updatePurchasedProductImage(){const container=document.getElementById('purchased-product-display'); if(!container) return; const ps=userState.products||[]; if(ps.length===0){container.style.display='none'; return;} const latest=ps[ps.length-1]; const catalogItem=products.find(p=>p.name===latest.name); if(!catalogItem) return; const img=document.getElementById('purchased-product-img'); const cap=document.getElementById('purchased-product-caption'); if(img){img.src=catalogItem.img; img.alt=latest.name;} if(cap){cap.innerText=`${latest.name} • Daily: ${latest.daily_income} ETB`;} container.style.display='block';}
         function renderMyProducts(){const c=document.getElementById("myproduct-list"),ps=userState.products||[];if(ps.length===0){c.innerHTML=`<div class="empty-state"><div class="empty-icon">📦</div><p class="empty-text">No active products</p><p class="empty-sub">Start investing to earn daily income!</p><button class="btn-primary" style="max-width:200px;margin:0 auto;" onclick="switchTab('product')">Browse Products</button></div>`;}else{let h='';ps.forEach(p=>{h+=`<div class="mp-card"><div class="mp-header"><span class="mp-name">${p.name}</span><span class="mp-badge">${p.validity_days} Days</span></div><div class="mp-stat"><span class="mp-stat-lbl">💰 Daily Income:</span><span class="mp-stat-val" style="color:var(--success)">${p.daily_income} ETB</span></div><div class="mp-stat"><span class="mp-stat-lbl">🏷️ Price:</span><span class="mp-stat-val">${p.price.toLocaleString()} ETB</span></div><div class="mp-stat"><span class="mp-stat-lbl">📅 Purchased:</span><span class="mp-stat-val">${p.purchase_time}</span></div><div class="mp-stat"><span class="mp-stat-lbl">🚀 Total Expected:</span><span class="mp-stat-val">${p.total_earning.toLocaleString()} ETB</span></div></div>`;});c.innerHTML=h;}}
         function copyReferralLink(){copyText(`${APP_BASE_URL}/?start=${userState.invite_code}`);}
-        let __currentTab='product', __previousTab='product'; function switchTab(v){if(v===__currentTab){return;} __previousTab=__currentTab; __currentTab=v; document.querySelectorAll(".app-view").forEach(e=>e.classList.add("hidden")); const target=document.getElementById(`view-${v}`); if(target) target.classList.remove("hidden"); document.querySelectorAll(".nav-item").forEach(e=>e.classList.remove("active")); const navItem=document.querySelector(`.nav-item[data-view="${v}"]`); if(navItem) navItem.classList.add("active"); if(v==='myproduct')renderMyProducts(); if(v!=='recharge'){const ds1=document.getElementById("dep-step-1"); const ds2=document.getElementById("dep-step-2"); if(ds1) ds1.classList.remove("hidden"); if(ds2) ds2.classList.add("hidden");} window.scrollTo(0,0);} function goBack(){switchTab(__previousTab||'product');}
+        let __currentTab='product'; let __tabStack=[]; function switchTab(v,opts){if(v===__currentTab){return;} if(!opts||!opts.fromGoBack){__tabStack.push(__currentTab); if(__tabStack.length>20)__tabStack.shift();} __currentTab=v; document.querySelectorAll(".app-view").forEach(e=>e.classList.add("hidden")); const target=document.getElementById(`view-${v}`); if(target) target.classList.remove("hidden"); document.querySelectorAll(".nav-item").forEach(e=>e.classList.remove("active")); const navItem=document.querySelector(`.nav-item[data-view="${v}"]`); if(navItem) navItem.classList.add("active"); if(v==='myproduct')renderMyProducts(); if(v!=='recharge'){const ds1=document.getElementById("dep-step-1"); const ds2=document.getElementById("dep-step-2"); if(ds1) ds1.classList.remove("hidden"); if(ds2) ds2.classList.add("hidden");} window.scrollTo(0,0);} function goBack(){const prev=__tabStack.pop(); if(prev){switchTab(prev,{fromGoBack:true});} else {switchTab('product',{fromGoBack:true});}}
 
         const products=[
             {name:"AI Compute Server",desc:"Leasing GPU power for AI training.",img:"images/ai_compute_server.jpg",price:650,daily:100,days:60,total:6000},

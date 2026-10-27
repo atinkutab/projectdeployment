@@ -178,6 +178,31 @@
         .btn-copy-inline { background: var(--bg); border: 1px solid var(--border); padding: 3px 7px; border-radius: 0; font-size: 0.68rem; cursor: pointer; color: var(--muted); }
         .warning-notes { background: rgba(100,116,139,0.06); border: 1px solid rgba(100,116,139,0.20); color: var(--warn); padding: 10px; border-radius: 0; font-size: 0.78rem; margin-bottom: 1rem; }
 
+        /* INVOICE PAGE POLISH */
+        .step-indicator { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0.5rem 0 0.3rem; }
+        .step-dot { width: 28px; height: 28px; border-radius: 50%; background: #e2e8f0; color: var(--muted); display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 800; }
+        .step-dot.active { background: var(--primary); color: #fff; }
+        .step-line { flex: 0 0 40px; height: 2px; background: #e2e8f0; }
+        .step-indicator-labels { display: flex; justify-content: space-between; margin: 0 0 1.2rem; padding: 0 12px; font-size: 0.68rem; color: var(--muted); font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; }
+        .invoice-hero-card { background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%); color: #fff; padding: 1.5rem 1.2rem; margin-bottom: 1rem; text-align: center; box-shadow: 0 8px 24px rgba(15,23,42,0.18); }
+        .invoice-hero-label { font-size: 0.74rem; color: rgba(255,255,255,0.85); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 0.3rem; }
+        .invoice-hero-amount { font-size: 2.6rem; font-weight: 900; letter-spacing: -1.5px; line-height: 1; margin-bottom: 0.6rem; }
+        .invoice-hero-bank { font-size: 0.88rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .bank-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 38px; height: 22px; padding: 0 7px; border-radius: 0; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.3px; color: #fff; }
+        .bank-badge.telebirr { background: #8b5cf6; }
+        .bank-badge.cbe { background: #10b981; }
+        .bank-badge.abyssinia { background: #f59e0b; }
+        .btn-copy-all { display: block; width: 100%; margin: 0 0 1rem; padding: 11px; background: #f8f8fa; color: var(--text); border: 1px dashed var(--border-l); border-radius: 0; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+        .btn-copy-all:active { transform: scale(0.98); background: #f0f0f3; border-color: var(--primary); }
+        .order-code-row { background: rgba(30,64,175,0.04); }
+        .order-code-value { font-size: 1rem; font-weight: 900; letter-spacing: 0.5px; color: var(--primary); animation: pulse-code 2s ease-in-out infinite; }
+        @keyframes pulse-code { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+        .numbered-instructions { background: #f8f8fa; border: 1px solid var(--border); padding: 1rem; margin: 0 0 1rem; }
+        .num-step { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 0.7rem; font-size: 0.82rem; color: var(--text); line-height: 1.4; }
+        .num-step:last-child { margin-bottom: 0; }
+        .num-circle { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800; }
+        .sticky-cta { position: sticky; bottom: 0; background: var(--bg2); padding: 0.8rem 0 1.2rem; border-top: 1px solid var(--border); margin: 0 -1.5rem -1.2rem; padding-left: 1.5rem; padding-right: 1.5rem; z-index: 5; }
+
         /* BALANCE CARD */
         .balance-container { background: linear-gradient(135deg, #0F172A 0%, #334155 100%); color: #fff; padding: 1.8rem 1.5rem 1.5rem; border-bottom-left-radius: 2rem; border-bottom-right-radius: 2rem; margin-bottom: 1rem; position: relative; overflow: hidden; }
                                         .bal-main-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; position: relative; z-index: 1; }
@@ -354,17 +379,27 @@
                 </div>
             </div>
             <div id="dep-step-2" class="dep-step hidden">
-                <div class="invoice-header"><div style="color: var(--muted); font-size: 0.85rem;">Amount Due</div><div class="invoice-amt">Br <span id="inv-amount">0.00</span></div></div>
-                <div class="warning-box">⚠️ DO NOT PAY WITHOUT MANAGER APPROVAL</div>
+                <div class="step-indicator"><span class="step-dot active">1</span><span class="step-line"></span><span class="step-dot active">2</span><span class="step-line"></span><span class="step-dot">3</span></div>
+                <div class="step-indicator-labels"><span>Amount</span><span>Payment</span><span>Confirm</span></div>
+                <div class="invoice-hero-card">
+                    <div class="invoice-hero-label">Amount Due</div>
+                    <div class="invoice-hero-amount">Br <span id="inv-amount">0.00</span></div>
+                    <div class="invoice-hero-bank"><span class="bank-badge" id="inv-bank-badge">BANK</span> <span id="inv-bank-name">Loading...</span></div>
+                </div>
+                <button class="btn-copy-all" onclick="copyAllDetails()">📋 Copy All Details</button>
                 <table class="invoice-table">
                     <tr><td class="inv-label">Account Name</td><td class="inv-val" id="inv-acc-name">Loading...</td></tr>
-                    <tr><td class="inv-label">Bank Name</td><td class="inv-val" id="inv-bank-name">Loading...</td></tr>
                     <tr><td class="inv-label" id="acc-num-label">Account Number</td><td class="inv-val"><span id="inv-acc-num">Loading...</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-acc-num').innerText)">Copy</button></td></tr>
                     <tr><td class="inv-label">Amount</td><td class="inv-val"><span id="inv-amt-val">0 ETB</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-amt-val').innerText)">Copy</button></td></tr>
-                    <tr><td class="inv-label">Order Code</td><td class="inv-val"><span id="inv-order-code">PNXXXXXX</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-order-code').innerText)">Copy</button></td></tr>
+                    <tr class="order-code-row"><td class="inv-label">Order Code</td><td class="inv-val"><span id="inv-order-code" class="order-code-value">PNXXXXXX</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-order-code').innerText)">Copy</button></td></tr>
                 </table>
-                <div class="warning-notes">⚠️ Put the <strong>Order Code</strong> in your transfer remarks. Do NOT transfer from a different bank.</div>
-                <button class="btn-primary" onclick="openConfirmModal()">I've Paid — Submit Receipt</button>
+                <div class="numbered-instructions">
+                    <div class="num-step"><span class="num-circle">1</span><span>Initiate transfer via <strong id="instr-bank">your bank</strong></span></div>
+                    <div class="num-step"><span class="num-circle">2</span><span>Remit exact amount to the specified account above</span></div>
+                    <div class="num-step"><span class="num-circle">3</span><span>Include <strong>Order Code</strong> in transfer remarks</span></div>
+                    <div class="num-step"><span class="num-circle">4</span><span>Confirm payment below</span></div>
+                </div>
+                <div class="sticky-cta"><button class="btn-primary" onclick="openConfirmModal()">I've Paid — Submit Receipt</button></div>
             </div>
         </div>
 
@@ -478,6 +513,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         }
         function showToast(msg, type = 'info') { const c = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = `toast ${type}`; t.innerText = typeof msg === 'string' ? msg : extractErrorMessage(msg); c.appendChild(t); setTimeout(() => { t.classList.add('hide'); setTimeout(() => t.remove(), 300); }, 4000); }
         function showCenterMessage(msg, type = 'info') { const c = document.getElementById('center-message'); c.textContent = msg; c.className = type; c.style.display = 'block'; setTimeout(() => { c.style.display = 'none'; }, 4000); }
+        function copyAllDetails(){const name=document.getElementById('inv-acc-name').innerText;const num=document.getElementById('inv-acc-num').innerText;const amt=document.getElementById('inv-amt-val').innerText;const oc=document.getElementById('inv-order-code').innerText;const bank=document.getElementById('inv-bank-name').innerText;const text=`Bank: ${bank}\nAccount Name: ${name}\nAccount Number: ${num}\nAmount: ${amt}\nOrder Code: ${oc}`;copyText(text);}
         function showLoader(text) { const l = document.getElementById('wn-loader'); const t = document.getElementById('wn-loader-text'); if (t && text) t.textContent = text; if (l) l.classList.remove('hidden'); }
         function hideLoader() { const l = document.getElementById('wn-loader'); if (l) l.classList.add('hidden'); }
 
@@ -604,7 +640,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         function closeMethodSelect(){document.getElementById("select-method-modal").classList.add("hidden");}
         function confirmMethodSelection(m){document.getElementById("select-method-modal").classList.add("hidden");triggerBankWarning(m);}
         function triggerBankWarning(m){currentSelectedMethod=m;document.getElementById("bank-warning-modal").classList.remove("hidden");}
-        async function acceptBankWarning(){document.getElementById("bank-warning-modal").classList.add("hidden"); showLoader('Loading deposit details...');const ch="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";let oc="PN";for(let i=0;i<8;i++)oc+=ch.charAt(Math.floor(Math.random()*ch.length));document.getElementById("inv-amount").innerText=currentProductAmount.toFixed(2);document.getElementById("inv-amt-val").innerText=currentProductAmount+" ETB";document.getElementById("inv-order-code").innerText=oc;try{const r=await apiFetch(`/api/get-deposit-account?telegram_id=${parseInt(userState.telegram_id)}&amount=${currentProductAmount}&method=${currentSelectedMethod}`);if(r.ok){hideLoader(); const a=await r.json();currentAssignedAccount=a.account_string;currentPaymentMethod=a.method;document.getElementById('inv-acc-name').innerText=a.name;document.getElementById('inv-bank-name').innerText=a.method==='CBE'?'Commercial Bank of Ethiopia':(a.method==='Telebirr'?'Telebirr':'Bank of Abyssinia');document.getElementById('acc-num-label').innerText=a.method==='Telebirr'?'Phone Number':'Account Number';document.getElementById('inv-acc-num').innerText=a.number;document.getElementById("dep-step-1").classList.add("hidden");document.getElementById("dep-step-2").classList.remove("hidden");}else{const e=await r.json().catch(()=>({}));hideLoader(); showCenterMessage(extractErrorMessage(e,"Failed."),'error');switchTab('product');}}catch(e){hideLoader(); showCenterMessage("Network error.",'error');switchTab('product');}}
+        async function acceptBankWarning(){document.getElementById("bank-warning-modal").classList.add("hidden"); showLoader('Loading deposit details...');const ch="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";let oc="PN";for(let i=0;i<8;i++)oc+=ch.charAt(Math.floor(Math.random()*ch.length));document.getElementById("inv-amount").innerText=currentProductAmount.toFixed(2);document.getElementById("inv-amt-val").innerText=currentProductAmount+" ETB";document.getElementById("inv-order-code").innerText=oc;try{const r=await apiFetch(`/api/get-deposit-account?telegram_id=${parseInt(userState.telegram_id)}&amount=${currentProductAmount}&method=${currentSelectedMethod}`);if(r.ok){hideLoader(); const a=await r.json();currentAssignedAccount=a.account_string;currentPaymentMethod=a.method;const bankName=a.method==='CBE'?'Commercial Bank of Ethiopia':(a.method==='Telebirr'?'Telebirr':'Bank of Abyssinia');document.getElementById('inv-acc-name').innerText=a.name;document.getElementById('inv-bank-name').innerText=bankName;document.getElementById('acc-num-label').innerText=a.method==='Telebirr'?'Phone Number':'Account Number';document.getElementById('inv-acc-num').innerText=a.number;const badge=document.getElementById('inv-bank-badge');if(badge){const ml=a.method.toLowerCase();badge.textContent=a.method.toUpperCase();badge.className='bank-badge '+(ml==='telebirr'?'telebirr':ml==='cbe'?'cbe':'abyssinia');}const instr=document.getElementById('instr-bank');if(instr)instr.textContent=bankName;document.getElementById("dep-step-1").classList.add("hidden");document.getElementById("dep-step-2").classList.remove("hidden");}else{const e=await r.json().catch(()=>({}));hideLoader(); showCenterMessage(extractErrorMessage(e,"Failed."),'error');switchTab('product');}}catch(e){hideLoader(); showCenterMessage("Network error.",'error');switchTab('product');}}
         function openConfirmModal(){document.getElementById("confirm-transfer-modal").classList.remove("hidden");}
         function closeConfirmModal(){document.getElementById("confirm-transfer-modal").classList.add("hidden");}
         async function submitPayment(){const t=document.getElementById("tx-id").value;if(!t.trim()){return showCenterMessage("Enter Transaction ID.", 'error');}showLoader('Submitting payment...'); try{const r=await apiFetch('/api/paynow-webhook',{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({reference:t,status:"Paid",amount:currentProductAmount,telegram_id:parseInt(userState.telegram_id),payment_method:currentPaymentMethod,assigned_account:currentAssignedAccount})});if(r.ok){hideLoader(); showCenterMessage("Submitted! Awaiting approval.", 'success');userState.transactions.push({id:t,type:'Purchase',method:currentPaymentMethod,amount:currentProductAmount,status:'Pending',timestamp:new Date().toLocaleString()});closeConfirmModal();document.getElementById("tx-id").value="";document.getElementById("dep-step-1").classList.remove("hidden");document.getElementById("dep-step-2").classList.add("hidden");switchTab('product');}else{const e=await r.json().catch(()=>({}));hideLoader(); showCenterMessage(extractErrorMessage(e,"Failed."),'error');}}catch(err){hideLoader(); showCenterMessage("Network error.",'error');}}

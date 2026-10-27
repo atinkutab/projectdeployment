@@ -44,6 +44,9 @@ ADMIN_USERNAME = os.environ["ADMIN_USERNAME"]
 ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
 ADMIN_PASSWORD_HASH = hashlib.sha256(ADMIN_PASSWORD.encode()).hexdigest()
 
+# Telegram Bot for password reset OTP
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+
 FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "https://assetcore-et.vercel.app")
 
 DEFAULT_ORIGINS = [
@@ -112,6 +115,8 @@ class User(Base):
     wd_method = Column(String, nullable=True)
     wd_account_name = Column(String, nullable=True)
     wd_account_number = Column(String, nullable=True)
+    password_reset_otp = Column(String, nullable=True)
+    otp_expires_at = Column(DateTime, nullable=True)
 
     balance = relationship("UserBalance", uselist=False, back_populates="user", cascade="all, delete-orphan")
     products = relationship("UserProduct", back_populates="user", cascade="all, delete-orphan")
@@ -201,6 +206,10 @@ def init_db():
         except: pass
         try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS wd_account_number VARCHAR;"))
         except: pass
+        try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_otp VARCHAR;"))
+        except: pass
+        try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires_at TIMESTAMP;"))
+        except: pass
         db.commit()
 
         db.execute(text("UPDATE user_balances SET available_balance = registration_bonus + daily_income_balance + invitation_income WHERE available_balance = 0;"))
@@ -285,6 +294,17 @@ class SaveWdAccountRequest(BaseModel):
     name: str
     number: str
 
+class RequestResetOTPRequest(BaseModel):
+    phone_number: str
+
+class VerifyResetOTPRequest(BaseModel):
+    phone_number: str
+    otp: str
+
+class ResetPasswordRequest(BaseModel):
+    phone_number: str
+    new_password: str
+
 class SystemSettingsUpdate(BaseModel):
     registration_bonus: Optional[float] = None
     commission_rate: Optional[float] = None
@@ -333,6 +353,36 @@ def to_ethiopian_24h_str(dt: Optional[datetime]) -> str:
         return ""
     eth_time = dt + timedelta(hours=3)
     return eth_time.strftime("%Y-%m-%d %H:%M:%S")
+
+
+# --- TELEGRAM BOT HELPER (for password reset OTP) ---
+import urllib.request
+import urllib.parse
+
+def send_telegram_message(chat_id: int, text: str) -> bool:
+    """Send a message via the WealthNest Telegram bot. Returns True on success."""
+    if not TELEGRAM_BOT_TOKEN:
+        print("WARNING: TELEGRAM_BOT_TOKEN not set, cannot send Telegram message.")
+        return False
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        payload = urllib.parse.urlencode({
+            "chat_id": chat_id,
+            "text": text,
+            "parse_mode": "HTML",
+        }).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, method="POST")
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+            return result.get("ok", False)
+    except Exception as e:
+        print(f"Telegram send error: {e}")
+        return False
+
+
+def generate_otp() -> str:
+    """Generate a 6-digit OTP code."""
+    return "".join(random.choices(string.digits, k=6))
 
 # --- BACKGROUND JOB ---
 async def process_yields():
@@ -776,6 +826,74 @@ def request_withdrawal(payload: WithdrawalRequest, db: Session = Depends(get_db)
     ))
     db.commit()
     return {"message": "Withdrawal request submitted. Waiting for admin approval."}
+
+# --- PASSWORD RESET ENDPOINTS ---
+
+@app.post("/api/request-reset-otp")
+def request_reset_otp(payload: RequestResetOTPRequest, db: Session = Depends(get_db)):
+    clean_phone = payload.phone_number.strip()
+    user = db.query(User).filter(User.phone_number == clean_phone).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with this phone number.")
+    if not user.telegram_id:
+        raise HTTPException(status_code=400, detail="Please start @wealthnest_bot on Telegram first, then try again.")
+    otp = generate_otp()
+    user.password_reset_otp = otp
+    user.otp_expires_at = datetime.utcnow() + timedelta(minutes=10)
+    db.commit()
+    message = (
+        "🔒 <b>WealthNest Password Reset</b>\n\n"
+        "Your verification code is:\n"
+        f"  <b>{otp}</b>\n\n"
+        "This code expires in 10 minutes.\n"
+        "If you didn't request this, please ignore this message.\n\n"
+        "— WealthNest Team"
+    )
+    sent = send_telegram_message(user.telegram_id, message)
+    if not sent:
+        raise HTTPException(status_code=500, detail="Failed to send OTP. Please start @wealthnest_bot on Telegram first.")
+    return {"message": "OTP sent to your Telegram account.", "phone_number": clean_phone}
+
+
+@app.post("/api/verify-reset-otp")
+def verify_reset_otp(payload: VerifyResetOTPRequest, db: Session = Depends(get_db)):
+    clean_phone = payload.phone_number.strip()
+    user = db.query(User).filter(User.phone_number == clean_phone).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with this phone number.")
+    if not user.password_reset_otp or not user.otp_expires_at:
+        raise HTTPException(status_code=400, detail="No OTP requested. Please request a new code.")
+    if datetime.utcnow() > user.otp_expires_at:
+        user.password_reset_otp = None
+        user.otp_expires_at = None
+        db.commit()
+        raise HTTPException(status_code=400, detail="OTP expired. Please request a new code.")
+    if user.password_reset_otp != payload.otp.strip():
+        raise HTTPException(status_code=400, detail="Invalid verification code.")
+    return {"message": "OTP verified successfully.", "phone_number": clean_phone}
+
+
+@app.post("/api/reset-password")
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    clean_phone = payload.phone_number.strip()
+    user = db.query(User).filter(User.phone_number == clean_phone).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with this phone number.")
+    if not user.password_reset_otp or not user.otp_expires_at:
+        raise HTTPException(status_code=400, detail="Please verify your OTP first.")
+    if datetime.utcnow() > user.otp_expires_at:
+        user.password_reset_otp = None
+        user.otp_expires_at = None
+        db.commit()
+        raise HTTPException(status_code=400, detail="Session expired. Please start over.")
+    if len(payload.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
+    user.password_hash = hash_password(payload.new_password)
+    user.password_reset_otp = None
+    user.otp_expires_at = None
+    db.commit()
+    return {"message": "Password reset successfully. Please log in with your new password."}
+
 
 # --- ADMIN ENDPOINTS ---
 @app.get("/api/admin/pending-deposits")

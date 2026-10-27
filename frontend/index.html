@@ -45,6 +45,19 @@
         .logo-sm { font-size: 1.1rem; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; gap: 5px; }
         .logo-sm span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .welcome-text { text-align: center; color: var(--muted); margin-bottom: 2rem; font-size: 0.9rem; }
+        .forgot-password-link { text-align: right; margin: -0.5rem 0 1.2rem; font-size: 0.78rem; font-weight: 600; color: var(--primary); cursor: pointer; }
+        .forgot-password-link:active { opacity: 0.7; }
+        /* RESET PASSWORD VIEW */
+        #reset-view { padding: 0; min-height: 100dvh; background: var(--bg); animation: fadeIn 0.3s ease; }
+        .reset-step { padding: 1.5rem; max-width: 360px; margin: 0 auto; }
+        .reset-step-title { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 0.4rem; color: var(--text); }
+        .reset-step-desc { font-size: 0.85rem; color: var(--muted); margin-bottom: 1.5rem; line-height: 1.5; }
+        .otp-input-group { display: flex; gap: 8px; justify-content: center; margin: 1rem 0; }
+        .otp-digit { width: 44px; height: 56px; text-align: center; font-size: 1.4rem; font-weight: 800; border: 1px solid var(--border); border-radius: 0; background: var(--bg2); color: var(--text); -webkit-appearance: none; appearance: none; }
+        .otp-digit:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-glow); }
+        .otp-digit.input-error { border-color: var(--danger); border-width: 2px; }
+        .bot-start-notice { background: rgba(30,64,175,0.06); border: 1px solid rgba(30,64,175,0.20); color: var(--primary); padding: 0.8rem; margin-bottom: 1rem; font-size: 0.78rem; line-height: 1.5; text-align: left; }
+        .bot-start-notice a { color: var(--primary); font-weight: 700; text-decoration: underline; }
         .auth-hero-banner { position: relative; width: calc(100% + 3rem); height: 180px; margin: 0 -1.5rem 1.5rem; overflow: hidden; border-radius: 0; box-shadow: 0 8px 24px rgba(15,23,42,0.15); animation: authHeroFadeIn 0.8s ease-out; }
         .auth-hero-img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .auth-hero-overlay { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(15,23,42,0.55) 0%, rgba(30,64,175,0.35) 100%); }
@@ -189,6 +202,9 @@
         .invoice-hero-amount { font-size: 2.6rem; font-weight: 900; letter-spacing: -1.5px; line-height: 1; margin-bottom: 0.6rem; }
         .invoice-hero-bank { font-size: 0.88rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .bank-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 38px; height: 22px; padding: 0 7px; border-radius: 0; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.3px; color: #fff; }
+        .bank-logo { height: 24px; width: auto; object-fit: contain; background: #fff; padding: 2px 6px; border-radius: 0; }
+        .copy-icon { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); font-size: 1rem; padding: 2px 4px; transition: color 0.2s, transform 0.1s; user-select: none; }
+        .copy-icon:active { transform: scale(0.9); color: var(--primary); }
         .bank-badge.telebirr { background: #8b5cf6; }
         .bank-badge.cbe { background: #10b981; }
         .bank-badge.abyssinia { background: #f59e0b; }
@@ -297,7 +313,7 @@
                 <div class="auth-hero-tagline-title">Invest in Tomorrow's Tech</div>
             </div>
         </div>
-        <p class="welcome-text">Welcome! Please sign in or create an account.</p>
+        <p class="welcome-text">Secure access to your WealthNest portfolio.</p>
 
         <!-- SIGNUP -->
         <div id="signup-form">
@@ -327,7 +343,49 @@
                 <label for="si-remember">Remember the password</label>
             </div>
             <button class="btn-primary" id="signin-btn" onclick="handleSignIn()">Log In</button>
+            <p class="forgot-password-link" onclick="showResetPassword()">Forgot password?</p>
             <p class="toggle-text">No account? <span onclick="toggleAuth('signup')">Create an account</span></p>
+        </div>
+    </div>
+
+    <!-- RESET PASSWORD VIEW -->
+    <div id="reset-view" class="hidden">
+        <div class="top-nav-bar"><div class="nav-left-group"><button class="nav-back-btn" onclick="hideResetPassword()">‹</button><div class="nav-title">Reset Password</div></div></div>
+        <!-- Step 1: Phone Number -->
+        <div id="reset-step-1" class="reset-step">
+            <div class="reset-step-title">Forgot Password</div>
+            <div class="reset-step-desc">Enter your registered phone number. We'll send a 6-digit verification code to your Telegram account.</div>
+            <div class="bot-start-notice">⚠️ Make sure you have started the <a href="https://t.me/wealthnest_bot" target="_blank">@wealthnest_bot</a> on Telegram, otherwise you won't receive the code.</div>
+            <div class="form-group">
+                <div class="input-prefix-group" id="rp-phone-group">
+                    <span class="input-prefix">+251 9</span>
+                    <input type="tel" id="rp-phone" class="input-field" placeholder="Enter remaining 8 digits" maxlength="8" oninput="validatePhoneLive(this.value, 'rp-phone', 'rp-phone-group')">
+                </div>
+            </div>
+            <button class="btn-primary" onclick="requestResetOTP()">Send OTP via Telegram</button>
+        </div>
+        <!-- Step 2: OTP Verification -->
+        <div id="reset-step-2" class="reset-step hidden">
+            <div class="reset-step-title">Enter Verification Code</div>
+            <div class="reset-step-desc">We sent a 6-digit code to your Telegram account. Enter it below to continue.</div>
+            <div class="otp-input-group">
+                <input type="tel" class="otp-digit" id="otp-1" maxlength="1" oninput="moveOTPFocus(this, 'otp-2')">
+                <input type="tel" class="otp-digit" id="otp-2" maxlength="1" oninput="moveOTPFocus(this, 'otp-3')">
+                <input type="tel" class="otp-digit" id="otp-3" maxlength="1" oninput="moveOTPFocus(this, 'otp-4')">
+                <input type="tel" class="otp-digit" id="otp-4" maxlength="1" oninput="moveOTPFocus(this, 'otp-5')">
+                <input type="tel" class="otp-digit" id="otp-5" maxlength="1" oninput="moveOTPFocus(this, 'otp-6')">
+                <input type="tel" class="otp-digit" id="otp-6" maxlength="1">
+            </div>
+            <p class="toggle-text">Didn't receive the code? <span onclick="requestResetOTP(true)">Resend OTP</span></p>
+            <button class="btn-primary" onclick="verifyResetOTP()">Verify Code</button>
+        </div>
+        <!-- Step 3: New Password -->
+        <div id="reset-step-3" class="reset-step hidden">
+            <div class="reset-step-title">Set New Password</div>
+            <div class="reset-step-desc">Enter your new password. It must be at least 6 characters long.</div>
+            <div class="form-group"><input type="password" id="rp-new-pass" class="input-field" placeholder="Enter new password" oninput="checkResetPasswordLive()"></div>
+            <div class="form-group"><input type="password" id="rp-new-pass2" class="input-field" placeholder="Confirm new password" oninput="checkResetPasswordLive()"></div>
+            <button class="btn-primary" onclick="resetPassword()">Reset Password</button>
         </div>
     </div>
 
@@ -384,14 +442,13 @@
                 <div class="invoice-hero-card">
                     <div class="invoice-hero-label">Amount Due</div>
                     <div class="invoice-hero-amount">Br <span id="inv-amount">0.00</span></div>
-                    <div class="invoice-hero-bank"><span class="bank-badge" id="inv-bank-badge">BANK</span> <span id="inv-bank-name">Loading...</span></div>
+                    <div class="invoice-hero-bank"><img id="inv-bank-logo" src="" alt="" class="bank-logo" style="display:none;" /><span class="bank-badge" id="inv-bank-badge">BANK</span> <span id="inv-bank-name">Loading...</span></div>
                 </div>
-                <button class="btn-copy-all" onclick="copyAllDetails()">📋 Copy All Details</button>
                 <table class="invoice-table">
                     <tr><td class="inv-label">Account Name</td><td class="inv-val" id="inv-acc-name">Loading...</td></tr>
-                    <tr><td class="inv-label" id="acc-num-label">Account Number</td><td class="inv-val"><span id="inv-acc-num">Loading...</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-acc-num').innerText)">Copy</button></td></tr>
-                    <tr><td class="inv-label">Amount</td><td class="inv-val"><span id="inv-amt-val">0 ETB</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-amt-val').innerText)">Copy</button></td></tr>
-                    <tr class="order-code-row"><td class="inv-label">Order Code</td><td class="inv-val"><span id="inv-order-code" class="order-code-value">PNXXXXXX</span><button class="btn-copy-inline" onclick="copyText(document.getElementById('inv-order-code').innerText)">Copy</button></td></tr>
+                    <tr><td class="inv-label" id="acc-num-label">Account Number</td><td class="inv-val"><span id="inv-acc-num">Loading...</span> <span class="copy-icon" onclick="copyText(document.getElementById('inv-acc-num').innerText)" title="Copy account number">⧉</span></td></tr>
+                    <tr><td class="inv-label">Amount</td><td class="inv-val"><span id="inv-amt-val">0 ETB</span></td></tr>
+                    <tr class="order-code-row"><td class="inv-label">Order Code</td><td class="inv-val"><span id="inv-order-code" class="order-code-value">PNXXXXXX</span></td></tr>
                 </table>
                 <div class="numbered-instructions">
                     <div class="num-step"><span class="num-circle">1</span><span>Initiate transfer via <strong id="instr-bank">your bank</strong></span></div>
@@ -514,6 +571,18 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         function showToast(msg, type = 'info') { const c = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = `toast ${type}`; t.innerText = typeof msg === 'string' ? msg : extractErrorMessage(msg); c.appendChild(t); setTimeout(() => { t.classList.add('hide'); setTimeout(() => t.remove(), 300); }, 4000); }
         function showCenterMessage(msg, type = 'info') { const c = document.getElementById('center-message'); c.textContent = msg; c.className = type; c.style.display = 'block'; setTimeout(() => { c.style.display = 'none'; }, 4000); }
         function copyAllDetails(){const name=document.getElementById('inv-acc-name').innerText;const num=document.getElementById('inv-acc-num').innerText;const amt=document.getElementById('inv-amt-val').innerText;const oc=document.getElementById('inv-order-code').innerText;const bank=document.getElementById('inv-bank-name').innerText;const text=`Bank: ${bank}\nAccount Name: ${name}\nAccount Number: ${num}\nAmount: ${amt}\nOrder Code: ${oc}`;copyText(text);}
+        // ===== PASSWORD RESET FUNCTIONS =====
+        let __resetPhoneNumber = '';
+        function showResetPassword(){document.getElementById('auth-view').classList.add('hidden');document.getElementById('reset-view').classList.remove('hidden');showResetStep(1);}
+        function hideResetPassword(){document.getElementById('reset-view').classList.add('hidden');document.getElementById('auth-view').classList.remove('hidden');const rp=document.getElementById('rp-phone');if(rp)rp.value='';const rnp=document.getElementById('rp-new-pass');if(rnp)rnp.value='';const rnp2=document.getElementById('rp-new-pass2');if(rnp2)rnp2.value='';for(let i=1;i<=6;i++){const d=document.getElementById('otp-'+i);if(d)d.value='';}}
+        function showResetStep(n){for(let i=1;i<=3;i++){const s=document.getElementById('reset-step-'+i);if(s)s.classList.toggle('hidden',i!==n);}window.scrollTo(0,0);}
+        function moveOTPFocus(curr,nextId){if(curr.value.length===1){const next=document.getElementById(nextId);if(next)next.focus();}}
+        function checkResetPasswordLive(){const p1=document.getElementById('rp-new-pass'),p2=document.getElementById('rp-new-pass2');if(p1.value.length>0&&p2.value.length>0&&p1.value!==p2.value){p1.classList.add('input-error');p2.classList.add('input-error');}else{p1.classList.remove('input-error');p2.classList.remove('input-error');}}
+        async function requestResetOTP(isResend){const pr=document.getElementById('rp-phone').value,pd=pr.replace(/\D/g,'');if(!validatePhoneLive(pr,'rp-phone','rp-phone-group')){return showCenterMessage('Invalid phone number.','error');}const phone='+2519'+pd;__resetPhoneNumber=phone;showLoader(isResend?'Resending OTP...':'Sending OTP...');try{const r=await apiFetch('/api/request-reset-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_number:phone})});if(r.ok){hideLoader();showCenterMessage('OTP sent to your Telegram!','success');showResetStep(2);setTimeout(()=>{const d=document.getElementById('otp-1');if(d)d.focus();},100);}else{const e=await r.json().catch(()=>({}));hideLoader();const m=extractErrorMessage(e,'Failed to send OTP.');if(m.toLowerCase().includes('not found')||m.toLowerCase().includes('no user')){showCenterMessage('No account found with this phone number.','error');}else if(m.toLowerCase().includes('bot')||m.toLowerCase().includes('telegram')){showCenterMessage('Please start @wealthnest_bot on Telegram first.','error');}else{showCenterMessage(m,'error');}}}catch(err){hideLoader();showCenterMessage('Network error.','error');}}
+        async function verifyResetOTP(){let otp='';for(let i=1;i<=6;i++){const d=document.getElementById('otp-'+i);const v=(d.value||'').trim();if(!v){return showCenterMessage('Enter all 6 digits.','error');}otp+=v;}showLoader('Verifying code...');try{const r=await apiFetch('/api/verify-reset-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_number:__resetPhoneNumber,otp:otp})});if(r.ok){hideLoader();showCenterMessage('Code verified!','success');showResetStep(3);}else{const e=await r.json().catch(()=>({}));hideLoader();const m=extractErrorMessage(e,'Invalid code.');showCenterMessage(m,'error');for(let i=1;i<=6;i++){const d=document.getElementById('otp-'+i);d.classList.add('input-error');}setTimeout(()=>{for(let i=1;i<=6;i++){const d=document.getElementById('otp-'+i);d.classList.remove('input-error');}},1500);}}catch(err){hideLoader();showCenterMessage('Network error.','error');}}
+        async function resetPassword(){const p1=document.getElementById('rp-new-pass').value,p2=document.getElementById('rp-new-pass2').value;if(p1.length<6){document.getElementById('rp-new-pass').classList.add('input-error');return showCenterMessage('Password must be at least 6 characters.','error');}if(p1!==p2){return showCenterMessage('Passwords do not match.','error');}showLoader('Resetting password...');try{const r=await apiFetch('/api/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_number:__resetPhoneNumber,new_password:p1})});if(r.ok){hideLoader();showCenterMessage('Password reset successfully! Please log in.','success');setTimeout(()=>{hideResetPassword();toggleAuth('signin');},1500);}else{const e=await r.json().catch(()=>({}));hideLoader();showCenterMessage(extractErrorMessage(e,'Reset failed.'),'error');}}catch(err){hideLoader();showCenterMessage('Network error.','error');}}
+        // ===== END PASSWORD RESET FUNCTIONS =====
+
         function showLoader(text) { const l = document.getElementById('wn-loader'); const t = document.getElementById('wn-loader-text'); if (t && text) t.textContent = text; if (l) l.classList.remove('hidden'); }
         function hideLoader() { const l = document.getElementById('wn-loader'); if (l) l.classList.add('hidden'); }
 
@@ -640,7 +709,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         function closeMethodSelect(){document.getElementById("select-method-modal").classList.add("hidden");}
         function confirmMethodSelection(m){document.getElementById("select-method-modal").classList.add("hidden");triggerBankWarning(m);}
         function triggerBankWarning(m){currentSelectedMethod=m;document.getElementById("bank-warning-modal").classList.remove("hidden");}
-        async function acceptBankWarning(){document.getElementById("bank-warning-modal").classList.add("hidden"); showLoader('Loading deposit details...');const ch="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";let oc="PN";for(let i=0;i<8;i++)oc+=ch.charAt(Math.floor(Math.random()*ch.length));document.getElementById("inv-amount").innerText=currentProductAmount.toFixed(2);document.getElementById("inv-amt-val").innerText=currentProductAmount+" ETB";document.getElementById("inv-order-code").innerText=oc;try{const r=await apiFetch(`/api/get-deposit-account?telegram_id=${parseInt(userState.telegram_id)}&amount=${currentProductAmount}&method=${currentSelectedMethod}`);if(r.ok){hideLoader(); const a=await r.json();currentAssignedAccount=a.account_string;currentPaymentMethod=a.method;const bankName=a.method==='CBE'?'Commercial Bank of Ethiopia':(a.method==='Telebirr'?'Telebirr':'Bank of Abyssinia');document.getElementById('inv-acc-name').innerText=a.name;document.getElementById('inv-bank-name').innerText=bankName;document.getElementById('acc-num-label').innerText=a.method==='Telebirr'?'Phone Number':'Account Number';document.getElementById('inv-acc-num').innerText=a.number;const badge=document.getElementById('inv-bank-badge');if(badge){const ml=a.method.toLowerCase();badge.textContent=a.method.toUpperCase();badge.className='bank-badge '+(ml==='telebirr'?'telebirr':ml==='cbe'?'cbe':'abyssinia');}const instr=document.getElementById('instr-bank');if(instr)instr.textContent=bankName;document.getElementById("dep-step-1").classList.add("hidden");document.getElementById("dep-step-2").classList.remove("hidden");}else{const e=await r.json().catch(()=>({}));hideLoader(); showCenterMessage(extractErrorMessage(e,"Failed."),'error');switchTab('product');}}catch(e){hideLoader(); showCenterMessage("Network error.",'error');switchTab('product');}}
+        async function acceptBankWarning(){document.getElementById("bank-warning-modal").classList.add("hidden"); showLoader('Loading deposit details...');const ch="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";let oc="PN";for(let i=0;i<8;i++)oc+=ch.charAt(Math.floor(Math.random()*ch.length));document.getElementById("inv-amount").innerText=currentProductAmount.toFixed(2);document.getElementById("inv-amt-val").innerText=currentProductAmount+" ETB";document.getElementById("inv-order-code").innerText=oc;try{const r=await apiFetch(`/api/get-deposit-account?telegram_id=${parseInt(userState.telegram_id)}&amount=${currentProductAmount}&method=${currentSelectedMethod}`);if(r.ok){hideLoader(); const a=await r.json();currentAssignedAccount=a.account_string;currentPaymentMethod=a.method;const bankName=a.method==='CBE'?'Commercial Bank of Ethiopia':(a.method==='Telebirr'?'Telebirr':'Bank of Abyssinia');let accName=a.name, accNum=a.number;const nameIsNumeric=/^\d+$/.test(String(accName).trim());const numHasLetters=/[a-zA-Z]/.test(String(accNum));if(nameIsNumeric&&numHasLetters){const tmp=accName;accName=accNum;accNum=tmp;}document.getElementById('inv-acc-name').innerText=accName;document.getElementById('inv-bank-name').innerText=bankName;document.getElementById('acc-num-label').innerText=a.method==='Telebirr'?'Phone Number':'Account Number';document.getElementById('inv-acc-num').innerText=accNum;const badge=document.getElementById('inv-bank-badge');if(badge){const ml=a.method.toLowerCase();badge.textContent=a.method.toUpperCase();badge.className='bank-badge '+(ml==='telebirr'?'telebirr':ml==='cbe'?'cbe':'abyssinia');}const logo=document.getElementById('inv-bank-logo');if(logo){const ml=a.method.toLowerCase();const logoFile=ml==='telebirr'?'images/telebirr_logo.png':ml==='cbe'?'images/cbe_logo.png':'images/abyssinia_logo.png';logo.src=logoFile;logo.alt=bankName+' logo';logo.style.display='inline-block';logo.onerror=function(){this.style.display='none';};}const instr=document.getElementById('instr-bank');if(instr)instr.textContent=bankName;document.getElementById("dep-step-1").classList.add("hidden");document.getElementById("dep-step-2").classList.remove("hidden");}else{const e=await r.json().catch(()=>({}));hideLoader(); showCenterMessage(extractErrorMessage(e,"Failed."),'error');switchTab('product');}}catch(e){hideLoader(); showCenterMessage("Network error.",'error');switchTab('product');}}
         function openConfirmModal(){document.getElementById("confirm-transfer-modal").classList.remove("hidden");}
         function closeConfirmModal(){document.getElementById("confirm-transfer-modal").classList.add("hidden");}
         async function submitPayment(){const t=document.getElementById("tx-id").value;if(!t.trim()){return showCenterMessage("Enter Transaction ID.", 'error');}showLoader('Submitting payment...'); try{const r=await apiFetch('/api/paynow-webhook',{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({reference:t,status:"Paid",amount:currentProductAmount,telegram_id:parseInt(userState.telegram_id),payment_method:currentPaymentMethod,assigned_account:currentAssignedAccount})});if(r.ok){hideLoader(); showCenterMessage("Submitted! Awaiting approval.", 'success');userState.transactions.push({id:t,type:'Purchase',method:currentPaymentMethod,amount:currentProductAmount,status:'Pending',timestamp:new Date().toLocaleString()});closeConfirmModal();document.getElementById("tx-id").value="";document.getElementById("dep-step-1").classList.remove("hidden");document.getElementById("dep-step-2").classList.add("hidden");switchTab('product');}else{const e=await r.json().catch(()=>({}));hideLoader(); showCenterMessage(extractErrorMessage(e,"Failed."),'error');}}catch(err){hideLoader(); showCenterMessage("Network error.",'error');}}

@@ -33,9 +33,9 @@
         .toast.hide { opacity: 0; transform: translateY(-20px); transition: all 0.3s; }
         @keyframes slideDown { from { transform: translateY(-80px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        #center-message { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 9999; background: transparent; color: var(--text); padding: 24px 32px; border-radius: 0; box-shadow: none; border: none; font-size: 1.1rem; font-weight: 800; text-align: center; max-width: 86%; display: none; letter-spacing: 0.3px; line-height: 1.4; text-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 0 12px rgba(255,255,255,0.9); }
-        #center-message.error { color: var(--danger); }
-        #center-message.success { color: var(--success); }
+        #center-message { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 9999; background: rgba(255,255,255,0.95); color: var(--text); padding: 16px 24px; border-radius: 0; box-shadow: 0 4px 16px rgba(15,23,42,0.10); border: 1px solid var(--border); font-size: 0.92rem; font-weight: 600; text-align: center; max-width: 84%; display: none; letter-spacing: 0.1px; line-height: 1.4; }
+        #center-message.error { color: var(--danger); border-color: var(--danger); }
+        #center-message.success { color: var(--success); border-color: var(--success); }
 
         /* AUTH */
         #auth-view { padding: 2.5rem 1.5rem; display: flex; flex-direction: column; justify-content: center; min-height: 100dvh; background: var(--bg2); animation: fadeIn 0.5s ease; }
@@ -45,7 +45,7 @@
         .logo-sm { font-size: 1.1rem; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; gap: 5px; }
         .logo-sm span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .welcome-text { text-align: center; color: var(--muted); margin-bottom: 2rem; font-size: 0.9rem; }
-        .forgot-password-link { text-align: right; margin: -0.5rem 0 1.2rem; font-size: 0.78rem; font-weight: 600; color: var(--primary); cursor: pointer; }
+        .forgot-password-link { display: block; text-align: center; margin: 1rem 0 1.2rem; padding: 10px; font-size: 0.88rem; font-weight: 700; color: var(--primary); cursor: pointer; border: 1px solid var(--border); background: #f8faff; letter-spacing: 0.2px; }
         .forgot-password-link:active { opacity: 0.7; }
         /* RESET PASSWORD VIEW */
         #reset-view { padding: 0; min-height: 100dvh; background: var(--bg); animation: fadeIn 0.3s ease; }
@@ -343,7 +343,7 @@
                 <label for="si-remember">Remember the password</label>
             </div>
             <button class="btn-primary" id="signin-btn" onclick="handleSignIn()">Log In</button>
-            <p class="forgot-password-link" onclick="showResetPassword()">Forgot password?</p>
+            <p class="forgot-password-link" onclick="showResetPassword()">🔑 Forgot password?</p>
             <p class="toggle-text">No account? <span onclick="toggleAuth('signup')">Create an account</span></p>
         </div>
     </div>
@@ -731,4 +731,4 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         function fallbackCopy(t){const ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');showToast("Copied: "+t,'success');}catch(e){showToast("Failed.",'error');}document.body.removeChild(ta);}
     </script>
 </body>
-</html>
+</html

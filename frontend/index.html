@@ -636,9 +636,9 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         function copyLinkToken(){if(!__linkToken)return;copyText(__linkToken);showCenterMessage('Code copied! Paste it in the bot chat.','success');}
         function startLinkPolling(){clearLinkPolling();__linkPollTimer=setInterval(checkLinkStatus,3000);}
         function clearLinkPolling(){if(__linkPollTimer){clearInterval(__linkPollTimer);__linkPollTimer=null;}const ind=document.getElementById('link-waiting-indicator');if(ind)ind.style.display='none';}
-        async function checkLinkStatus(){if(!userState.phone_number)return;try{const r=await apiFetch('/api/check-link-status?phone='+encodeURIComponent(userState.phone_number));if(r.ok){const d=await r.json();if(d.linked){clearLinkPolling();userState.telegram_id=d.telegram_id;userState.telegram_linked=true;userState.telegram_chat_id=d.telegram_id;sessionStorage.setItem('ac_user_state',JSON.stringify(userState));document.getElementById('link-telegram-view').classList.add('hidden');showCenterMessage('Telegram linked! 300 ETB Bonus Awarded!','success');loginSuccess();}}}catch(err){}}
+        async function checkLinkStatus(){if(!userState.phone_number)return;try{const r=await apiFetch('/api/check-link-status?phone='+encodeURIComponent(userState.phone_number));if(r.ok){const d=await r.json();if(d.linked){clearLinkPolling();userState.telegram_id=d.telegram_id;sessionStorage.setItem('ac_user_state',JSON.stringify(userState));document.getElementById('link-telegram-view').classList.add('hidden');showCenterMessage('Telegram linked! 300 ETB Bonus Awarded!','success');loginSuccess();}}}catch(err){}}
         async function linkFromProfile(){showLoader('Generating link token...');try{const r=await apiFetch('/api/generate-link-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_number:userState.phone_number})});if(r.ok){const d=await r.json();hideLoader();__linkToken=d.link_token;userState.link_token=d.link_token;showLinkTelegramView(__linkToken);}else{const e=await r.json().catch(()=>({}));hideLoader();const m=extractErrorMessage(e,'Failed.');if(m.toLowerCase().includes('already')){showCenterMessage('Your account is already linked.','success');document.getElementById('profile-link-banner').style.display='none';}else{showCenterMessage(m,'error');}}}catch(err){hideLoader();showCenterMessage('Network error.','error');}}
-        function checkProfileBanner(){const banner=document.getElementById('profile-link-banner');if(!banner)return;if(!userState.telegram_linked){banner.style.display='flex';}else{banner.style.display='none';}}
+        function checkProfileBanner(){const banner=document.getElementById('profile-link-banner');if(!banner)return;const tid=userState.telegram_id;if(tid===null||tid===undefined||tid<0){banner.style.display='flex';}else{banner.style.display='none';}}
         // ===== END TELEGRAM LINKING FUNCTIONS =====
 
         // ===== PASSWORD RESET FUNCTIONS =====
@@ -730,7 +730,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
                 const res = await apiFetch('/api/login', { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ phone_number: phone, password: pass }) });
                 if (res.ok) {
                     const d = await res.json();
-                    userState.telegram_id=d.telegram_id||userState.telegram_id;userState.telegram_linked=d.telegram_linked||false;userState.telegram_chat_id=d.telegram_chat_id||null;
+                    userState.telegram_id=d.telegram_id||userState.telegram_id;
                     userState.total_balance=d.total_balance!==undefined?d.total_balance:300;
                     userState.telegram_username=d.telegram_username||phone;
                     userState.phone_number=phone;

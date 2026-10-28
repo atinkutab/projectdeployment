@@ -121,7 +121,6 @@ class User(Base):
     # Telegram linking (Phase 2 of password reset architecture)
     link_token = Column(String, nullable=True)  # temporary token for linking Telegram
     link_token_expires_at = Column(DateTime, nullable=True)  # 10-min TTL
-    telegram_chat_id = Column(BigInteger, nullable=True)  # REAL Telegram chat_id (for sending bot messages); NULL until linked
 
     balance = relationship("UserBalance", uselist=False, back_populates="user", cascade="all, delete-orphan")
     products = relationship("UserProduct", back_populates="user", cascade="all, delete-orphan")
@@ -218,8 +217,6 @@ def init_db():
         try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS link_token VARCHAR;"))
         except: pass
         try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS link_token_expires_at TIMESTAMP;"))
-        except: pass
-        try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_chat_id BIGINT;"))
         except: pass
         db.commit()
 
@@ -521,7 +518,7 @@ def admin_login(form_data: OAuth2PasswordRequestForm = Depends()):
 def _normalize_user_id(raw: str) -> Optional[str]:
     if raw is None: return None
     cleaned = raw.strip().rstrip("/")
-    if not re.match(r"^\d+$", cleaned): return None
+    if not re.match(r"^-?\d+$", cleaned): return None  # accept negative temp IDs too
     return cleaned
 
 async def _websocket_handler(websocket: WebSocket, user_id: str):
@@ -678,8 +675,6 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
     return {
         "message": "Login successful",
         "telegram_id": user.telegram_id,
-        "telegram_chat_id": user.telegram_chat_id,  # REAL Telegram chat_id (NULL if not linked)
-        "telegram_linked": user.telegram_chat_id is not None,  # True if user can receive bot messages
         "phone_number": user.phone_number,
         "telegram_username": user.telegram_username,
         "invitation_code": user.invitation_code,
@@ -941,11 +936,19 @@ async def telegram_webhook(request: dict, db: Session = Depends(get_db)):
                 return {"ok": True}
 
             # SUCCESS: Link the account!
-            # FIX: Don't change telegram_id (primary key) - that causes FK violations.
-            # Instead, store the REAL chat_id in telegram_chat_id column.
-            user.telegram_chat_id = from_id  # Store REAL chat_id for sending bot messages
+            old_temp_id = user.telegram_id
+            user.telegram_id = from_id  # Replace temp ID with REAL chat_id
             user.link_token = None  # Single-use token
             user.link_token_expires_at = None
+
+            # Update related tables that referenced the old temp ID
+            if old_temp_id and old_temp_id < 0:
+                db.query(UserBalance).filter(UserBalance.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                db.query(UserProduct).filter(UserProduct.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                db.query(Deposit).filter(Deposit.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                db.query(Withdrawal).filter(Withdrawal.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                db.query(TeamReferral).filter(TeamReferral.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                db.query(TeamReferral).filter(TeamReferral.inviter_id == old_temp_id).update({"inviter_id": from_id})
 
             db.commit()
 
@@ -980,11 +983,19 @@ async def telegram_webhook(request: dict, db: Session = Depends(get_db)):
                     return {"ok": True}
 
                 # SUCCESS: Link the account!
-                # FIX: Don't change telegram_id (primary key) - that causes FK violations.
-                # Instead, store the REAL chat_id in telegram_chat_id column.
-                user.telegram_chat_id = from_id
+                old_temp_id = user.telegram_id
+                user.telegram_id = from_id
                 user.link_token = None
                 user.link_token_expires_at = None
+
+                # Update related tables that referenced the old temp ID
+                if old_temp_id and old_temp_id < 0:
+                    db.query(UserBalance).filter(UserBalance.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                    db.query(UserProduct).filter(UserProduct.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                    db.query(Deposit).filter(Deposit.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                    db.query(Withdrawal).filter(Withdrawal.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                    db.query(TeamReferral).filter(TeamReferral.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                    db.query(TeamReferral).filter(TeamReferral.inviter_id == old_temp_id).update({"inviter_id": from_id})
 
                 db.commit()
 
@@ -1017,9 +1028,9 @@ def check_link_status(phone: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.phone_number == clean_phone).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
-    # Linked means telegram_chat_id is set (the real Telegram chat_id)
-    linked = user.telegram_chat_id is not None
-    return {"linked": linked, "telegram_id": user.telegram_chat_id if linked else None}
+    # A real Telegram chat_id is always positive. Temp IDs are negative.
+    linked = user.telegram_id is not None and user.telegram_id > 0
+    return {"linked": linked, "telegram_id": user.telegram_id if linked else None}
 
 
 @app.post("/api/generate-link-token")
@@ -1033,8 +1044,8 @@ def generate_new_link_token(payload: RequestResetOTPRequest, db: Session = Depen
     if not user:
         raise HTTPException(status_code=404, detail="No account found with this phone number.")
 
-    # If already linked (telegram_chat_id is set), no need
-    if user.telegram_chat_id is not None:
+    # If already linked with a real ID, no need
+    if user.telegram_id and user.telegram_id > 0:
         raise HTTPException(status_code=400, detail="Your account is already linked to Telegram.")
 
     # Generate fresh token
@@ -1057,8 +1068,8 @@ def request_reset_otp(payload: RequestResetOTPRequest, db: Session = Depends(get
     user = db.query(User).filter(User.phone_number == clean_phone).first()
     if not user:
         raise HTTPException(status_code=404, detail="No account found with this phone number.")
-    # Check if user has linked their real Telegram (telegram_chat_id must be set)
-    if not user.telegram_chat_id:
+    # Check if user has linked their real Telegram (telegram_id must be positive)
+    if not user.telegram_id or user.telegram_id < 0:
         raise HTTPException(status_code=400, detail="Your account is not linked to Telegram. Please link it first via the Profile page.")
     otp = generate_otp()
     user.password_reset_otp = otp
@@ -1072,7 +1083,7 @@ def request_reset_otp(payload: RequestResetOTPRequest, db: Session = Depends(get
         "If you didn't request this, please ignore this message.\n\n"
         "— WealthNest Team"
     )
-    sent = send_telegram_message(user.telegram_chat_id, message)
+    sent = send_telegram_message(user.telegram_id, message)
     if not sent:
         raise HTTPException(status_code=500, detail="Failed to send OTP. Please start @wealthnest_bot on Telegram first.")
     return {"message": "OTP sent to your Telegram account.", "phone_number": clean_phone}

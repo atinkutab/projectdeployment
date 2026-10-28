@@ -51,6 +51,12 @@
         .link-icon { font-size: 3rem; margin-bottom: 1rem; }
         .link-title { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 0.5rem; color: var(--text); }
         .link-desc { font-size: 0.88rem; color: var(--muted); line-height: 1.5; margin-bottom: 1.5rem; }
+        .link-token-box { background: #f8faff; border: 1px solid var(--primary); padding: 1rem; margin-bottom: 1.5rem; }
+        .link-token-label { font-size: 0.72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
+        .link-token-row { display: flex; align-items: center; gap: 8px; }
+        .link-token-row code { flex: 1; font-family: 'Courier New', monospace; font-size: 0.78rem; font-weight: 700; color: var(--primary); background: #fff; padding: 8px 10px; word-break: break-all; border: 1px dashed var(--border-l); }
+        .link-token-copy { background: var(--primary); color: #fff; border: none; padding: 8px 14px; border-radius: 0; font-weight: 700; font-size: 0.75rem; cursor: pointer; flex-shrink: 0; }
+        .link-token-copy:active { transform: scale(0.95); }
         .link-steps-list { text-align: left; background: #f8faff; border: 1px solid var(--border); padding: 1rem; margin-bottom: 1.5rem; }
         .link-steps-list p { font-size: 0.8rem; color: var(--text); margin-bottom: 0.5rem; line-height: 1.5; }
         .link-steps-list p:last-child { margin-bottom: 0; }
@@ -421,10 +427,14 @@
             <div class="link-icon">🔗</div>
             <div class="link-title">One Last Step!</div>
             <div class="link-desc">Link your Telegram account to enable password reset and secure your WealthNest account.</div>
+            <div class="link-token-box">
+                <div class="link-token-label">Your linking code:</div>
+                <div class="link-token-row"><code id="link-token-display">Loading...</code><button class="link-token-copy" onclick="copyLinkToken()">Copy</button></div>
+            </div>
             <div class="link-steps-list">
-                <p><strong>1.</strong> Tap "Open Telegram" below</p>
-                <p><strong>2.</strong> Telegram app opens → tap <strong>Start</strong></p>
-                <p><strong>3.</strong> Wait for confirmation message from our bot</p>
+                <p><strong>1.</strong> Tap "Open Telegram" below (or open @wealth_nest_bot manually)</p>
+                <p><strong>2.</strong> Send the code above as a message to the bot</p>
+                <p><strong>3.</strong> Wait for "✅ Account Linked!" reply from the bot</p>
                 <p><strong>4.</strong> Return here — you'll be logged in automatically</p>
             </div>
             <button class="btn-primary" id="open-telegram-btn" onclick="openTelegramForLinking()">📱 Open Telegram</button>
@@ -619,14 +629,15 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         // ===== TELEGRAM LINKING FUNCTIONS (Phase 2 of password reset) =====
         let __linkToken = null;
         let __linkPollTimer = null;
-        function showLinkTelegramView(token){__linkToken=token;document.getElementById('auth-view').classList.add('hidden');document.getElementById('link-telegram-view').classList.remove('hidden');}
+        function showLinkTelegramView(token){__linkToken=token;document.getElementById('auth-view').classList.add('hidden');document.getElementById('link-telegram-view').classList.remove('hidden');const td=document.getElementById('link-token-display');if(td)td.textContent=token||'No token';}
         function cancelLinkTelegram(){clearLinkPolling();document.getElementById('link-telegram-view').classList.add('hidden');document.getElementById('auth-view').classList.remove('hidden');const sb=document.getElementById('signup-btn');if(sb){sb.innerHTML='Create Account';sb.disabled=false;}}
         function skipLinkTelegram(){clearLinkPolling();document.getElementById('link-telegram-view').classList.add('hidden');showCenterMessage('Account created! You can link Telegram later from Profile.','success');loginSuccess();}
         function openTelegramForLinking(){if(!__linkToken){return showCenterMessage('No link token. Please register again.','error');}const url='https://t.me/wealth_nest_bot?start='+__linkToken;window.open(url,'_blank');document.getElementById('link-waiting-indicator').style.display='flex';startLinkPolling();}
+        function copyLinkToken(){if(!__linkToken)return;copyText(__linkToken);showCenterMessage('Code copied! Paste it in the bot chat.','success');}
         function startLinkPolling(){clearLinkPolling();__linkPollTimer=setInterval(checkLinkStatus,3000);}
         function clearLinkPolling(){if(__linkPollTimer){clearInterval(__linkPollTimer);__linkPollTimer=null;}const ind=document.getElementById('link-waiting-indicator');if(ind)ind.style.display='none';}
         async function checkLinkStatus(){if(!userState.phone_number)return;try{const r=await apiFetch('/api/check-link-status?phone='+encodeURIComponent(userState.phone_number));if(r.ok){const d=await r.json();if(d.linked){clearLinkPolling();userState.telegram_id=d.telegram_id;sessionStorage.setItem('ac_user_state',JSON.stringify(userState));document.getElementById('link-telegram-view').classList.add('hidden');showCenterMessage('Telegram linked! 300 ETB Bonus Awarded!','success');loginSuccess();}}}catch(err){}}
-        async function linkFromProfile(){showLoader('Generating link token...');try{const r=await apiFetch('/api/generate-link-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_number:userState.phone_number})});if(r.ok){const d=await r.json();hideLoader();__linkToken=d.link_token;userState.link_token=d.link_token;const url='https://t.me/wealth_nest_bot?start='+__linkToken;window.open(url,'_blank');showCenterMessage('Opened Telegram. Tap Start to link.','success');startLinkPolling();}else{const e=await r.json().catch(()=>({}));hideLoader();const m=extractErrorMessage(e,'Failed.');if(m.toLowerCase().includes('already')){showCenterMessage('Your account is already linked.','success');document.getElementById('profile-link-banner').style.display='none';}else{showCenterMessage(m,'error');}}}catch(err){hideLoader();showCenterMessage('Network error.','error');}}
+        async function linkFromProfile(){showLoader('Generating link token...');try{const r=await apiFetch('/api/generate-link-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_number:userState.phone_number})});if(r.ok){const d=await r.json();hideLoader();__linkToken=d.link_token;userState.link_token=d.link_token;showLinkTelegramView(__linkToken);}else{const e=await r.json().catch(()=>({}));hideLoader();const m=extractErrorMessage(e,'Failed.');if(m.toLowerCase().includes('already')){showCenterMessage('Your account is already linked.','success');document.getElementById('profile-link-banner').style.display='none';}else{showCenterMessage(m,'error');}}}catch(err){hideLoader();showCenterMessage('Network error.','error');}}
         function checkProfileBanner(){const banner=document.getElementById('profile-link-banner');if(!banner)return;const tid=userState.telegram_id;if(tid===null||tid===undefined||tid<0){banner.style.display='flex';}else{banner.style.display='none';}}
         // ===== END TELEGRAM LINKING FUNCTIONS =====
 

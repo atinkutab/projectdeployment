@@ -959,10 +959,57 @@ async def telegram_webhook(request: dict, db: Session = Depends(get_db)):
                 "— WealthNest Team")
             return {"ok": True}
 
+        # Check if the message is a link_token (for existing chats where deep link doesn't work)
+        # This allows users to copy-paste the token and send it as a regular message
+        if text and len(text) >= 20 and len(text) <= 50:
+            user = db.query(User).filter(User.link_token == text).first()
+            if user:
+                # Found a user with this link_token! Check expiry
+                if user.link_token_expires_at and datetime.utcnow() > user.link_token_expires_at:
+                    user.link_token = None
+                    user.link_token_expires_at = None
+                    db.commit()
+                    send_telegram_message(from_id,
+                        "❌ Your link token has expired (10-minute limit).\n\n"
+                        "Please register on the WealthNest website again to get a fresh link.")
+                    return {"ok": True}
+
+                # Check if this Telegram account is already linked to another user
+                existing = db.query(User).filter(User.telegram_id == from_id).first()
+                if existing and existing.phone_number != user.phone_number:
+                    send_telegram_message(from_id,
+                        "❌ This Telegram account is already linked to another WealthNest account.\n\n"
+                        "Please use a different Telegram account or contact support.")
+                    return {"ok": True}
+
+                # SUCCESS: Link the account!
+                old_temp_id = user.telegram_id
+                user.telegram_id = from_id
+                user.link_token = None
+                user.link_token_expires_at = None
+
+                # Update related tables that referenced the old temp ID
+                if old_temp_id and old_temp_id < 0:
+                    db.query(UserBalance).filter(UserBalance.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                    db.query(UserProduct).filter(UserProduct.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                    db.query(Deposit).filter(Deposit.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                    db.query(Withdrawal).filter(Withdrawal.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                    db.query(TeamReferral).filter(TeamReferral.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                    db.query(TeamReferral).filter(TeamReferral.inviter_id == old_temp_id).update({"inviter_id": from_id})
+
+                db.commit()
+
+                send_telegram_message(from_id,
+                    "✅ <b>Account Linked Successfully!</b>\n\n"
+                    f"Your WealthNest account ({user.phone_number}) is now connected to this Telegram.\n\n"
+                    "You can now return to the website to continue.\n\n"
+                    "— WealthNest Team")
+                return {"ok": True}
+
         # Handle other messages (just echo a help message)
         send_telegram_message(from_id,
             "👋 This is the WealthNest bot.\n\n"
-            "If you need to link your account, please register on the website and click the \"Open Telegram\" button.\n\n"
+            "To link your account, copy the code from the website and send it here as a message.\n\n"
             "For support, contact our customer service.")
         return {"ok": True}
 

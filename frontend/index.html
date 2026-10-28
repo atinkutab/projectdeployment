@@ -45,11 +45,33 @@
         .logo-sm { font-size: 1.1rem; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; gap: 5px; }
         .logo-sm span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .welcome-text { text-align: center; color: var(--muted); margin-bottom: 2rem; font-size: 0.9rem; }
+        /* LINK TELEGRAM VIEW */
+        #link-telegram-view { padding: 0; min-height: 100dvh; background: var(--bg); animation: fadeIn 0.3s ease; }
+        .link-step { padding: 2rem 1.5rem; max-width: 360px; margin: 0 auto; text-align: center; }
+        .link-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .link-title { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 0.5rem; color: var(--text); }
+        .link-desc { font-size: 0.88rem; color: var(--muted); line-height: 1.5; margin-bottom: 1.5rem; }
+        .link-steps-list { text-align: left; background: #f8faff; border: 1px solid var(--border); padding: 1rem; margin-bottom: 1.5rem; }
+        .link-steps-list p { font-size: 0.8rem; color: var(--text); margin-bottom: 0.5rem; line-height: 1.5; }
+        .link-steps-list p:last-child { margin-bottom: 0; }
+        .link-steps-list strong { color: var(--primary); }
+        .link-waiting { margin-top: 1rem; font-size: 0.82rem; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .link-waiting-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); animation: link-pulse 1.4s ease-in-out infinite; }
+        @keyframes link-pulse { 0%,100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+        /* PROFILE BANNER (for unlinked existing users) */
+        .link-banner { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 1px solid #f59e0b; padding: 0.8rem 1rem; margin: 0 0.75rem 0.7rem; display: flex; align-items: center; gap: 10px; font-size: 0.78rem; color: #92400e; }
+        .link-banner-icon { font-size: 1.2rem; flex-shrink: 0; }
+        .link-banner-text { flex: 1; line-height: 1.4; }
+        .link-banner-btn { background: #92400e; color: #fff; border: none; padding: 6px 12px; border-radius: 0; font-weight: 700; font-size: 0.72rem; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+        .link-banner-btn:active { transform: scale(0.95); }
         .forgot-password-link { display: block; text-align: center; margin: 1rem 0 1.2rem; padding: 10px; font-size: 0.88rem; font-weight: 700; color: var(--primary); cursor: pointer; border: 1px solid var(--border); background: #f8faff; letter-spacing: 0.2px; }
         .forgot-password-link:active { opacity: 0.7; }
         /* RESET PASSWORD VIEW */
         #reset-view { padding: 0; min-height: 100dvh; background: var(--bg); animation: fadeIn 0.3s ease; }
         .reset-step { padding: 1.5rem; max-width: 360px; margin: 0 auto; }
+        .reset-inline-msg { margin-top: 1rem; padding: 12px 14px; font-size: 0.82rem; font-weight: 600; text-align: left; border-radius: 0; line-height: 1.4; display: none; }
+        .reset-inline-msg.error { background: rgba(239,68,68,0.08); color: var(--danger); border: 1px solid rgba(239,68,68,0.30); }
+        .reset-inline-msg.success { background: rgba(30,64,175,0.08); color: var(--primary); border: 1px solid rgba(30,64,175,0.30); }
         .reset-step-title { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 0.4rem; color: var(--text); }
         .reset-step-desc { font-size: 0.85rem; color: var(--muted); margin-bottom: 1.5rem; line-height: 1.5; }
         .otp-input-group { display: flex; gap: 8px; justify-content: center; margin: 1rem 0; }
@@ -355,7 +377,7 @@
         <div id="reset-step-1" class="reset-step">
             <div class="reset-step-title">Forgot Password</div>
             <div class="reset-step-desc">Enter your registered phone number. We'll send a 6-digit verification code to your Telegram account.</div>
-            <div class="bot-start-notice">⚠️ Make sure you have started the <a href="https://t.me/wealthnest_bot" target="_blank">@wealthnest_bot</a> on Telegram, otherwise you won't receive the code.</div>
+            <div class="bot-start-notice">⚠️ Your account must be linked to Telegram. If you haven't linked it yet, go to <strong>Profile → Link Now</strong> after logging in.</div>
             <div class="form-group">
                 <div class="input-prefix-group" id="rp-phone-group">
                     <span class="input-prefix">+251 9</span>
@@ -363,6 +385,7 @@
                 </div>
             </div>
             <button class="btn-primary" onclick="requestResetOTP()">Send OTP via Telegram</button>
+            <div class="reset-inline-msg" id="reset-msg-1"></div>
         </div>
         <!-- Step 2: OTP Verification -->
         <div id="reset-step-2" class="reset-step hidden">
@@ -378,6 +401,7 @@
             </div>
             <p class="toggle-text">Didn't receive the code? <span onclick="requestResetOTP(true)">Resend OTP</span></p>
             <button class="btn-primary" onclick="verifyResetOTP()">Verify Code</button>
+            <div class="reset-inline-msg" id="reset-msg-2"></div>
         </div>
         <!-- Step 3: New Password -->
         <div id="reset-step-3" class="reset-step hidden">
@@ -386,6 +410,26 @@
             <div class="form-group"><input type="password" id="rp-new-pass" class="input-field" placeholder="Enter new password" oninput="checkResetPasswordLive()"></div>
             <div class="form-group"><input type="password" id="rp-new-pass2" class="input-field" placeholder="Confirm new password" oninput="checkResetPasswordLive()"></div>
             <button class="btn-primary" onclick="resetPassword()">Reset Password</button>
+            <div class="reset-inline-msg" id="reset-msg-3"></div>
+        </div>
+    </div>
+
+    <!-- LINK TELEGRAM VIEW (shown after registration) -->
+    <div id="link-telegram-view" class="hidden">
+        <div class="top-nav-bar"><div class="nav-left-group"><button class="nav-back-btn" onclick="cancelLinkTelegram()">‹</button><div class="nav-title">Link Telegram</div></div></div>
+        <div class="link-step">
+            <div class="link-icon">🔗</div>
+            <div class="link-title">One Last Step!</div>
+            <div class="link-desc">Link your Telegram account to enable password reset and secure your WealthNest account.</div>
+            <div class="link-steps-list">
+                <p><strong>1.</strong> Tap "Open Telegram" below</p>
+                <p><strong>2.</strong> Telegram app opens → tap <strong>Start</strong></p>
+                <p><strong>3.</strong> Wait for confirmation message from our bot</p>
+                <p><strong>4.</strong> Return here — you'll be logged in automatically</p>
+            </div>
+            <button class="btn-primary" id="open-telegram-btn" onclick="openTelegramForLinking()">📱 Open Telegram</button>
+            <div class="link-waiting" id="link-waiting-indicator" style="display:none;"><span class="link-waiting-dot"></span> Waiting for Telegram confirmation...</div>
+            <p class="toggle-text" style="margin-top: 1.5rem;">Didn't link? <span onclick="skipLinkTelegram()">Skip for now</span></p>
         </div>
     </div>
 
@@ -469,6 +513,7 @@
         <!-- PROFILE TAB -->
         <div id="view-profile" class="app-view hidden">
             <div class="view-header"><div class="view-title">Profile</div></div>
+            <div class="link-banner" id="profile-link-banner" style="display:none;"><span class="link-banner-icon">⚠️</span><span class="link-banner-text">Your account isn't linked to Telegram. Link it to enable password reset.</span><button class="link-banner-btn" onclick="linkFromProfile()">Link Now</button></div>
             <div class="balance-container">
                 <div class="bal-main-row">
                     <div>
@@ -571,16 +616,32 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         function showToast(msg, type = 'info') { const c = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = `toast ${type}`; t.innerText = typeof msg === 'string' ? msg : extractErrorMessage(msg); c.appendChild(t); setTimeout(() => { t.classList.add('hide'); setTimeout(() => t.remove(), 300); }, 4000); }
         function showCenterMessage(msg, type = 'info') { const c = document.getElementById('center-message'); c.textContent = msg; c.className = type; c.style.display = 'block'; setTimeout(() => { c.style.display = 'none'; }, 4000); }
         function copyAllDetails(){const name=document.getElementById('inv-acc-name').innerText;const num=document.getElementById('inv-acc-num').innerText;const amt=document.getElementById('inv-amt-val').innerText;const oc=document.getElementById('inv-order-code').innerText;const bank=document.getElementById('inv-bank-name').innerText;const text=`Bank: ${bank}\nAccount Name: ${name}\nAccount Number: ${num}\nAmount: ${amt}\nOrder Code: ${oc}`;copyText(text);}
+        // ===== TELEGRAM LINKING FUNCTIONS (Phase 2 of password reset) =====
+        let __linkToken = null;
+        let __linkPollTimer = null;
+        function showLinkTelegramView(token){__linkToken=token;document.getElementById('auth-view').classList.add('hidden');document.getElementById('link-telegram-view').classList.remove('hidden');}
+        function cancelLinkTelegram(){clearLinkPolling();document.getElementById('link-telegram-view').classList.add('hidden');document.getElementById('auth-view').classList.remove('hidden');const sb=document.getElementById('signup-btn');if(sb){sb.innerHTML='Create Account';sb.disabled=false;}}
+        function skipLinkTelegram(){clearLinkPolling();document.getElementById('link-telegram-view').classList.add('hidden');showCenterMessage('Account created! You can link Telegram later from Profile.','success');loginSuccess();}
+        function openTelegramForLinking(){if(!__linkToken){return showCenterMessage('No link token. Please register again.','error');}const url='https://t.me/wealth_nest_bot?start='+__linkToken;window.open(url,'_blank');document.getElementById('link-waiting-indicator').style.display='flex';startLinkPolling();}
+        function startLinkPolling(){clearLinkPolling();__linkPollTimer=setInterval(checkLinkStatus,3000);}
+        function clearLinkPolling(){if(__linkPollTimer){clearInterval(__linkPollTimer);__linkPollTimer=null;}const ind=document.getElementById('link-waiting-indicator');if(ind)ind.style.display='none';}
+        async function checkLinkStatus(){if(!userState.phone_number)return;try{const r=await apiFetch('/api/check-link-status?phone='+encodeURIComponent(userState.phone_number));if(r.ok){const d=await r.json();if(d.linked){clearLinkPolling();userState.telegram_id=d.telegram_id;sessionStorage.setItem('ac_user_state',JSON.stringify(userState));document.getElementById('link-telegram-view').classList.add('hidden');showCenterMessage('Telegram linked! 300 ETB Bonus Awarded!','success');loginSuccess();}}}catch(err){}}
+        async function linkFromProfile(){showLoader('Generating link token...');try{const r=await apiFetch('/api/generate-link-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_number:userState.phone_number})});if(r.ok){const d=await r.json();hideLoader();__linkToken=d.link_token;userState.link_token=d.link_token;const url='https://t.me/wealth_nest_bot?start='+__linkToken;window.open(url,'_blank');showCenterMessage('Opened Telegram. Tap Start to link.','success');startLinkPolling();}else{const e=await r.json().catch(()=>({}));hideLoader();const m=extractErrorMessage(e,'Failed.');if(m.toLowerCase().includes('already')){showCenterMessage('Your account is already linked.','success');document.getElementById('profile-link-banner').style.display='none';}else{showCenterMessage(m,'error');}}}catch(err){hideLoader();showCenterMessage('Network error.','error');}}
+        function checkProfileBanner(){const banner=document.getElementById('profile-link-banner');if(!banner)return;const tid=userState.telegram_id;if(tid===null||tid===undefined||tid<0){banner.style.display='flex';}else{banner.style.display='none';}}
+        // ===== END TELEGRAM LINKING FUNCTIONS =====
+
         // ===== PASSWORD RESET FUNCTIONS =====
         let __resetPhoneNumber = '';
+        function showResetMessage(step, msg, type){const el=document.getElementById('reset-msg-'+step); if(!el) return showCenterMessage(msg, type); el.textContent=msg; el.className='reset-inline-msg '+type; el.style.display='block'; if(type==='success'){setTimeout(()=>{el.style.display='none';},3000);}}
+        function hideResetMessage(step){const el=document.getElementById('reset-msg-'+step); if(el) el.style.display='none';}
         function showResetPassword(){document.getElementById('auth-view').classList.add('hidden');document.getElementById('reset-view').classList.remove('hidden');showResetStep(1);}
         function hideResetPassword(){document.getElementById('reset-view').classList.add('hidden');document.getElementById('auth-view').classList.remove('hidden');const rp=document.getElementById('rp-phone');if(rp)rp.value='';const rnp=document.getElementById('rp-new-pass');if(rnp)rnp.value='';const rnp2=document.getElementById('rp-new-pass2');if(rnp2)rnp2.value='';for(let i=1;i<=6;i++){const d=document.getElementById('otp-'+i);if(d)d.value='';}}
         function showResetStep(n){for(let i=1;i<=3;i++){const s=document.getElementById('reset-step-'+i);if(s)s.classList.toggle('hidden',i!==n);}window.scrollTo(0,0);}
         function moveOTPFocus(curr,nextId){if(curr.value.length===1){const next=document.getElementById(nextId);if(next)next.focus();}}
         function checkResetPasswordLive(){const p1=document.getElementById('rp-new-pass'),p2=document.getElementById('rp-new-pass2');if(p1.value.length>0&&p2.value.length>0&&p1.value!==p2.value){p1.classList.add('input-error');p2.classList.add('input-error');}else{p1.classList.remove('input-error');p2.classList.remove('input-error');}}
-        async function requestResetOTP(isResend){const pr=document.getElementById('rp-phone').value,pd=pr.replace(/\D/g,'');if(!validatePhoneLive(pr,'rp-phone','rp-phone-group')){return showCenterMessage('Invalid phone number.','error');}const phone='+2519'+pd;__resetPhoneNumber=phone;showLoader(isResend?'Resending OTP...':'Sending OTP...');try{const r=await apiFetch('/api/request-reset-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_number:phone})});if(r.ok){hideLoader();showCenterMessage('OTP sent to your Telegram!','success');showResetStep(2);setTimeout(()=>{const d=document.getElementById('otp-1');if(d)d.focus();},100);}else{const e=await r.json().catch(()=>({}));hideLoader();const m=extractErrorMessage(e,'Failed to send OTP.');if(m.toLowerCase().includes('not found')||m.toLowerCase().includes('no user')){showCenterMessage('No account found with this phone number.','error');}else if(m.toLowerCase().includes('bot')||m.toLowerCase().includes('telegram')){showCenterMessage('Please start @wealthnest_bot on Telegram first.','error');}else{showCenterMessage(m,'error');}}}catch(err){hideLoader();showCenterMessage('Network error.','error');}}
-        async function verifyResetOTP(){let otp='';for(let i=1;i<=6;i++){const d=document.getElementById('otp-'+i);const v=(d.value||'').trim();if(!v){return showCenterMessage('Enter all 6 digits.','error');}otp+=v;}showLoader('Verifying code...');try{const r=await apiFetch('/api/verify-reset-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_number:__resetPhoneNumber,otp:otp})});if(r.ok){hideLoader();showCenterMessage('Code verified!','success');showResetStep(3);}else{const e=await r.json().catch(()=>({}));hideLoader();const m=extractErrorMessage(e,'Invalid code.');showCenterMessage(m,'error');for(let i=1;i<=6;i++){const d=document.getElementById('otp-'+i);d.classList.add('input-error');}setTimeout(()=>{for(let i=1;i<=6;i++){const d=document.getElementById('otp-'+i);d.classList.remove('input-error');}},1500);}}catch(err){hideLoader();showCenterMessage('Network error.','error');}}
-        async function resetPassword(){const p1=document.getElementById('rp-new-pass').value,p2=document.getElementById('rp-new-pass2').value;if(p1.length<6){document.getElementById('rp-new-pass').classList.add('input-error');return showCenterMessage('Password must be at least 6 characters.','error');}if(p1!==p2){return showCenterMessage('Passwords do not match.','error');}showLoader('Resetting password...');try{const r=await apiFetch('/api/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_number:__resetPhoneNumber,new_password:p1})});if(r.ok){hideLoader();showCenterMessage('Password reset successfully! Please log in.','success');setTimeout(()=>{hideResetPassword();toggleAuth('signin');},1500);}else{const e=await r.json().catch(()=>({}));hideLoader();showCenterMessage(extractErrorMessage(e,'Reset failed.'),'error');}}catch(err){hideLoader();showCenterMessage('Network error.','error');}}
+        async function requestResetOTP(isResend){const pr=document.getElementById('rp-phone').value,pd=pr.replace(/\D/g,'');if(!validatePhoneLive(pr,'rp-phone','rp-phone-group')){return showResetMessage(1,'Invalid phone number.','error');}const phone='+2519'+pd;__resetPhoneNumber=phone;hideResetMessage(1);showLoader(isResend?'Resending OTP...':'Sending OTP...');try{const r=await apiFetch('/api/request-reset-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_number:phone})});if(r.ok){hideLoader();showResetMessage(1,'OTP sent to your Telegram! Check your messages.','success');showResetStep(2);setTimeout(()=>{const d=document.getElementById('otp-1');if(d)d.focus();},100);}else{const e=await r.json().catch(()=>({}));hideLoader();const m=extractErrorMessage(e,'Failed to send OTP.');showResetMessage(1,m,'error');}}catch(err){hideLoader();showResetMessage(1,'Network error. Please try again.','error');}}
+        async function verifyResetOTP(){let otp='';for(let i=1;i<=6;i++){const d=document.getElementById('otp-'+i);const v=(d.value||'').trim();if(!v){return showResetMessage(2,'Enter all 6 digits.','error');}otp+=v;}hideResetMessage(2);showLoader('Verifying code...');try{const r=await apiFetch('/api/verify-reset-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_number:__resetPhoneNumber,otp:otp})});if(r.ok){hideLoader();showResetMessage(2,'Code verified!','success');showResetStep(3);}else{const e=await r.json().catch(()=>({}));hideLoader();const m=extractErrorMessage(e,'Invalid code.');showResetMessage(2,m,'error');for(let i=1;i<=6;i++){const d=document.getElementById('otp-'+i);d.classList.add('input-error');}setTimeout(()=>{for(let i=1;i<=6;i++){const d=document.getElementById('otp-'+i);d.classList.remove('input-error');}},1500);}}catch(err){hideLoader();showResetMessage(2,'Network error. Please try again.','error');}}
+        async function resetPassword(){const p1=document.getElementById('rp-new-pass').value,p2=document.getElementById('rp-new-pass2').value;if(p1.length<6){document.getElementById('rp-new-pass').classList.add('input-error');return showResetMessage(3,'Password must be at least 6 characters.','error');}if(p1!==p2){return showResetMessage(3,'Passwords do not match.','error');}hideResetMessage(3);showLoader('Resetting password...');try{const r=await apiFetch('/api/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_number:__resetPhoneNumber,new_password:p1})});if(r.ok){hideLoader();showResetMessage(3,'Password reset successfully! Redirecting to login...','success');setTimeout(()=>{hideResetPassword();toggleAuth('signin');},2000);}else{const e=await r.json().catch(()=>({}));hideLoader();showResetMessage(3,extractErrorMessage(e,'Reset failed.'),'error');}}catch(err){hideLoader();showResetMessage(3,'Network error. Please try again.','error');}}
         // ===== END PASSWORD RESET FUNCTIONS =====
 
         function showLoader(text) { const l = document.getElementById('wn-loader'); const t = document.getElementById('wn-loader-text'); if (t && text) t.textContent = text; if (l) l.classList.remove('hidden'); }
@@ -639,10 +700,11 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
             if (p1 !== p2) { showCenterMessage("Passwords do not match.", 'error'); return; }
             const phone = "+2519" + pd, btn = document.getElementById("signup-btn");
             btn.disabled = true; btn.innerHTML = 'Please wait...'; showLoader('Creating your account...');
-            const tid = Math.floor(Math.random()*1e9)+1e8, up = new URLSearchParams(window.location.search), ic = (up.get('start')||up.get('invite')||'').trim();
+            // ARCHITECTURE CHANGE: No longer send fake telegram_id. Server returns link_token instead.
+            const up = new URLSearchParams(window.location.search), ic = (up.get('start')||up.get('invite')||'').trim();
             try {
-                const res = await apiFetch('/api/register', { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ telegram_id: tid, phone_number: phone, password: p1, inviter_code: ic }) });
-                if (res.ok) { const d = await res.json(); userState.telegram_id = d.telegram_id; userState.total_balance = d.registration_bonus; userState.telegram_username = phone; userState.phone_number = phone; userState.invite_code = d.invitation_code; hideLoader(); showCenterMessage("300 ETB Bonus Awarded!", 'success'); loginSuccess(); }
+                const res = await apiFetch('/api/register', { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ phone_number: phone, password: p1, inviter_code: ic }) });
+                if (res.ok) { const d = await res.json(); userState.telegram_id = d.telegram_id; userState.total_balance = d.registration_bonus; userState.telegram_username = phone; userState.phone_number = phone; userState.invite_code = d.invitation_code; userState.link_token = d.link_token; hideLoader(); if (d.telegram_linked) { showCenterMessage("300 ETB Bonus Awarded!", 'success'); loginSuccess(); } else { showLinkTelegramView(d.link_token); } }
                 else { const e = await res.json().catch(()=>({})); const m = extractErrorMessage(e,"Registration failed."); if (res.status===400||m.toLowerCase().includes("already")) { showCenterMessage("Account exists! Please log in.", 'error'); toggleAuth('signin'); } else showCenterMessage(m,'error'); hideLoader(); btn.innerHTML='Create Account'; btn.disabled=false; }
             } catch(err) { showCenterMessage("Network error.", 'error'); hideLoader(); btn.innerHTML='Create Account'; btn.disabled=false; }
         }
@@ -682,7 +744,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         function handleLogout(){confirmLogout();}
                 function confirmLogout(){if(socket)socket.close();sessionStorage.removeItem("ac_user_state");__currentTab='product';__tabStack=[];const sb=document.getElementById("signin-btn");if(sb){sb.innerHTML='Log In';sb.disabled=false;}const sp=document.getElementById("signup-btn");if(sp){sp.innerHTML='Create Account';sp.disabled=false;}const p=document.getElementById("si-phone"),s=document.getElementById("si-pass"),r=document.getElementById("si-remember");if(p)p.value="";if(s)s.value="";if(r)r.checked=false;document.getElementById("dashboard-view").classList.add("hidden");document.getElementById("auth-view").classList.remove("hidden");}
 
-        function initApp(){renderProducts();document.getElementById("user-invite-code").innerText=userState.invite_code;document.getElementById("user-invite-link-display").innerText=`${APP_BASE_URL}/?start=${userState.invite_code}`;updateBalances();updateMineStats();updateReferralStats();updatePurchasedProductImage();}
+        function initApp(){renderProducts();document.getElementById("user-invite-code").innerText=userState.invite_code;document.getElementById("user-invite-link-display").innerText=`${APP_BASE_URL}/?start=${userState.invite_code}`;updateBalances();updateMineStats();updateReferralStats();updatePurchasedProductImage();checkProfileBanner();}
         function updateReferralStats(){const vc=userState.valid_referrals||0,ii=userState.invite_income||0,fi=`${ii.toFixed(2)} ETB`;const a=document.getElementById("ref-table-count");if(a)a.innerText=vc;const b=document.getElementById("ref-table-income");if(b)b.innerText=fi;const c=document.getElementById("ref-valid-count");if(c)c.innerText=vc;const d=document.getElementById("ref-invite-income");if(d)d.innerText=fi;}
         function updateMineStats(){const ps=userState.products||[];const md=document.getElementById("mine-device-count"); if(md) md.innerText=ps.length; const mi=document.getElementById("mine-income-sum"); if(mi) mi.innerText=`ETB ${ps.reduce((s,p)=>s+p.daily_income,0).toLocaleString()}`;}
         function updatePurchasedProductImage(){const container=document.getElementById('purchased-product-display'); if(!container) return; const ps=userState.products||[]; if(ps.length===0){container.style.display='none'; return;} const latest=ps[ps.length-1]; const catalogItem=products.find(p=>p.name===latest.name); if(!catalogItem) return; const img=document.getElementById('purchased-product-img'); const cap=document.getElementById('purchased-product-caption'); if(img){img.src=catalogItem.img; img.alt=latest.name;} if(cap){cap.innerText=`${latest.name} • Daily: ${latest.daily_income} ETB`;} container.style.display='block';}
@@ -731,4 +793,4 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         function fallbackCopy(t){const ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');showToast("Copied: "+t,'success');}catch(e){showToast("Failed.",'error');}document.body.removeChild(ta);}
     </script>
 </body>
-</html
+</html>

@@ -15,6 +15,7 @@ import re
 import random
 import string
 import hashlib
+import secrets  # cryptographically secure random (for link tokens)
 import importlib
 from datetime import datetime, timedelta
 from contextlib import asynccontextmanager
@@ -117,6 +118,9 @@ class User(Base):
     wd_account_number = Column(String, nullable=True)
     password_reset_otp = Column(String, nullable=True)
     otp_expires_at = Column(DateTime, nullable=True)
+    # Telegram linking (Phase 2 of password reset architecture)
+    link_token = Column(String, nullable=True)  # temporary token for linking Telegram
+    link_token_expires_at = Column(DateTime, nullable=True)  # 10-min TTL
 
     balance = relationship("UserBalance", uselist=False, back_populates="user", cascade="all, delete-orphan")
     products = relationship("UserProduct", back_populates="user", cascade="all, delete-orphan")
@@ -209,6 +213,10 @@ def init_db():
         try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_otp VARCHAR;"))
         except: pass
         try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires_at TIMESTAMP;"))
+        except: pass
+        try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS link_token VARCHAR;"))
+        except: pass
+        try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS link_token_expires_at TIMESTAMP;"))
         except: pass
         db.commit()
 
@@ -384,6 +392,11 @@ def generate_otp() -> str:
     """Generate a 6-digit OTP code."""
     return "".join(random.choices(string.digits, k=6))
 
+
+def generate_link_token() -> str:
+    """Generate a cryptographically secure link token (32 chars)."""
+    return secrets.token_urlsafe(24)  # ~32 chars, URL-safe, unguessable
+
 # --- BACKGROUND JOB ---
 async def process_yields():
     db = SessionLocal()
@@ -558,14 +571,20 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
         if existing_username:
             raise HTTPException(status_code=400, detail="This Telegram username is already registered. Please log in or use a different username.")
 
-    target_tg_id = payload.telegram_id
-    if target_tg_id:
-        if db.query(User).filter(User.telegram_id == target_tg_id).first():
+    # ARCHITECTURE CHANGE: We no longer fake the telegram_id.
+    # Instead, we set it to NULL and generate a link_token.
+    # The user must link their real Telegram via the bot to get a real telegram_id.
+    # This enables Telegram-based OTP for password reset.
+    if payload.telegram_id:
+        # If telegram_id is provided (e.g., from Telegram Web App), use it
+        if db.query(User).filter(User.telegram_id == payload.telegram_id).first():
             raise HTTPException(status_code=400, detail="This Telegram ID is already registered.")
+        target_tg_id = payload.telegram_id
+        link_token_value = None  # already linked, no token needed
     else:
-        target_tg_id = random.randint(100000000, 999999999)
-        while db.query(User).filter(User.telegram_id == target_tg_id).first():
-            target_tg_id = random.randint(100000000, 999999999)
+        # Web registration: telegram_id is NULL until user links via bot
+        target_tg_id = None
+        link_token_value = generate_link_token()
 
     new_code = generate_invitation_code()
     while db.query(User).filter(User.invitation_code == new_code).first():
@@ -576,9 +595,27 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
     new_user = User(
         telegram_id=target_tg_id, telegram_username=formatted_username, phone_number=clean_phone,
         password_hash=hash_password(payload.password), invitation_code=new_code,
-        invitation_link=invitation_link
+        invitation_link=invitation_link,
+        link_token=link_token_value,
+        link_token_expires_at=(datetime.utcnow() + timedelta(minutes=10)) if link_token_value else None
     )
     db.add(new_user)
+    # NOTE: telegram_id is NULL for web users, so we cannot use it as primary key reference yet.
+    # We use phone_number as the temporary identifier until linking completes.
+    db.flush()
+
+    # For web users (telegram_id is NULL), we need a temporary primary key.
+    # Strategy: assign a temporary negative ID based on phone hash, then update when linked.
+    # Actually, since telegram_id is the primary key, we cannot insert NULL.
+    # SOLUTION: Use a temporary placeholder ID (negative random) until linking.
+    if target_tg_id is None:
+        # Generate a temporary negative ID (will be replaced with real one on linking)
+        # Use a large negative number to avoid collisions with real Telegram IDs
+        temp_id = -(random.randint(100000000, 999999999))
+        while db.query(User).filter(User.telegram_id == temp_id).first():
+            temp_id = -(random.randint(100000000, 999999999))
+        new_user.telegram_id = temp_id
+
     db.flush()
 
     bonus_setting = db.query(Setting).filter(Setting.key == "registration_bonus").first()
@@ -599,6 +636,8 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
         "invitation_code": new_user.invitation_code,
         "invitation_link": new_user.invitation_link,
         "registration_bonus": bonus,
+        "link_token": link_token_value,  # frontend uses this to build the deep link
+        "telegram_linked": target_tg_id is not None and target_tg_id > 0,
     }
 
 @app.post("/api/login")
@@ -827,6 +866,153 @@ def request_withdrawal(payload: WithdrawalRequest, db: Session = Depends(get_db)
     db.commit()
     return {"message": "Withdrawal request submitted. Waiting for admin approval."}
 
+# --- TELEGRAM LINKING ENDPOINTS (Phase 2 of password reset architecture) ---
+
+@app.post("/api/telegram-webhook")
+async def telegram_webhook(request: dict, db: Session = Depends(get_db)):
+    """
+    Telegram webhook endpoint.
+
+    ARCHITECTURE:
+    1. User opens t.me/wealth_nest_bot?start={link_token} in Telegram
+    2. User taps Start → Telegram sends /start {link_token} to the bot
+    3. Telegram forwards this message to OUR webhook (this endpoint)
+    4. We extract the REAL chat_id from the message
+    5. We look up the User by link_token
+    6. We update User.telegram_id with the REAL chat_id (replacing the temp negative ID)
+    7. We send a confirmation message back to the user via Telegram
+
+    Setup: Register this webhook with Telegram by calling setWebhook once:
+      POST https://api.telegram.org/bot{TOKEN}/setWebhook?url=https://YOUR_SERVER/api/telegram-webhook
+    """
+    try:
+        message = request.get("message") or request.get("edited_message")
+        if not message:
+            return {"ok": True}  # ignore non-message updates
+
+        from_id = message.get("from", {}).get("id")
+        text = message.get("text", "").strip()
+
+        if not from_id or not text:
+            return {"ok": True}
+
+        # Handle /start {link_token} command
+        if text.startswith("/start"):
+            parts = text.split(maxsplit=1)
+            link_token = parts[1].strip() if len(parts) > 1 else ""
+
+            if not link_token:
+                # User started bot without a token — just say hello
+                send_telegram_message(from_id,
+                    "👋 Welcome to WealthNest Bot!\n\n"
+                    "This bot is used for account verification and password reset.\n"
+                    "Please register on our website first, then click the \"Open Telegram\" button to link your account.")
+                return {"ok": True}
+
+            # Look up user by link_token
+            user = db.query(User).filter(User.link_token == link_token).first()
+            if not user:
+                send_telegram_message(from_id,
+                    "❌ Invalid or expired link token.\n\n"
+                    "Please register on the WealthNest website again to get a fresh link.")
+                return {"ok": True}
+
+            # Check token expiry
+            if user.link_token_expires_at and datetime.utcnow() > user.link_token_expires_at:
+                user.link_token = None
+                user.link_token_expires_at = None
+                db.commit()
+                send_telegram_message(from_id,
+                    "❌ Your link token has expired (10-minute limit).\n\n"
+                    "Please register on the WealthNest website again to get a fresh link.")
+                return {"ok": True}
+
+            # Check if this Telegram account is already linked to another user
+            existing = db.query(User).filter(User.telegram_id == from_id).first()
+            if existing and existing.phone_number != user.phone_number:
+                send_telegram_message(from_id,
+                    "❌ This Telegram account is already linked to another WealthNest account.\n\n"
+                    "Please use a different Telegram account or contact support.")
+                return {"ok": True}
+
+            # SUCCESS: Link the account!
+            old_temp_id = user.telegram_id
+            user.telegram_id = from_id  # Replace temp ID with REAL chat_id
+            user.link_token = None  # Single-use token
+            user.link_token_expires_at = None
+
+            # Update related tables that referenced the old temp ID
+            if old_temp_id and old_temp_id < 0:
+                db.query(UserBalance).filter(UserBalance.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                db.query(UserProduct).filter(UserProduct.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                db.query(Deposit).filter(Deposit.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                db.query(Withdrawal).filter(Withdrawal.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                db.query(TeamReferral).filter(TeamReferral.telegram_id == old_temp_id).update({"telegram_id": from_id})
+                db.query(TeamReferral).filter(TeamReferral.inviter_id == old_temp_id).update({"inviter_id": from_id})
+
+            db.commit()
+
+            send_telegram_message(from_id,
+                "✅ <b>Account Linked Successfully!</b>\n\n"
+                f"Your WealthNest account ({user.phone_number}) is now connected to this Telegram.\n\n"
+                "You can now return to the website to continue.\n\n"
+                "— WealthNest Team")
+            return {"ok": True}
+
+        # Handle other messages (just echo a help message)
+        send_telegram_message(from_id,
+            "👋 This is the WealthNest bot.\n\n"
+            "If you need to link your account, please register on the website and click the \"Open Telegram\" button.\n\n"
+            "For support, contact our customer service.")
+        return {"ok": True}
+
+    except Exception as e:
+        print(f"Webhook error: {e}")
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/api/check-link-status")
+def check_link_status(phone: str, db: Session = Depends(get_db)):
+    """
+    Frontend polls this endpoint after registration to check if Telegram linking is complete.
+    Returns {linked: true/false} based on whether telegram_id is a real (positive) ID.
+    """
+    clean_phone = phone.strip()
+    user = db.query(User).filter(User.phone_number == clean_phone).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    # A real Telegram chat_id is always positive. Temp IDs are negative.
+    linked = user.telegram_id is not None and user.telegram_id > 0
+    return {"linked": linked, "telegram_id": user.telegram_id if linked else None}
+
+
+@app.post("/api/generate-link-token")
+def generate_new_link_token(payload: RequestResetOTPRequest, db: Session = Depends(get_db)):
+    """
+    Generate a fresh link_token for an EXISTING user (e.g., for the Profile page banner).
+    Used when an existing user (with a fake/temp telegram_id) wants to link their Telegram.
+    """
+    clean_phone = payload.phone_number.strip()
+    user = db.query(User).filter(User.phone_number == clean_phone).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with this phone number.")
+
+    # If already linked with a real ID, no need
+    if user.telegram_id and user.telegram_id > 0:
+        raise HTTPException(status_code=400, detail="Your account is already linked to Telegram.")
+
+    # Generate fresh token
+    user.link_token = generate_link_token()
+    user.link_token_expires_at = datetime.utcnow() + timedelta(minutes=10)
+    db.commit()
+
+    return {
+        "message": "Link token generated. Open Telegram to link your account.",
+        "link_token": user.link_token,
+        "expires_in_minutes": 10
+    }
+
+
 # --- PASSWORD RESET ENDPOINTS ---
 
 @app.post("/api/request-reset-otp")
@@ -835,8 +1021,9 @@ def request_reset_otp(payload: RequestResetOTPRequest, db: Session = Depends(get
     user = db.query(User).filter(User.phone_number == clean_phone).first()
     if not user:
         raise HTTPException(status_code=404, detail="No account found with this phone number.")
-    if not user.telegram_id:
-        raise HTTPException(status_code=400, detail="Please start @wealthnest_bot on Telegram first, then try again.")
+    # Check if user has linked their real Telegram (telegram_id must be positive)
+    if not user.telegram_id or user.telegram_id < 0:
+        raise HTTPException(status_code=400, detail="Your account is not linked to Telegram. Please link it first via the Profile page.")
     otp = generate_otp()
     user.password_reset_otp = otp
     user.otp_expires_at = datetime.utcnow() + timedelta(minutes=10)

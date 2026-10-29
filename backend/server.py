@@ -665,8 +665,8 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
             "price": p.product_price,
             "daily_income": p.daily_income,
             "purchase_time": eth_time.strftime("%Y-%m-%d %H:%M:%S"),
-            "validity_days": 60,
-            "total_earning": p.daily_income * 60
+            "validity_days": 35,
+            "total_earning": p.daily_income * 35
         })
     
     # NEW: Count valid referrals (invitees whose first deposit has been approved) for the inviter
@@ -857,7 +857,7 @@ def request_withdrawal(payload: WithdrawalRequest, db: Session = Depends(get_db)
     if payload.amount > balance.available_balance:
         raise HTTPException(status_code=400, detail="Withdrawal failed. You can only withdraw your registration bonus and earned income. Please purchase a product to activate daily income.")
     
-    fee = payload.amount * 0.20
+    fee = payload.amount * 0.12
     payout = payload.amount - fee
 
     balance.total_balance -= payload.amount

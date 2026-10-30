@@ -442,7 +442,7 @@ async def lifespan(app: FastAPI):
     yield_task.cancel()
 
 # --- APP ---
-app = FastAPI(title="AssetCore Backend", version="1.0", lifespan=lifespan, redirect_slashes=False)
+app = FastAPI(title="WealthNest Backend", version="1.0", lifespan=lifespan, redirect_slashes=False)
 
 app.add_middleware(
     CORSMiddleware,
@@ -461,7 +461,7 @@ def get_db():
 def root():
     return {
         "status": "ok",
-        "service": "AssetCore Backend",
+        "service": "WealthNest Backend",
         "frontend": FRONTEND_BASE_URL,
         "docs": "/docs",
         "endpoints": ["/api/status", "/api/health", "/api/register", "/api/login", "/api/leaderboard", "/ws/{user_id}"]
@@ -469,7 +469,7 @@ def root():
 
 @app.get("/api/status")
 def api_status():
-    return {"status": "ok", "message": "AssetCore Backend is running"}
+    return {"status": "ok", "message": "WealthNest Backend is running"}
 
 @app.get("/api/health")
 def health_check():

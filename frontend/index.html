@@ -27,14 +27,14 @@
         a { color: var(--primary); text-decoration: none; }
 
         #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 8px; }
-        .toast { background: transparent; color: var(--text); padding: 14px 20px; border-radius: 0; box-shadow: none; border: none; font-size: 0.95rem; font-weight: 600; text-align: center; animation: slideDown 0.3s ease; letter-spacing: 0.2px; text-shadow: 0 1px 4px rgba(0,0,0,0.10), 0 0 12px rgba(255,255,255,0.92); }
+        .toast { background: transparent; color: var(--text); padding: 14px 20px; border-radius: 0; box-shadow: none; border: none; font-size: 0.95rem; font-weight: 600; text-align: center; animation: slideDown 0.3s ease; letter-spacing: 0.2px; }
         .toast.success { color: #10b981; }
         .toast.error { color: #ef4444; }
         .toast.hide { opacity: 0; transform: translateY(-20px); transition: all 0.3s; }
         @keyframes slideDown { from { transform: translateY(-80px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes centerSlideDown { from { transform: translate(-50%, -30px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 
-        #center-message { position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; background: transparent; color: var(--text); padding: 14px 20px; border-radius: 0; box-shadow: none; border: none; font-size: 0.95rem; font-weight: 600; text-align: center; max-width: 86%; display: none; letter-spacing: 0.2px; line-height: 1.4; text-shadow: 0 1px 4px rgba(0,0,0,0.10), 0 0 12px rgba(255,255,255,0.92); animation: centerSlideDown 0.3s ease; }
+        #center-message { position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; background: transparent; color: var(--text); padding: 14px 20px; border-radius: 0; box-shadow: none; border: none; font-size: 0.95rem; font-weight: 600; text-align: center; max-width: 86%; display: none; letter-spacing: 0.2px; line-height: 1.4; animation: centerSlideDown 0.3s ease; }
         #center-message.error { color: #ef4444; }
         #center-message.success { color: #10b981; }
 

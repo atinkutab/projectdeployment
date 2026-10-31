@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - AssetCore</title>
+    <title>Admin Panel - WealthNest</title>
     <style>
         :root {
             --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; --text-muted: #94a3b8;
@@ -15,9 +15,9 @@
         .container { max-width: 1000px; margin: 0 auto; }
         .card { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; }
         h1, h2, h3 { margin-bottom: 15px; color: var(--text); }
-        input, select, textarea { 
-            width: 100%; padding: 12px; margin-bottom: 15px; 
-            background: var(--bg); border: 1px solid var(--border); 
+        input, select, textarea {
+            width: 100%; padding: 12px; margin-bottom: 15px;
+            background: var(--bg); border: 1px solid var(--border);
             border-radius: 8px; color: var(--text); font-size: 14px;
         }
         .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; margin-right: 5px; }
@@ -39,14 +39,37 @@
         .toast.error { border-left-color: var(--danger); }
         .toast.hide { opacity: 0; transform: translateY(-20px); }
         @keyframes slideDown { from { transform: translateY(-100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* CONFIRM MODAL */
+        .confirm-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(3px); }
+        .confirm-overlay.active { display: flex; }
+        .confirm-box { background: var(--card-bg); padding: 24px; border-radius: 16px; max-width: 360px; width: 90%; text-align: center; border: 1px solid var(--border); box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+        .confirm-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .confirm-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .confirm-text { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.6; white-space: pre-line; }
+        .confirm-actions { display: flex; gap: 10px; }
+        .confirm-actions .btn { flex: 1; margin: 0; }
     </style>
 </head>
 <body>
     <div id="toast-container"></div>
 
+    <!-- CONFIRM MODAL -->
+    <div class="confirm-overlay" id="confirm-overlay">
+        <div class="confirm-box">
+            <div class="confirm-icon" id="confirm-icon">⚠️</div>
+            <div class="confirm-title" id="confirm-title">Are you sure?</div>
+            <div class="confirm-text" id="confirm-text">This action cannot be undone.</div>
+            <div class="confirm-actions">
+                <button class="btn" style="background:var(--border);color:var(--text);" onclick="closeConfirm()">Cancel</button>
+                <button class="btn btn-danger" id="confirm-ok-btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
-        <h1>AssetCore Admin Panel</h1>
-        
+        <h1>WealthNest Admin Panel</h1>
+
         <div id="login-view" class="card" style="max-width: 400px; margin: 50px auto;">
             <h2>Admin Login</h2>
             <input type="text" id="admin-user" placeholder="Username">
@@ -81,7 +104,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>ID</th><th>User ID</th><th>Amount</th><th>Fee (20%)</th><th>Payout</th><th>Method</th><th>Account Details</th><th>Actions</th>
+                            <th>ID</th><th>User ID</th><th>Requested Amount</th><th>Withdrawal Fee (12%)</th><th>User Receives</th><th>Method</th><th>Account Details</th><th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="withdrawals-tbody"></tbody>
@@ -116,14 +139,14 @@
                         <textarea id="set-pool" rows="6" placeholder="CBE, Platform Admin, 1000123456789&#10;Telebirr, John Doe, 0911223344&#10;Abyssinia, Jane Doe, 1000987654321"></textarea>
                     </div>
                 </div>
-                <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+                <button class="btn btn-primary" onclick="confirmSaveSettings()">Save Settings</button>
             </div>
 
             <!-- NEW: System Tab -->
             <div id="tab-system" class="card hidden">
                 <h2>System Controls</h2>
                 <p style="margin-bottom: 20px; color: var(--text-muted);">If the daily yield balance hasn't increased for users after 24 hours (due to server sleep), click the button below to manually trigger the yield processing.</p>
-                <button class="btn btn-success" onclick="processYieldsManually()">Process Missing Yields Now</button>
+                <button class="btn btn-success" onclick="confirmProcessYields()">Process Missing Yields Now</button>
             </div>
         </div>
     </div>
@@ -131,6 +154,7 @@
     <script>
         const API_URL = "https://projectdeployment-1-yuwq.onrender.com";
         let token = localStorage.getItem("admin_token");
+        let pendingAction = null; // Stores the action to execute after confirm
 
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
@@ -140,6 +164,27 @@
             container.appendChild(toast);
             setTimeout(() => { toast.classList.add('hide'); setTimeout(() => toast.remove(), 300); }, 3000);
         }
+
+        // ===== CONFIRM MODAL =====
+        function showConfirm(icon, title, text, onConfirm) {
+            document.getElementById('confirm-icon').innerText = icon;
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-text').innerText = text;
+            pendingAction = onConfirm;
+            const okBtn = document.getElementById('confirm-ok-btn');
+            // Reset classes
+            okBtn.className = 'btn btn-danger';
+            document.getElementById('confirm-overlay').classList.add('active');
+        }
+        function closeConfirm() {
+            document.getElementById('confirm-overlay').classList.remove('active');
+            pendingAction = null;
+        }
+        function confirmAction() {
+            if (pendingAction) { pendingAction(); }
+            closeConfirm();
+        }
+        document.getElementById('confirm-ok-btn').onclick = confirmAction;
 
         if (token) {
             document.getElementById("login-view").classList.add("hidden");
@@ -192,7 +237,7 @@
                 tbody.innerHTML = "";
                 if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">No pending deposits</td></tr>`; return; }
                 data.forEach(d => {
-                    tbody.innerHTML += `<tr><td>${d.id}</td><td>${d.telegram_id}</td><td>${d.amount_etb} ETB</td><td>${d.transaction_id}</td><td>${d.payment_method}</td><td>${d.assigned_account || 'N/A'}</td><td>${d.status}</td><td><button class="btn btn-success" onclick="approveDeposit(${d.id})">Approve</button><button class="btn btn-danger" onclick="rejectDeposit(${d.id})">Reject</button></td></tr>`;
+                    tbody.innerHTML += `<tr><td>${d.id}</td><td>${d.telegram_id}</td><td>${d.amount_etb} ETB</td><td>${d.transaction_id}</td><td>${d.payment_method}</td><td>${d.assigned_account || 'N/A'}</td><td>${d.status}</td><td><button class="btn btn-success" onclick="confirmApproveDeposit(${d.id})">Approve</button><button class="btn btn-danger" onclick="confirmRejectDeposit(${d.id})">Reject</button></td></tr>`;
                 });
             } catch (e) { console.error(e); }
         }
@@ -206,7 +251,10 @@
                 tbody.innerHTML = "";
                 if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">No pending withdrawals</td></tr>`; return; }
                 data.forEach(w => {
-                    tbody.innerHTML += `<tr><td>${w.id}</td><td>${w.telegram_id}</td><td>${w.amount} ETB</td><td>${w.fee || 0} ETB</td><td>${w.payout_amount || w.amount} ETB</td><td>${w.method}</td><td>${w.account_details}</td><td><button class="btn btn-success" onclick="approveWithdrawal(${w.id})">Approve</button><button class="btn btn-danger" onclick="rejectWithdrawal(${w.id})">Reject</button></td></tr>`;
+                    const amt = parseFloat(w.amount) || 0;
+                    const fee = parseFloat(w.fee) || (amt * 0.12);
+                    const payout = parseFloat(w.payout_amount) || (amt - fee);
+                    tbody.innerHTML += `<tr><td>${w.id}</td><td>${w.telegram_id}</td><td><strong style="color:var(--text);">${amt.toFixed(2)} ETB</strong></td><td><strong style="color:var(--danger);">${fee.toFixed(2)} ETB</strong></td><td><strong style="color:var(--success);">${payout.toFixed(2)} ETB</strong></td><td>${w.method}</td><td>${w.account_details}</td><td><button class="btn btn-success" onclick="confirmApproveWithdrawal(${w.id}, ${amt.toFixed(2)}, ${fee.toFixed(2)}, ${payout.toFixed(2)})">Approve</button><button class="btn btn-danger" onclick="confirmRejectWithdrawal(${w.id}, ${amt.toFixed(2)}, ${fee.toFixed(2)}, ${payout.toFixed(2)})">Reject</button></td></tr>`;
                 });
             } catch (e) { console.error(e); }
         }
@@ -234,6 +282,28 @@
                 document.getElementById("set-comm").value = data.commission_rate || "";
                 document.getElementById("set-pool").value = data.deposit_account_pool || "";
             } catch (e) { console.error(e); }
+        }
+
+        // ===== CONFIRM WRAPPERS FOR ACTIONS =====
+        function confirmApproveDeposit(id) {
+            showConfirm('✅', 'Approve Deposit?', `Deposit ID #${id} will be approved. The user's balance will be increased.`, () => approveDeposit(id));
+        }
+        function confirmRejectDeposit(id) {
+            showConfirm('❌', 'Reject Deposit?', `Deposit ID #${id} will be rejected. The user will be notified.`, () => rejectDeposit(id));
+        }
+        function confirmApproveWithdrawal(id, amt, fee, payout) {
+            const detailText = `Withdrawal ID #${id}\n\nRequested: ${amt} ETB\nFee (12%): ${fee} ETB\nUser Receives: ${payout} ETB\n\nFunds will be marked as sent.`;
+            showConfirm('✅', 'Approve Withdrawal?', detailText, () => approveWithdrawal(id));
+        }
+        function confirmRejectWithdrawal(id, amt, fee, payout) {
+            const detailText = `Withdrawal ID #${id}\n\nRequested: ${amt} ETB\nFee (12%): ${fee} ETB\nUser Receives: ${payout} ETB\n\nThe full amount (${amt} ETB) will be refunded to the user's balance.`;
+            showConfirm('❌', 'Reject Withdrawal?', detailText, () => rejectWithdrawal(id));
+        }
+        function confirmSaveSettings() {
+            showConfirm('💾', 'Save Settings?', 'Platform settings will be updated immediately. This affects all users.', () => saveSettings());
+        }
+        function confirmProcessYields() {
+            showConfirm('⚡', 'Process Yields?', 'This will trigger yield processing for all eligible users (24h passed). Users who already received yields will be ignored.', () => processYieldsManually());
         }
 
         async function approveDeposit(id) {

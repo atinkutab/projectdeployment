@@ -499,7 +499,7 @@
                 <div class="nav-left-group"><button class="nav-back-btn" onclick="switchTab('product')">‹</button><div class="nav-title">Recharge</div></div>
             </div>
             <div id="dep-step-1" class="dep-step">
-                <h3 class="section-title">Payment amount (Min ETB 650)</h3>
+                <h3 class="section-title">Payment amount (Min ETB 1200)</h3>
                 <div class="quick-amounts">
                     <button class="btn-quick-amt" onclick="selectQuickAmount(1200, this)">1200</button>
                     <button class="btn-quick-amt" onclick="selectQuickAmount(2600, this)">2600</button>
@@ -509,7 +509,7 @@
                 <div class="input-prefix-group"><span class="input-prefix">ETB</span><input type="number" id="dep-amount-input" placeholder="Please enter the amount"></div>
                 <button class="btn-black" onclick="proceedToPayment()">Continue to Payment</button>
                 <div class="payment-notes">
-                    <p>1. Minimum recharge is 650 ETB.</p>
+                    <p>1. Minimum recharge is 1200 ETB.</p>
                     <p>2. Do not modify account info in background.</p>
                     <p>3. Follow payment instructions exactly.</p>
                     <p>4. If funds not received in 10 min, contact support.</p>
@@ -650,7 +650,7 @@
 Welcome to WealthNest, Ethiopia's most trusted investment platform💯.
 ▼ Invite friends to invest and earn up to 30% commission.
 🎁 Sign-up Bonus: 300 Ethiopian Birr.
-🔥 Invest 650 Ethiopian Birr and instantly withdraw 300 Ethiopian Birr.
+🔥 Invest 1200 Ethiopian Birr and instantly withdraw 300 Ethiopian Birr.
 🎁 No time restrictions, 24/7 service.
 ❤️ All products can be purchased multiple times.
 🎬 Referral Commission: 30%
@@ -703,7 +703,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
 
         // ===== FAQ CHATBOT =====
         const FAQ_QUESTIONS = [
-            { q: "How do I deposit/recharge?", a: "To deposit:\n1. Go to the Recharge tab\n2. Enter the amount (min 650 ETB)\n3. Tap \"Continue to Payment\"\n4. Select your bank (CBE, Telebirr, or Abyssinia)\n5. Transfer the exact amount to the account shown\n6. Put the Order Code in your transfer remarks\n7. Tap \"I've Paid — Submit Receipt\" and enter your Transaction ID\n\nYour deposit will be approved within 10-30 minutes." },
+            { q: "How do I deposit/recharge?", a: "To deposit:\n1. Go to the Recharge tab\n2. Enter the amount (min 1200 ETB)\n3. Tap \"Continue to Payment\"\n4. Select your bank (CBE, Telebirr, or Abyssinia)\n5. Transfer the exact amount to the account shown\n6. Put the Order Code in your transfer remarks\n7. Tap \"I've Paid — Submit Receipt\" and enter your Transaction ID\n\nYour deposit will be approved within 10-30 minutes." },
             { q: "What's the withdrawal fee?", a: "The withdrawal fee is 12%.\n\nFor example:\n• Withdraw 1,000 ETB → Fee: 120 ETB → You receive: 880 ETB\n• Withdraw 5,000 ETB → Fee: 600 ETB → You receive: 4,400 ETB\n\nMinimum withdrawal: 300 ETB." },
             { q: "How long does withdrawal take?", a: "Withdrawals are processed within 24 hours after you submit the request.\n\nYou'll receive a notification via the website when your withdrawal is approved or rejected. The funds will be sent to your saved CBE account." },
             { q: "How does the referral program work?", a: "Earn 30% of your friend's first deposit instantly!\n\n1. Go to Profile → Referral Program\n2. Copy your Invitation Code or Invitation Link\n3. Share it with friends\n4. When they register and make their first deposit, you get 30% commission\n\nExample: Friend deposits 2,600 ETB → You earn 780 ETB instantly!" },
@@ -847,7 +847,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
 
         async function buyProduct(name,price,daily,days,total){showLoader('Activating product...'); try{const res=await apiFetch('/api/buy-product',{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({telegram_id:parseInt(userState.telegram_id),product_name:name,product_price:price,daily_income:daily})});if(res.ok){hideLoader(); const d=await res.json();userState.total_balance=d.new_balance;updateBalances();if(!userState.products)userState.products=[];const e=new Date(Date.now()+(3*3600000));userState.products.push({name,price,daily_income:daily,purchase_time:e.toISOString().slice(0,19).replace('T',' '),validity_days:days,total_earning:total});updateMineStats();updatePurchasedProductImage();sessionStorage.setItem("ac_user_state",JSON.stringify(userState));showCenterMessage(`${name} activated!`, 'success');switchTab('myproduct');}else{const e=await res.json().catch(()=>({}));const m=extractErrorMessage(e,"Purchase failed.");if(m.toLowerCase().includes("insufficient")){hideLoader(); showCenterMessage("Deposit first!", 'error');selectQuickAmount(price);switchTab('recharge');}else {hideLoader(); showCenterMessage(m,'error');}}}catch(err){hideLoader(); showCenterMessage("Network error.", 'error');}}
         function selectQuickAmount(a,b){currentProductAmount=a;document.getElementById("dep-amount-input").value=a;document.querySelectorAll(".btn-quick-amt").forEach(x=>x.classList.remove("active"));if(b)b.classList.add("active");else document.querySelectorAll(".btn-quick-amt").forEach(x=>{if(parseInt(x.innerText)===a)x.classList.add("active");});}
-        function proceedToPayment(){const a=parseFloat(document.getElementById("dep-amount-input").value);if(isNaN(a)||a<650||a>100000){return showCenterMessage("Amount must be 650–100,000 ETB.", 'error');}if(a>1000&&a<1600){return showCenterMessage("Telebirr max 1000, CBE/Abyssinia min 1600.", 'error');}currentProductAmount=a;if(a>=1600){document.getElementById("method-select-amount").innerText=a.toFixed(2);document.getElementById("select-method-modal").classList.remove("hidden");}else triggerBankWarning("Telebirr");}
+        function proceedToPayment(){const a=parseFloat(document.getElementById("dep-amount-input").value);if(isNaN(a)||a<1200||a>100000){return showCenterMessage("Amount must be 1200–100,000 ETB.", 'error');}if(a>1200&&a<1600){return showCenterMessage("Telebirr max 1200, CBE/Abyssinia min 1600.", 'error');}currentProductAmount=a;if(a>=1600){document.getElementById("method-select-amount").innerText=a.toFixed(2);document.getElementById("select-method-modal").classList.remove("hidden");}else triggerBankWarning("Telebirr");}
         function closeMethodSelect(){document.getElementById("select-method-modal").classList.add("hidden");}
         function confirmMethodSelection(m){document.getElementById("select-method-modal").classList.add("hidden");triggerBankWarning(m);}
         function triggerBankWarning(m){currentSelectedMethod=m;document.getElementById("bank-warning-modal").classList.remove("hidden");}

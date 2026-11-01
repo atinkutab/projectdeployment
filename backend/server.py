@@ -15,7 +15,7 @@ import re
 import random
 import string
 import hashlib
-import secrets  # cryptographically secure random (for link tokens)
+import secrets
 import importlib
 from datetime import datetime, timedelta
 from contextlib import asynccontextmanager
@@ -45,7 +45,6 @@ ADMIN_USERNAME = os.environ["ADMIN_USERNAME"]
 ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
 ADMIN_PASSWORD_HASH = hashlib.sha256(ADMIN_PASSWORD.encode()).hexdigest()
 
-# Telegram Bot for password reset OTP
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
 FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "https://assetcore-et.vercel.app")
@@ -118,10 +117,9 @@ class User(Base):
     wd_account_number = Column(String, nullable=True)
     password_reset_otp = Column(String, nullable=True)
     otp_expires_at = Column(DateTime, nullable=True)
-    # Telegram linking (Phase 2 of password reset architecture)
-    link_token = Column(String, nullable=True)  # temporary token for linking Telegram
-    link_token_expires_at = Column(DateTime, nullable=True)  # 10-min TTL
-    telegram_chat_id = Column(BigInteger, nullable=True)  # REAL Telegram chat_id (for sending bot messages); NULL until linked
+    link_token = Column(String, nullable=True)
+    link_token_expires_at = Column(DateTime, nullable=True)
+    telegram_chat_id = Column(BigInteger, nullable=True)
 
     balance = relationship("UserBalance", uselist=False, back_populates="user", cascade="all, delete-orphan")
     products = relationship("UserProduct", back_populates="user", cascade="all, delete-orphan")
@@ -357,21 +355,16 @@ def create_access_token(data: dict):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-# --- NEW HELPER: Convert UTC datetime to Ethiopian local time (UTC+3) in 24-hour format ---
 def to_ethiopian_24h_str(dt: Optional[datetime]) -> str:
-    """Convert a naive UTC datetime to Ethiopian local time (UTC+3) and format as 24-hour string."""
     if dt is None:
         return ""
     eth_time = dt + timedelta(hours=3)
     return eth_time.strftime("%Y-%m-%d %H:%M:%S")
 
-
-# --- TELEGRAM BOT HELPER (for password reset OTP) ---
 import urllib.request
 import urllib.parse
 
 def send_telegram_message(chat_id: int, text: str) -> bool:
-    """Send a message via the WealthNest Telegram bot. Returns True on success."""
     if not TELEGRAM_BOT_TOKEN:
         print("WARNING: TELEGRAM_BOT_TOKEN not set, cannot send Telegram message.")
         return False
@@ -390,17 +383,11 @@ def send_telegram_message(chat_id: int, text: str) -> bool:
         print(f"Telegram send error: {e}")
         return False
 
-
 def generate_otp() -> str:
-    """Generate a 6-digit OTP code."""
     return "".join(random.choices(string.digits, k=6))
 
-
 def generate_link_token() -> str:
-    """Generate a cryptographically secure link token (32 chars)."""
-    return secrets.token_urlsafe(24)  # ~32 chars, URL-safe, unguessable
-
-# --- BACKGROUND JOB ---
+    return secrets.token_urlsafe(24)# --- BACKGROUND JOB ---
 async def process_yields():
     db = SessionLocal()
     try:
@@ -521,7 +508,7 @@ def admin_login(form_data: OAuth2PasswordRequestForm = Depends()):
 def _normalize_user_id(raw: str) -> Optional[str]:
     if raw is None: return None
     cleaned = raw.strip().rstrip("/")
-    if not re.match(r"^-?\d+$", cleaned): return None  # accept negative temp IDs too
+    if not re.match(r"^-?\d+$", cleaned): return None
     return cleaned
 
 async def _websocket_handler(websocket: WebSocket, user_id: str):
@@ -574,18 +561,12 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
         if existing_username:
             raise HTTPException(status_code=400, detail="This Telegram username is already registered. Please log in or use a different username.")
 
-    # ARCHITECTURE CHANGE: We no longer fake the telegram_id.
-    # Instead, we set it to NULL and generate a link_token.
-    # The user must link their real Telegram via the bot to get a real telegram_id.
-    # This enables Telegram-based OTP for password reset.
     if payload.telegram_id:
-        # If telegram_id is provided (e.g., from Telegram Web App), use it
         if db.query(User).filter(User.telegram_id == payload.telegram_id).first():
             raise HTTPException(status_code=400, detail="This Telegram ID is already registered.")
         target_tg_id = payload.telegram_id
-        link_token_value = None  # already linked, no token needed
+        link_token_value = None
     else:
-        # Web registration: telegram_id is NULL until user links via bot
         target_tg_id = None
         link_token_value = generate_link_token()
 
@@ -603,17 +584,9 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
         link_token_expires_at=(datetime.utcnow() + timedelta(minutes=10)) if link_token_value else None
     )
     db.add(new_user)
-    # NOTE: telegram_id is NULL for web users, so we cannot use it as primary key reference yet.
-    # We use phone_number as the temporary identifier until linking completes.
     db.flush()
 
-    # For web users (telegram_id is NULL), we need a temporary primary key.
-    # Strategy: assign a temporary negative ID based on phone hash, then update when linked.
-    # Actually, since telegram_id is the primary key, we cannot insert NULL.
-    # SOLUTION: Use a temporary placeholder ID (negative random) until linking.
     if target_tg_id is None:
-        # Generate a temporary negative ID (will be replaced with real one on linking)
-        # Use a large negative number to avoid collisions with real Telegram IDs
         temp_id = -(random.randint(100000000, 999999999))
         while db.query(User).filter(User.telegram_id == temp_id).first():
             temp_id = -(random.randint(100000000, 999999999))
@@ -625,7 +598,6 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
     bonus = float(bonus_setting.value) if bonus_setting else 300.0
     db.add(UserBalance(telegram_id=new_user.telegram_id, registration_bonus=bonus, total_balance=bonus, available_balance=bonus))
 
-    # Referral creation — relies on frontend passing inviter_code from URL (?start= or ?invite=)
     if payload.inviter_code:
         inviter = db.query(User).filter(User.invitation_code == payload.inviter_code).first()
         if inviter and inviter.telegram_id != new_user.telegram_id:
@@ -639,7 +611,7 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
         "invitation_code": new_user.invitation_code,
         "invitation_link": new_user.invitation_link,
         "registration_bonus": bonus,
-        "link_token": link_token_value,  # frontend uses this to build the deep link
+        "link_token": link_token_value,
         "telegram_linked": target_tg_id is not None and target_tg_id > 0,
     }
 
@@ -669,7 +641,6 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
             "total_earning": p.daily_income * 35
         })
     
-    # NEW: Count valid referrals (invitees whose first deposit has been approved) for the inviter
     valid_referrals_count = db.query(TeamReferral).filter(
         TeamReferral.inviter_id == user.telegram_id,
         TeamReferral.is_valid_depositor == True
@@ -711,7 +682,6 @@ def get_user_transactions(telegram_id: int, db: Session = Depends(get_db)):
     withdrawals = db.query(Withdrawal).filter(Withdrawal.telegram_id == telegram_id).all()
     history = []
     for d in deposits:
-        # FIX: withdrawal/deposit timestamp now returned as Ethiopian local time (UTC+3) in 24-hour format
         history.append({"id": d.id, "type": "Deposit", "amount": d.amount_etb, "status": d.status, "date": to_ethiopian_24h_str(d.created_at), "method": d.payment_method})
     for w in withdrawals:
         history.append({"id": w.id, "type": "Withdrawal", "amount": w.amount, "status": w.status, "date": to_ethiopian_24h_str(w.created_at), "method": w.method})
@@ -755,18 +725,15 @@ async def buy_product(payload: BuyProductRequest, db: Session = Depends(get_db))
     notification = {"type": "product_purchased", "name": payload.product_name, "new_balance": balance.total_balance}
     await manager.send_personal_message(json.dumps(notification), str(payload.telegram_id))
     return {"message": f"{payload.product_name} activated successfully!",
-            "new_balance": balance.total_balance, "daily_income": payload.daily_income}
-
-# --- GET DEPOSIT ACCOUNT ---
-@app.get("/api/get-deposit-account")
+            "new_balance": balance.total_balance, "daily_income": payload.daily_income}@app.get("/api/get-deposit-account")
 def get_deposit_account(telegram_id: int, amount: float, method: str, db: Session = Depends(get_db)):
-    if amount < 650 or amount > 100000:
-        raise HTTPException(status_code=400, detail="Amount must be between 650 and 100,000 ETB.")
+    if amount < 1200 or amount > 100000:
+        raise HTTPException(status_code=400, detail="Amount must be between 1200 and 100,000 ETB.")
     
     method_lower = method.lower()
     if method_lower == "telebirr":
-        if not (650 <= amount <= 1000):
-            raise HTTPException(status_code=400, detail="Telebirr can only be used for amounts between 650 and 1000 ETB.")
+        if amount > 1200:
+            raise HTTPException(status_code=400, detail="Telebirr can only be used for amounts up to 1200 ETB.")
     elif method_lower in ["cbe", "abyssinia", "bank of abysinia"]:
         if amount < 1600:
             raise HTTPException(status_code=400, detail="CBE/Abyssinia requires a minimum amount of 1600 ETB.")
@@ -871,29 +838,13 @@ def request_withdrawal(payload: WithdrawalRequest, db: Session = Depends(get_db)
     db.commit()
     return {"message": "Withdrawal request submitted. Waiting for admin approval."}
 
-# --- TELEGRAM LINKING ENDPOINTS (Phase 2 of password reset architecture) ---
-
+# --- TELEGRAM LINKING ENDPOINTS ---
 @app.post("/api/telegram-webhook")
 async def telegram_webhook(request: dict, db: Session = Depends(get_db)):
-    """
-    Telegram webhook endpoint.
-
-    ARCHITECTURE:
-    1. User opens t.me/wealth_nest_bot?start={link_token} in Telegram
-    2. User taps Start → Telegram sends /start {link_token} to the bot
-    3. Telegram forwards this message to OUR webhook (this endpoint)
-    4. We extract the REAL chat_id from the message
-    5. We look up the User by link_token
-    6. We update User.telegram_id with the REAL chat_id (replacing the temp negative ID)
-    7. We send a confirmation message back to the user via Telegram
-
-    Setup: Register this webhook with Telegram by calling setWebhook once:
-      POST https://api.telegram.org/bot{TOKEN}/setWebhook?url=https://YOUR_SERVER/api/telegram-webhook
-    """
     try:
         message = request.get("message") or request.get("edited_message")
         if not message:
-            return {"ok": True}  # ignore non-message updates
+            return {"ok": True}
 
         from_id = message.get("from", {}).get("id")
         text = message.get("text", "").strip()
@@ -901,20 +852,17 @@ async def telegram_webhook(request: dict, db: Session = Depends(get_db)):
         if not from_id or not text:
             return {"ok": True}
 
-        # Handle /start {link_token} command
         if text.startswith("/start"):
             parts = text.split(maxsplit=1)
             link_token = parts[1].strip() if len(parts) > 1 else ""
 
             if not link_token:
-                # User started bot without a token — just say hello
                 send_telegram_message(from_id,
                     "👋 Welcome to WealthNest Bot!\n\n"
                     "This bot is used for account verification and password reset.\n"
                     "Please register on our website first, then click the \"Open Telegram\" button to link your account.")
                 return {"ok": True}
 
-            # Look up user by link_token
             user = db.query(User).filter(User.link_token == link_token).first()
             if not user:
                 send_telegram_message(from_id,
@@ -922,7 +870,6 @@ async def telegram_webhook(request: dict, db: Session = Depends(get_db)):
                     "Please register on the WealthNest website again to get a fresh link.")
                 return {"ok": True}
 
-            # Check token expiry
             if user.link_token_expires_at and datetime.utcnow() > user.link_token_expires_at:
                 user.link_token = None
                 user.link_token_expires_at = None
@@ -932,7 +879,6 @@ async def telegram_webhook(request: dict, db: Session = Depends(get_db)):
                     "Please register on the WealthNest website again to get a fresh link.")
                 return {"ok": True}
 
-            # Check if this Telegram account is already linked to another user
             existing = db.query(User).filter(User.telegram_id == from_id).first()
             if existing and existing.phone_number != user.phone_number:
                 send_telegram_message(from_id,
@@ -940,11 +886,8 @@ async def telegram_webhook(request: dict, db: Session = Depends(get_db)):
                     "Please use a different Telegram account or contact support.")
                 return {"ok": True}
 
-            # SUCCESS: Link the account!
-            # FIX: Don't change telegram_id (primary key) - that causes FK violations.
-            # Instead, store the REAL chat_id in telegram_chat_id column.
-            user.telegram_chat_id = from_id  # Store REAL chat_id for sending bot messages
-            user.link_token = None  # Single-use token
+            user.telegram_chat_id = from_id
+            user.link_token = None
             user.link_token_expires_at = None
 
             db.commit()
@@ -956,12 +899,9 @@ async def telegram_webhook(request: dict, db: Session = Depends(get_db)):
                 "— WealthNest Team")
             return {"ok": True}
 
-        # Check if the message is a link_token (for existing chats where deep link doesn't work)
-        # This allows users to copy-paste the token and send it as a regular message
         if text and len(text) >= 20 and len(text) <= 50:
             user = db.query(User).filter(User.link_token == text).first()
             if user:
-                # Found a user with this link_token! Check expiry
                 if user.link_token_expires_at and datetime.utcnow() > user.link_token_expires_at:
                     user.link_token = None
                     user.link_token_expires_at = None
@@ -971,7 +911,6 @@ async def telegram_webhook(request: dict, db: Session = Depends(get_db)):
                         "Please register on the WealthNest website again to get a fresh link.")
                     return {"ok": True}
 
-                # Check if this Telegram account is already linked to another user
                 existing = db.query(User).filter(User.telegram_id == from_id).first()
                 if existing and existing.phone_number != user.phone_number:
                     send_telegram_message(from_id,
@@ -979,9 +918,6 @@ async def telegram_webhook(request: dict, db: Session = Depends(get_db)):
                         "Please use a different Telegram account or contact support.")
                     return {"ok": True}
 
-                # SUCCESS: Link the account!
-                # FIX: Don't change telegram_id (primary key) - that causes FK violations.
-                # Instead, store the REAL chat_id in telegram_chat_id column.
                 user.telegram_chat_id = from_id
                 user.link_token = None
                 user.link_token_expires_at = None
@@ -995,7 +931,6 @@ async def telegram_webhook(request: dict, db: Session = Depends(get_db)):
                     "— WealthNest Team")
                 return {"ok": True}
 
-        # Handle other messages (just echo a help message)
         send_telegram_message(from_id,
             "👋 This is the WealthNest bot.\n\n"
             "To link your account, copy the code from the website and send it here as a message.\n\n"
@@ -1006,38 +941,25 @@ async def telegram_webhook(request: dict, db: Session = Depends(get_db)):
         print(f"Webhook error: {e}")
         return {"ok": False, "error": str(e)}
 
-
 @app.get("/api/check-link-status")
 def check_link_status(phone: str, db: Session = Depends(get_db)):
-    """
-    Frontend polls this endpoint after registration to check if Telegram linking is complete.
-    Returns {linked: true/false} based on whether telegram_id is a real (positive) ID.
-    """
     clean_phone = phone.strip()
     user = db.query(User).filter(User.phone_number == clean_phone).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
-    # Linked means telegram_chat_id is set (the real Telegram chat_id)
     linked = user.telegram_chat_id is not None
     return {"linked": linked, "telegram_id": user.telegram_chat_id if linked else None}
 
-
 @app.post("/api/generate-link-token")
 def generate_new_link_token(payload: RequestResetOTPRequest, db: Session = Depends(get_db)):
-    """
-    Generate a fresh link_token for an EXISTING user (e.g., for the Profile page banner).
-    Used when an existing user (with a fake/temp telegram_id) wants to link their Telegram.
-    """
     clean_phone = payload.phone_number.strip()
     user = db.query(User).filter(User.phone_number == clean_phone).first()
     if not user:
         raise HTTPException(status_code=404, detail="No account found with this phone number.")
 
-    # If already linked (telegram_chat_id is set), no need
     if user.telegram_chat_id is not None:
         raise HTTPException(status_code=400, detail="Your account is already linked to Telegram.")
 
-    # Generate fresh token
     user.link_token = generate_link_token()
     user.link_token_expires_at = datetime.utcnow() + timedelta(minutes=10)
     db.commit()
@@ -1048,16 +970,13 @@ def generate_new_link_token(payload: RequestResetOTPRequest, db: Session = Depen
         "expires_in_minutes": 10
     }
 
-
 # --- PASSWORD RESET ENDPOINTS ---
-
 @app.post("/api/request-reset-otp")
 def request_reset_otp(payload: RequestResetOTPRequest, db: Session = Depends(get_db)):
     clean_phone = payload.phone_number.strip()
     user = db.query(User).filter(User.phone_number == clean_phone).first()
     if not user:
         raise HTTPException(status_code=404, detail="No account found with this phone number.")
-    # Check if user has linked their real Telegram (telegram_chat_id must be set)
     if not user.telegram_chat_id:
         raise HTTPException(status_code=400, detail="Your account is not linked to Telegram. Please link it first via the Profile page.")
     otp = generate_otp()
@@ -1077,7 +996,6 @@ def request_reset_otp(payload: RequestResetOTPRequest, db: Session = Depends(get
         raise HTTPException(status_code=500, detail="Failed to send OTP. Please start @wealthnest_bot on Telegram first.")
     return {"message": "OTP sent to your Telegram account.", "phone_number": clean_phone}
 
-
 @app.post("/api/verify-reset-otp")
 def verify_reset_otp(payload: VerifyResetOTPRequest, db: Session = Depends(get_db)):
     clean_phone = payload.phone_number.strip()
@@ -1094,7 +1012,6 @@ def verify_reset_otp(payload: VerifyResetOTPRequest, db: Session = Depends(get_d
     if user.password_reset_otp != payload.otp.strip():
         raise HTTPException(status_code=400, detail="Invalid verification code.")
     return {"message": "OTP verified successfully.", "phone_number": clean_phone}
-
 
 @app.post("/api/reset-password")
 def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
@@ -1116,7 +1033,6 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
     user.otp_expires_at = None
     db.commit()
     return {"message": "Password reset successfully. Please log in with your new password."}
-
 
 # --- ADMIN ENDPOINTS ---
 @app.get("/api/admin/pending-deposits")
@@ -1179,7 +1095,6 @@ async def approve_deposit(deposit_id: int, admin: str = Depends(get_current_admi
             inv_bal.invitation_income += commission
             inv_bal.total_balance += commission
             inv_bal.available_balance += commission
-            # NEW: Notify the inviter in real time that they earned commission from a referral's first deposit
             inv_notification = {
                 "type": "commission_earned",
                 "amount": commission,

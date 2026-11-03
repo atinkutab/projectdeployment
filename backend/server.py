@@ -220,14 +220,11 @@ def init_db():
         try: db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_chat_id BIGINT;"))
         except: pass
         db.commit()
-
         db.execute(text("UPDATE user_balances SET available_balance = registration_bonus + daily_income_balance + invitation_income WHERE available_balance = 0;"))
         db.commit()
-
         if not db.query(Setting).filter(Setting.key == "deposit_account_pool").first():
             db.add(Setting(key="deposit_account_pool", value="CBE, Platform Admin, 1000123456789\nTelebirr, John Doe, 0911223344\nAbyssinia, Jane Doe, 1000987654321"))
             db.commit()
-
         if not db.query(Setting).filter(Setting.key == "registration_bonus").first():
             db.add(Setting(key="registration_bonus", value="300.0"))
             db.add(Setting(key="commission_rate", value="0.30"))
@@ -247,7 +244,6 @@ class RegisterRequest(BaseModel):
     phone_number: str
     password: str
     inviter_code: Optional[str] = None
-
     @field_validator("phone_number")
     @classmethod
     def validate_phone_digits(cls, v: str) -> str:
@@ -256,19 +252,16 @@ class RegisterRequest(BaseModel):
         if not digits.isdigit():
             raise ValueError("Phone number must contain numbers only.")
         return clean
-
     @field_validator("telegram_username")
     @classmethod
     def validate_username_format(cls, v: str) -> str:
-        if v is None:
-            return v
+        if v is None: return v
         clean = v.strip().lstrip('@')
-        if not clean:
-            return None
+        if not clean: return None
         if clean.isdigit():
-            raise ValueError("Username cannot be a phone number. Please enter a valid Telegram username (e.g., @username).")
+            raise ValueError("Username cannot be a phone number.")
         if not re.match(r"^[a-zA-Z0-9_]{5,32}$", clean):
-            raise ValueError("Invalid Telegram username. Use 5-32 characters (letters, numbers, underscores).")
+            raise ValueError("Invalid Telegram username.")
         return clean
 
 class LoginRequest(BaseModel):
@@ -342,12 +335,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def init_admin_hash():
     global ADMIN_PASSWORD_HASH
     ADMIN_PASSWORD_HASH = hash_password(ADMIN_PASSWORD)
-
 init_admin_hash()
 
 def generate_invitation_code() -> str:
-    chars = string.ascii_uppercase + string.digits
-    return "".join(random.choices(chars, k=6))
+    return "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -356,8 +347,7 @@ def create_access_token(data: dict):
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def to_ethiopian_24h_str(dt: Optional[datetime]) -> str:
-    if dt is None:
-        return ""
+    if dt is None: return ""
     eth_time = dt + timedelta(hours=3)
     return eth_time.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -366,15 +356,11 @@ import urllib.parse
 
 def send_telegram_message(chat_id: int, text: str) -> bool:
     if not TELEGRAM_BOT_TOKEN:
-        print("WARNING: TELEGRAM_BOT_TOKEN not set, cannot send Telegram message.")
+        print("WARNING: TELEGRAM_BOT_TOKEN not set")
         return False
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        payload = urllib.parse.urlencode({
-            "chat_id": chat_id,
-            "text": text,
-            "parse_mode": "HTML",
-        }).encode("utf-8")
+        payload = urllib.parse.urlencode({"chat_id": chat_id, "text": text, "parse_mode": "HTML"}).encode("utf-8")
         req = urllib.request.Request(url, data=payload, method="POST")
         with urllib.request.urlopen(req, timeout=10) as resp:
             result = json.loads(resp.read().decode("utf-8"))
@@ -404,12 +390,7 @@ async def process_yields():
                 balance.available_balance += product.daily_income
                 product.last_yield_claimed_at = now
                 db.commit()
-                notification = {
-                    "type": "yield_credited",
-                    "amount": product.daily_income,
-                    "new_balance": balance.total_balance,
-                    "product": product.product_name
-                }
+                notification = {"type": "yield_credited", "amount": product.daily_income, "new_balance": balance.total_balance, "product": product.product_name}
                 await manager.send_personal_message(json.dumps(notification), str(product.telegram_id))
     except Exception as e:
         print(f"Yield processing error: {e}")
@@ -428,16 +409,8 @@ async def lifespan(app: FastAPI):
     yield
     yield_task.cancel()
 
-# --- APP ---
 app = FastAPI(title="WealthNest Backend", version="1.0", lifespan=lifespan, redirect_slashes=False)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 def get_db():
     db = SessionLocal()
@@ -446,13 +419,7 @@ def get_db():
 
 @app.get("/")
 def root():
-    return {
-        "status": "ok",
-        "service": "WealthNest Backend",
-        "frontend": FRONTEND_BASE_URL,
-        "docs": "/docs",
-        "endpoints": ["/api/status", "/api/health", "/api/register", "/api/login", "/api/leaderboard", "/ws/{user_id}"]
-    }
+    return {"status": "ok", "service": "WealthNest Backend", "frontend": FRONTEND_BASE_URL, "docs": "/docs", "endpoints": ["/api/status","/api/health","/api/register","/api/login","/api/leaderboard","/ws/{user_id}"]}
 
 @app.get("/api/status")
 def api_status():
@@ -460,41 +427,24 @@ def api_status():
 
 @app.get("/api/health")
 def health_check():
-    return {
-        "status": "ok",
-        "websocket": "enabled",
-        "websocket_routes": ["/ws/{user_id}", "/ws/{user_id}/"]
-    }
+    return {"status": "ok", "websocket": "enabled", "websocket_routes": ["/ws/{user_id}", "/ws/{user_id}/"]}
 
 @app.get("/api/leaderboard")
 def get_leaderboard(db: Session = Depends(get_db)):
-    top_users = db.query(User, UserBalance).join(
-        UserBalance, User.telegram_id == UserBalance.telegram_id
-    ).order_by(desc(UserBalance.total_balance)).limit(10).all()
-    
+    top_users = db.query(User, UserBalance).join(UserBalance, User.telegram_id == UserBalance.telegram_id).order_by(desc(UserBalance.total_balance)).limit(10).all()
     results = []
     for u, b in top_users:
         display_name = u.telegram_username if u.telegram_username else f"User {str(u.telegram_id)[-4:]}"
-        results.append({
-            "name": display_name,
-            "amount": b.total_balance
-        })
+        results.append({"name": display_name, "amount": b.total_balance})
     return results
 
-# --- ADMIN AUTH ---
 async def get_current_admin(token: str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials", headers={"WWW-Authenticate": "Bearer"})
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-        if username is None or username != ADMIN_USERNAME:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
+        if username is None or username != ADMIN_USERNAME: raise credentials_exception
+    except JWTError: raise credentials_exception
     return username
 
 @app.post("/api/admin/login", response_model=Token)
@@ -504,7 +454,6 @@ def admin_login(form_data: OAuth2PasswordRequestForm = Depends()):
     access_token = create_access_token(data={"sub": ADMIN_USERNAME})
     return {"access_token": access_token, "token_type": "bearer"}
 
-# --- WEBSOCKET ---
 def _normalize_user_id(raw: str) -> Optional[str]:
     if raw is None: return None
     cleaned = raw.strip().rstrip("/")
@@ -543,24 +492,19 @@ async def websocket_endpoint_trailing_slash(websocket: WebSocket, user_id: str):
         return
     await _websocket_handler(websocket, clean_id)
 
-# --- CORE ENDPOINTS ---
 @app.post("/api/register", status_code=status.HTTP_201_CREATED)
 def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
     clean_phone = payload.phone_number.strip()
     if not clean_phone.lstrip("+").isdigit():
         raise HTTPException(status_code=400, detail="Phone number must contain numbers only.")
-
     if db.query(User).filter(User.phone_number == clean_phone).first():
         raise HTTPException(status_code=400, detail="An account with this phone number is already registered.")
-
     raw_user = payload.telegram_username.strip() if payload.telegram_username else ""
     formatted_username = f"@{raw_user.lstrip('@')}" if raw_user else None
-    
     if formatted_username:
         existing_username = db.query(User).filter(User.telegram_username == formatted_username).first()
         if existing_username:
-            raise HTTPException(status_code=400, detail="This Telegram username is already registered. Please log in or use a different username.")
-
+            raise HTTPException(status_code=400, detail="This Telegram username is already registered.")
     if payload.telegram_id:
         if db.query(User).filter(User.telegram_id == payload.telegram_id).first():
             raise HTTPException(status_code=400, detail="This Telegram ID is already registered.")
@@ -569,107 +513,49 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
     else:
         target_tg_id = None
         link_token_value = generate_link_token()
-
     new_code = generate_invitation_code()
     while db.query(User).filter(User.invitation_code == new_code).first():
         new_code = generate_invitation_code()
-
     invitation_link = f"{FRONTEND_BASE_URL}/register?invite={new_code}"
-
-    new_user = User(
-        telegram_id=target_tg_id, telegram_username=formatted_username, phone_number=clean_phone,
-        password_hash=hash_password(payload.password), invitation_code=new_code,
-        invitation_link=invitation_link,
-        link_token=link_token_value,
-        link_token_expires_at=(datetime.utcnow() + timedelta(minutes=10)) if link_token_value else None
-    )
+    new_user = User(telegram_id=target_tg_id, telegram_username=formatted_username, phone_number=clean_phone, password_hash=hash_password(payload.password), invitation_code=new_code, invitation_link=invitation_link, link_token=link_token_value, link_token_expires_at=(datetime.utcnow() + timedelta(minutes=10)) if link_token_value else None)
     db.add(new_user)
     db.flush()
-
     if target_tg_id is None:
         temp_id = -(random.randint(100000000, 999999999))
         while db.query(User).filter(User.telegram_id == temp_id).first():
             temp_id = -(random.randint(100000000, 999999999))
         new_user.telegram_id = temp_id
-
     db.flush()
-
     bonus_setting = db.query(Setting).filter(Setting.key == "registration_bonus").first()
     bonus = float(bonus_setting.value) if bonus_setting else 300.0
     db.add(UserBalance(telegram_id=new_user.telegram_id, registration_bonus=bonus, total_balance=bonus, available_balance=bonus))
-
     if payload.inviter_code:
         inviter = db.query(User).filter(User.invitation_code == payload.inviter_code).first()
         if inviter and inviter.telegram_id != new_user.telegram_id:
             db.add(TeamReferral(telegram_id=new_user.telegram_id, inviter_id=inviter.telegram_id, is_valid_depositor=False))
-
     db.commit()
-    return {
-        "message": "User registered successfully",
-        "telegram_id": new_user.telegram_id,
-        "phone_number": new_user.phone_number,
-        "invitation_code": new_user.invitation_code,
-        "invitation_link": new_user.invitation_link,
-        "registration_bonus": bonus,
-        "link_token": link_token_value,
-        "telegram_linked": target_tg_id is not None and target_tg_id > 0,
-    }
+    return {"message": "User registered successfully", "telegram_id": new_user.telegram_id, "phone_number": new_user.phone_number, "invitation_code": new_user.invitation_code, "invitation_link": new_user.invitation_link, "registration_bonus": bonus, "link_token": link_token_value, "telegram_linked": target_tg_id is not None and target_tg_id > 0}
 
 @app.post("/api/login")
 def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
     identifier = payload.phone_number.strip()
     formatted_username = f"@{identifier.lstrip('@')}"
-    user = db.query(User).filter(
-        or_(User.phone_number == identifier, User.telegram_username == identifier, User.telegram_username == formatted_username)
-    ).first()
-    
+    user = db.query(User).filter(or_(User.phone_number == identifier, User.telegram_username == identifier, User.telegram_username == formatted_username)).first()
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid phone number/username or password.")
-    
     balance = db.query(UserBalance).filter(UserBalance.telegram_id == user.telegram_id).first()
-    
     products_db = db.query(UserProduct).filter(UserProduct.telegram_id == user.telegram_id).all()
     products_list = []
     for p in products_db:
         eth_time = p.purchased_at + timedelta(hours=3)
-        products_list.append({
-            "name": p.product_name,
-            "price": p.product_price,
-            "daily_income": p.daily_income,
-            "purchase_time": eth_time.strftime("%Y-%m-%d %H:%M:%S"),
-            "validity_days": 35,
-            "total_earning": p.daily_income * 35
-        })
-    
-    valid_referrals_count = db.query(TeamReferral).filter(
-        TeamReferral.inviter_id == user.telegram_id,
-        TeamReferral.is_valid_depositor == True
-    ).count()
-    
-    return {
-        "message": "Login successful",
-        "telegram_id": user.telegram_id,
-        "telegram_chat_id": user.telegram_chat_id,
-        "telegram_linked": user.telegram_chat_id is not None,
-        "phone_number": user.phone_number,
-        "telegram_username": user.telegram_username,
-        "invitation_code": user.invitation_code,
-        "total_balance": balance.total_balance if balance else 0.0,
-        "daily_income_balance": balance.daily_income_balance if balance else 0.0,
-        "invite_income": balance.invitation_income if balance else 0.0,
-        "valid_referrals": valid_referrals_count,
-        "products": products_list,
-        "wd_method": user.wd_method,
-        "wd_account_name": user.wd_account_name,
-        "wd_account_number": user.wd_account_number
-    }
+        products_list.append({"name": p.product_name, "price": p.product_price, "daily_income": p.daily_income, "purchase_time": eth_time.strftime("%Y-%m-%d %H:%M:%S"), "validity_days": 35, "total_earning": p.daily_income * 35})
+    valid_referrals_count = db.query(TeamReferral).filter(TeamReferral.inviter_id == user.telegram_id, TeamReferral.is_valid_depositor == True).count()
+    return {"message": "Login successful", "telegram_id": user.telegram_id, "telegram_chat_id": user.telegram_chat_id, "telegram_linked": user.telegram_chat_id is not None, "phone_number": user.phone_number, "telegram_username": user.telegram_username, "invitation_code": user.invitation_code, "total_balance": balance.total_balance if balance else 0.0, "daily_income_balance": balance.daily_income_balance if balance else 0.0, "invite_income": balance.invitation_income if balance else 0.0, "valid_referrals": valid_referrals_count, "products": products_list, "wd_method": user.wd_method, "wd_account_name": user.wd_account_name, "wd_account_number": user.wd_account_number}
 
 @app.post("/api/save-withdrawal-account")
 def save_withdrawal_account(payload: SaveWdAccountRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.telegram_id == payload.telegram_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
+    if not user: raise HTTPException(status_code=404, detail="User not found")
     user.wd_method = "CBE"
     user.wd_account_name = payload.name
     user.wd_account_number = payload.number
@@ -691,8 +577,7 @@ def get_user_transactions(telegram_id: int, db: Session = Depends(get_db)):
 @app.post("/api/daily-checkin")
 def daily_checkin(payload: DailyCheckinRequest, db: Session = Depends(get_db)):
     balance = db.query(UserBalance).filter(UserBalance.telegram_id == payload.telegram_id).first()
-    if not balance:
-        raise HTTPException(status_code=404, detail="User balance not found")
+    if not balance: raise HTTPException(status_code=404, detail="User balance not found")
     now = datetime.utcnow()
     if balance.last_checkin_at:
         delta = now - balance.last_checkin_at
@@ -704,32 +589,25 @@ def daily_checkin(payload: DailyCheckinRequest, db: Session = Depends(get_db)):
     balance.available_balance += 20.0
     balance.last_checkin_at = now
     db.commit()
-    return {"message": "Daily check-in successful! 20 ETB added to your balance.",
-            "daily_income_balance": balance.daily_income_balance,
-            "total_balance": balance.total_balance}
+    return {"message": "Daily check-in successful!", "daily_income_balance": balance.daily_income_balance, "total_balance": balance.total_balance}
 
 @app.post("/api/buy-product")
 async def buy_product(payload: BuyProductRequest, db: Session = Depends(get_db)):
     balance = db.query(UserBalance).filter(UserBalance.telegram_id == payload.telegram_id).first()
-    if not balance:
-        raise HTTPException(status_code=404, detail="User not found. Please log in again.")
+    if not balance: raise HTTPException(status_code=404, detail="User not found.")
     if balance.total_balance < payload.product_price:
         raise HTTPException(status_code=400, detail="Insufficient balance. Please deposit first.")
-    
     balance.total_balance -= payload.product_price
-    
-    db.add(UserProduct(telegram_id=payload.telegram_id, product_name=payload.product_name,
-                       product_price=payload.product_price, daily_income=payload.daily_income,
-                       purchased_at=datetime.utcnow(), last_yield_claimed_at=datetime.utcnow()))
+    db.add(UserProduct(telegram_id=payload.telegram_id, product_name=payload.product_name, product_price=payload.product_price, daily_income=payload.daily_income, purchased_at=datetime.utcnow(), last_yield_claimed_at=datetime.utcnow()))
     db.commit()
     notification = {"type": "product_purchased", "name": payload.product_name, "new_balance": balance.total_balance}
     await manager.send_personal_message(json.dumps(notification), str(payload.telegram_id))
-    return {"message": f"{payload.product_name} activated successfully!",
-            "new_balance": balance.total_balance, "daily_income": payload.daily_income}@app.get("/api/get-deposit-account")
+    return {"message": f"{payload.product_name} activated!", "new_balance": balance.total_balance, "daily_income": payload.daily_income}
+
+@app.get("/api/get-deposit-account")
 def get_deposit_account(telegram_id: int, amount: float, method: str, db: Session = Depends(get_db)):
     if amount < 1200 or amount > 100000:
         raise HTTPException(status_code=400, detail="Amount must be between 1200 and 100,000 ETB.")
-    
     method_lower = method.lower()
     if method_lower == "telebirr":
         if amount > 1200:
@@ -739,74 +617,49 @@ def get_deposit_account(telegram_id: int, amount: float, method: str, db: Sessio
             raise HTTPException(status_code=400, detail="CBE/Abyssinia requires a minimum amount of 1600 ETB.")
     else:
         raise HTTPException(status_code=400, detail="Invalid payment method.")
-
     setting = db.query(Setting).filter(Setting.key == "deposit_account_pool").first()
     if not setting or not setting.value:
         raise HTTPException(status_code=404, detail="No accounts configured")
-    
     accounts = []
     for line in setting.value.strip().split('\n'):
         parts = [p.strip() for p in line.split(',')]
         if len(parts) == 3:
             acc_method = parts[0]
-            if acc_method.lower() == method_lower or \
-               (method_lower == "abyssinia" and acc_method.lower() in ["abyssinia", "bank of abysinia"]) or \
-               (method_lower == "cbe" and acc_method.lower() == "cbe"):
-                
+            if acc_method.lower() == method_lower or (method_lower == "abyssinia" and acc_method.lower() in ["abyssinia", "bank of abysinia"]) or (method_lower == "cbe" and acc_method.lower() == "cbe"):
                 accounts.append({"method": acc_method, "name": parts[1], "number": parts[2]})
-    
     if not accounts:
-        raise HTTPException(status_code=404, detail=f"No {method} accounts configured for this amount")
-    
+        raise HTTPException(status_code=404, detail="No accounts configured for this method")
     three_hours_ago = datetime.utcnow() - timedelta(hours=3)
-    recent_deposits = db.query(Deposit).filter(
-        Deposit.created_at >= three_hours_ago,
-        Deposit.assigned_account.isnot(None)
-    ).all()
-
+    recent_deposits = db.query(Deposit).filter(Deposit.created_at >= three_hours_ago, Deposit.assigned_account.isnot(None)).all()
     usage_counts = {}
     for d in recent_deposits:
         usage_counts[d.assigned_account] = usage_counts.get(d.assigned_account, 0) + 1
-
     random.shuffle(accounts)
-
     available_accounts = []
     for acc in accounts:
-        acc_str = f"{acc['method']}, {acc['name']}, {acc['number']}"
+        acc_str = acc['method'] + ", " + acc['name'] + ", " + acc['number']
         count = usage_counts.get(acc_str, 0)
-        
-        limit = 2 
-        if acc['method'].lower() in ["abyssinia", "bank of abysinia"]:
-            limit = 4
-            
-        if count < limit:
-            available_accounts.append(acc)
-
+        limit = 4 if acc['method'].lower() in ["abyssinia", "bank of abysinia"] else 2
+        if count < limit: available_accounts.append(acc)
     if available_accounts:
-        chosen_acc = random.choice(available_accounts)
-        return {"account_string": f"{chosen_acc['method']}, {chosen_acc['name']}, {chosen_acc['number']}", **chosen_acc}
-
-    raise HTTPException(status_code=429, detail="Currently payment method unavailable, please wait while we update our accounts.")
+        chosen = random.choice(available_accounts)
+        return {"account_string": chosen['method'] + ", " + chosen['name'] + ", " + chosen['number'], "method": chosen['method'], "name": chosen['name'], "number": chosen['number']}
+    raise HTTPException(status_code=429, detail="Currently payment method unavailable.")
 
 @app.post("/api/paynow-webhook")
 def paynow_webhook(payload: PaynowWebhookRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.telegram_id == payload.telegram_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    if not user: raise HTTPException(status_code=404, detail="User not found")
     deposit = db.query(Deposit).filter(Deposit.transaction_id == payload.reference).first()
     if not deposit:
-        deposit = Deposit(
-            telegram_id=payload.telegram_id, transaction_id=payload.reference,
-            amount_etb=payload.amount, status="Pending", payment_method=payload.payment_method,
-            assigned_account=payload.assigned_account
-        )
+        deposit = Deposit(telegram_id=payload.telegram_id, transaction_id=payload.reference, amount_etb=payload.amount, status="Pending", payment_method=payload.payment_method, assigned_account=payload.assigned_account)
         db.add(deposit)
         db.flush()
     if payload.status.lower() == "paid":
         if deposit.status.lower() != "paid":
             deposit.status = "Paid"
             db.commit()
-            return {"message": "Deposit marked as Paid. Awaiting admin approval."}
+            return {"message": "Deposit marked as Paid."}
         return {"message": "Deposit already processed."}
     deposit.status = payload.status
     db.commit()
@@ -816,89 +669,51 @@ def paynow_webhook(payload: PaynowWebhookRequest, db: Session = Depends(get_db))
 def request_withdrawal(payload: WithdrawalRequest, db: Session = Depends(get_db)):
     if payload.amount < 300:
         raise HTTPException(status_code=400, detail="Minimum withdrawal is 300 ETB.")
-    
     balance = db.query(UserBalance).filter(UserBalance.telegram_id == payload.telegram_id).first()
-    if not balance:
-        raise HTTPException(status_code=400, detail="User balance not found.")
-    
+    if not balance: raise HTTPException(status_code=400, detail="User balance not found.")
     if payload.amount > balance.available_balance:
-        raise HTTPException(status_code=400, detail="Withdrawal failed. You can only withdraw your registration bonus and earned income. Please purchase a product to activate daily income.")
-    
+        raise HTTPException(status_code=400, detail="Withdrawal failed. You can only withdraw your registration bonus and earned income.")
     fee = payload.amount * 0.12
     payout = payload.amount - fee
-
     balance.total_balance -= payload.amount
     balance.available_balance -= payload.amount
-    
-    db.add(Withdrawal(
-        telegram_id=payload.telegram_id, amount=payload.amount, 
-        fee=fee, payout_amount=payout,
-        method=payload.method, account_details=payload.account_details, status="Pending"
-    ))
+    db.add(Withdrawal(telegram_id=payload.telegram_id, amount=payload.amount, fee=fee, payout_amount=payout, method=payload.method, account_details=payload.account_details, status="Pending"))
     db.commit()
-    return {"message": "Withdrawal request submitted. Waiting for admin approval."}
-
-# --- TELEGRAM LINKING ENDPOINTS ---
+    return {"message": "Withdrawal request submitted. Waiting for admin approval."}# --- TELEGRAM LINKING ---
 @app.post("/api/telegram-webhook")
 async def telegram_webhook(request: dict, db: Session = Depends(get_db)):
     try:
         message = request.get("message") or request.get("edited_message")
-        if not message:
-            return {"ok": True}
-
+        if not message: return {"ok": True}
         from_id = message.get("from", {}).get("id")
         text = message.get("text", "").strip()
-
-        if not from_id or not text:
-            return {"ok": True}
-
+        if not from_id or not text: return {"ok": True}
         if text.startswith("/start"):
             parts = text.split(maxsplit=1)
             link_token = parts[1].strip() if len(parts) > 1 else ""
-
             if not link_token:
-                send_telegram_message(from_id,
-                    "👋 Welcome to WealthNest Bot!\n\n"
-                    "This bot is used for account verification and password reset.\n"
-                    "Please register on our website first, then click the \"Open Telegram\" button to link your account.")
+                send_telegram_message(from_id, "👋 Welcome to WealthNest Bot!\n\nThis bot is used for account verification and password reset.\nPlease register on our website first, then click the \"Open Telegram\" button to link your account.")
                 return {"ok": True}
-
             user = db.query(User).filter(User.link_token == link_token).first()
             if not user:
-                send_telegram_message(from_id,
-                    "❌ Invalid or expired link token.\n\n"
-                    "Please register on the WealthNest website again to get a fresh link.")
+                send_telegram_message(from_id, "❌ Invalid or expired link token.\n\nPlease register on the WealthNest website again to get a fresh link.")
                 return {"ok": True}
-
             if user.link_token_expires_at and datetime.utcnow() > user.link_token_expires_at:
                 user.link_token = None
                 user.link_token_expires_at = None
                 db.commit()
-                send_telegram_message(from_id,
-                    "❌ Your link token has expired (10-minute limit).\n\n"
-                    "Please register on the WealthNest website again to get a fresh link.")
+                send_telegram_message(from_id, "❌ Your link token has expired (10-minute limit).\n\nPlease register on the WealthNest website again.")
                 return {"ok": True}
-
             existing = db.query(User).filter(User.telegram_id == from_id).first()
             if existing and existing.phone_number != user.phone_number:
-                send_telegram_message(from_id,
-                    "❌ This Telegram account is already linked to another WealthNest account.\n\n"
-                    "Please use a different Telegram account or contact support.")
+                send_telegram_message(from_id, "❌ This Telegram account is already linked to another WealthNest account.")
                 return {"ok": True}
-
             user.telegram_chat_id = from_id
             user.link_token = None
             user.link_token_expires_at = None
-
             db.commit()
-
-            send_telegram_message(from_id,
-                "✅ <b>Account Linked Successfully!</b>\n\n"
-                f"Your WealthNest account ({user.phone_number}) is now connected to this Telegram.\n\n"
-                "You can now return to the website to continue.\n\n"
-                "— WealthNest Team")
+            send_telegram_message(from_id, "✅ <b>Account Linked Successfully!</b>\n\nYour WealthNest account (" + user.phone_number + ") is now connected to this Telegram.\n\nYou can now return to the website to continue.\n\n— WealthNest Team")
             return {"ok": True}
-
         if text and len(text) >= 20 and len(text) <= 50:
             user = db.query(User).filter(User.link_token == text).first()
             if user:
@@ -906,37 +721,20 @@ async def telegram_webhook(request: dict, db: Session = Depends(get_db)):
                     user.link_token = None
                     user.link_token_expires_at = None
                     db.commit()
-                    send_telegram_message(from_id,
-                        "❌ Your link token has expired (10-minute limit).\n\n"
-                        "Please register on the WealthNest website again to get a fresh link.")
+                    send_telegram_message(from_id, "❌ Your link token has expired.")
                     return {"ok": True}
-
                 existing = db.query(User).filter(User.telegram_id == from_id).first()
                 if existing and existing.phone_number != user.phone_number:
-                    send_telegram_message(from_id,
-                        "❌ This Telegram account is already linked to another WealthNest account.\n\n"
-                        "Please use a different Telegram account or contact support.")
+                    send_telegram_message(from_id, "❌ This Telegram account is already linked to another account.")
                     return {"ok": True}
-
                 user.telegram_chat_id = from_id
                 user.link_token = None
                 user.link_token_expires_at = None
-
                 db.commit()
-
-                send_telegram_message(from_id,
-                    "✅ <b>Account Linked Successfully!</b>\n\n"
-                    f"Your WealthNest account ({user.phone_number}) is now connected to this Telegram.\n\n"
-                    "You can now return to the website to continue.\n\n"
-                    "— WealthNest Team")
+                send_telegram_message(from_id, "✅ <b>Account Linked Successfully!</b>\n\nYour WealthNest account (" + user.phone_number + ") is now connected to this Telegram.\n\n— WealthNest Team")
                 return {"ok": True}
-
-        send_telegram_message(from_id,
-            "👋 This is the WealthNest bot.\n\n"
-            "To link your account, copy the code from the website and send it here as a message.\n\n"
-            "For support, contact our customer service.")
+        send_telegram_message(from_id, "👋 This is the WealthNest bot.\n\nTo link your account, copy the code from the website and send it here as a message.\n\nFor support, contact our customer service.")
         return {"ok": True}
-
     except Exception as e:
         print(f"Webhook error: {e}")
         return {"ok": False, "error": str(e)}
@@ -945,8 +743,7 @@ async def telegram_webhook(request: dict, db: Session = Depends(get_db)):
 def check_link_status(phone: str, db: Session = Depends(get_db)):
     clean_phone = phone.strip()
     user = db.query(User).filter(User.phone_number == clean_phone).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found.")
+    if not user: raise HTTPException(status_code=404, detail="User not found.")
     linked = user.telegram_chat_id is not None
     return {"linked": linked, "telegram_id": user.telegram_chat_id if linked else None}
 
@@ -954,61 +751,44 @@ def check_link_status(phone: str, db: Session = Depends(get_db)):
 def generate_new_link_token(payload: RequestResetOTPRequest, db: Session = Depends(get_db)):
     clean_phone = payload.phone_number.strip()
     user = db.query(User).filter(User.phone_number == clean_phone).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="No account found with this phone number.")
-
+    if not user: raise HTTPException(status_code=404, detail="No account found with this phone number.")
     if user.telegram_chat_id is not None:
         raise HTTPException(status_code=400, detail="Your account is already linked to Telegram.")
-
     user.link_token = generate_link_token()
     user.link_token_expires_at = datetime.utcnow() + timedelta(minutes=10)
     db.commit()
+    return {"message": "Link token generated.", "link_token": user.link_token, "expires_in_minutes": 10}
 
-    return {
-        "message": "Link token generated. Open Telegram to link your account.",
-        "link_token": user.link_token,
-        "expires_in_minutes": 10
-    }
-
-# --- PASSWORD RESET ENDPOINTS ---
+# --- PASSWORD RESET ---
 @app.post("/api/request-reset-otp")
 def request_reset_otp(payload: RequestResetOTPRequest, db: Session = Depends(get_db)):
     clean_phone = payload.phone_number.strip()
     user = db.query(User).filter(User.phone_number == clean_phone).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="No account found with this phone number.")
+    if not user: raise HTTPException(status_code=404, detail="No account found with this phone number.")
     if not user.telegram_chat_id:
         raise HTTPException(status_code=400, detail="Your account is not linked to Telegram. Please link it first via the Profile page.")
     otp = generate_otp()
     user.password_reset_otp = otp
     user.otp_expires_at = datetime.utcnow() + timedelta(minutes=10)
     db.commit()
-    message = (
-        "🔒 <b>WealthNest Password Reset</b>\n\n"
-        "Your verification code is:\n"
-        f"  <b>{otp}</b>\n\n"
-        "This code expires in 10 minutes.\n"
-        "If you didn't request this, please ignore this message.\n\n"
-        "— WealthNest Team"
-    )
+    message = "🔒 <b>WealthNest Password Reset</b>\n\nYour verification code is:\n  <b>" + otp + "</b>\n\nThis code expires in 10 minutes.\n\n— WealthNest Team"
     sent = send_telegram_message(user.telegram_chat_id, message)
     if not sent:
-        raise HTTPException(status_code=500, detail="Failed to send OTP. Please start @wealthnest_bot on Telegram first.")
+        raise HTTPException(status_code=500, detail="Failed to send OTP.")
     return {"message": "OTP sent to your Telegram account.", "phone_number": clean_phone}
 
 @app.post("/api/verify-reset-otp")
 def verify_reset_otp(payload: VerifyResetOTPRequest, db: Session = Depends(get_db)):
     clean_phone = payload.phone_number.strip()
     user = db.query(User).filter(User.phone_number == clean_phone).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="No account found with this phone number.")
+    if not user: raise HTTPException(status_code=404, detail="No account found with this phone number.")
     if not user.password_reset_otp or not user.otp_expires_at:
-        raise HTTPException(status_code=400, detail="No OTP requested. Please request a new code.")
+        raise HTTPException(status_code=400, detail="No OTP requested.")
     if datetime.utcnow() > user.otp_expires_at:
         user.password_reset_otp = None
         user.otp_expires_at = None
         db.commit()
-        raise HTTPException(status_code=400, detail="OTP expired. Please request a new code.")
+        raise HTTPException(status_code=400, detail="OTP expired.")
     if user.password_reset_otp != payload.otp.strip():
         raise HTTPException(status_code=400, detail="Invalid verification code.")
     return {"message": "OTP verified successfully.", "phone_number": clean_phone}
@@ -1017,38 +797,27 @@ def verify_reset_otp(payload: VerifyResetOTPRequest, db: Session = Depends(get_d
 def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
     clean_phone = payload.phone_number.strip()
     user = db.query(User).filter(User.phone_number == clean_phone).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="No account found with this phone number.")
+    if not user: raise HTTPException(status_code=404, detail="No account found with this phone number.")
     if not user.password_reset_otp or not user.otp_expires_at:
         raise HTTPException(status_code=400, detail="Please verify your OTP first.")
     if datetime.utcnow() > user.otp_expires_at:
         user.password_reset_otp = None
         user.otp_expires_at = None
         db.commit()
-        raise HTTPException(status_code=400, detail="Session expired. Please start over.")
+        raise HTTPException(status_code=400, detail="Session expired.")
     if len(payload.new_password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
     user.password_hash = hash_password(payload.new_password)
     user.password_reset_otp = None
     user.otp_expires_at = None
     db.commit()
-    return {"message": "Password reset successfully. Please log in with your new password."}
+    return {"message": "Password reset successfully. Please log in."}
 
-# --- ADMIN ENDPOINTS ---
+# --- ADMIN ---
 @app.get("/api/admin/pending-deposits")
 def get_pending_deposits(admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):
     deposits = db.query(Deposit).filter(Deposit.status.in_(["Pending", "Paid"])).all()
-    return [
-        {
-            "id": d.id,
-            "telegram_id": d.telegram_id,
-            "amount_etb": d.amount_etb,
-            "transaction_id": d.transaction_id,
-            "payment_method": d.payment_method,
-            "status": d.status,
-            "assigned_account": d.assigned_account or "N/A"
-        } for d in deposits
-    ]
+    return [{"id": d.id, "telegram_id": d.telegram_id, "amount_etb": d.amount_etb, "transaction_id": d.transaction_id, "payment_method": d.payment_method, "status": d.status, "assigned_account": d.assigned_account or "N/A"} for d in deposits]
 
 @app.get("/api/admin/pending-withdrawals")
 def get_pending_withdrawals(admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):
@@ -1060,29 +829,25 @@ def get_all_transactions(admin: str = Depends(get_current_admin), db: Session = 
     withdrawals = db.query(Withdrawal).all()
     history = []
     for d in deposits:
-        history.append({"id": d.id, "type": "Deposit", "user": d.telegram_id, "amount": d.amount_etb,
-                        "status": d.status, "date": d.created_at, "method": d.payment_method})
+        history.append({"id": d.id, "type": "Deposit", "user": d.telegram_id, "amount": d.amount_etb, "status": d.status, "date": d.created_at, "method": d.payment_method})
     for w in withdrawals:
-        history.append({"id": w.id, "type": "Withdrawal", "user": w.telegram_id, "amount": w.amount,
-                        "status": w.status, "date": w.created_at, "method": w.method})
+        history.append({"id": w.id, "type": "Withdrawal", "user": w.telegram_id, "amount": w.amount, "status": w.status, "date": w.created_at, "method": w.method})
     return history
 
 @app.post("/api/admin/process-yields")
 async def admin_process_yields(admin: str = Depends(get_current_admin)):
     await process_yields()
-    return {"message": "Yield processing triggered. Only eligible users (24h passed) have been credited. Users who already received yields are ignored."}
+    return {"message": "Yield processing triggered."}
 
 @app.post("/api/admin/approve-deposit/{deposit_id}")
 async def approve_deposit(deposit_id: int, admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):
     deposit = db.query(Deposit).filter(Deposit.id == deposit_id).first()
     if not deposit: raise HTTPException(status_code=404, detail="Deposit not found.")
-    if deposit.status == "Approved": raise HTTPException(status_code=400, detail="Deposit is already approved.")
+    if deposit.status == "Approved": raise HTTPException(status_code=400, detail="Already approved.")
     deposit.status = "Approved"
     user_balance = db.query(UserBalance).filter(UserBalance.telegram_id == deposit.telegram_id).first()
-    if not user_balance: raise HTTPException(status_code=404, detail="User balance record not found.")
-    
+    if not user_balance: raise HTTPException(status_code=404, detail="Balance not found.")
     user_balance.total_balance += deposit.amount_etb
-    
     comm_setting = db.query(Setting).filter(Setting.key == "commission_rate").first()
     comm_rate = float(comm_setting.value) if comm_setting else 0.30
     ref = db.query(TeamReferral).filter(TeamReferral.telegram_id == deposit.telegram_id).first()
@@ -1095,17 +860,10 @@ async def approve_deposit(deposit_id: int, admin: str = Depends(get_current_admi
             inv_bal.invitation_income += commission
             inv_bal.total_balance += commission
             inv_bal.available_balance += commission
-            inv_notification = {
-                "type": "commission_earned",
-                "amount": commission,
-                "new_balance": inv_bal.total_balance,
-                "invitee_id": deposit.telegram_id
-            }
-            await manager.send_personal_message(json.dumps(inv_notification), str(ref.inviter_id))
+            await manager.send_personal_message(json.dumps({"type": "commission_earned", "amount": commission, "new_balance": inv_bal.total_balance, "invitee_id": deposit.telegram_id}), str(ref.inviter_id))
     db.commit()
-    notification = {"type": "deposit_approved", "amount": deposit.amount_etb, "new_balance": user_balance.total_balance}
-    await manager.send_personal_message(json.dumps(notification), str(deposit.telegram_id))
-    return {"message": "Deposit approved successfully."}
+    await manager.send_personal_message(json.dumps({"type": "deposit_approved", "amount": deposit.amount_etb, "new_balance": user_balance.total_balance}), str(deposit.telegram_id))
+    return {"message": "Deposit approved."}
 
 @app.post("/api/admin/reject-deposit/{deposit_id}")
 async def reject_deposit(deposit_id: int, admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):
@@ -1113,20 +871,18 @@ async def reject_deposit(deposit_id: int, admin: str = Depends(get_current_admin
     if not deposit: raise HTTPException(status_code=404, detail="Deposit not found.")
     deposit.status = "Rejected"
     db.commit()
-    notification = {"type": "deposit_rejected", "amount": deposit.amount_etb}
-    await manager.send_personal_message(json.dumps(notification), str(deposit.telegram_id))
-    return {"message": "Deposit rejected successfully."}
+    await manager.send_personal_message(json.dumps({"type": "deposit_rejected", "amount": deposit.amount_etb}), str(deposit.telegram_id))
+    return {"message": "Deposit rejected."}
 
 @app.post("/api/admin/approve-withdrawal/{withdrawal_id}")
 async def approve_withdrawal(withdrawal_id: int, admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):
     w = db.query(Withdrawal).filter(Withdrawal.id == withdrawal_id).first()
     if not w: raise HTTPException(status_code=404, detail="Withdrawal not found.")
-    if w.status != "Pending": raise HTTPException(status_code=400, detail="Withdrawal already processed.")
+    if w.status != "Pending": raise HTTPException(status_code=400, detail="Already processed.")
     w.status = "Approved"
     db.commit()
-    notification = {"type": "withdrawal_approved", "amount": w.amount}
-    await manager.send_personal_message(json.dumps(notification), str(w.telegram_id))
-    return {"message": "Withdrawal approved successfully."}
+    await manager.send_personal_message(json.dumps({"type": "withdrawal_approved", "amount": w.amount}), str(w.telegram_id))
+    return {"message": "Withdrawal approved."}
 
 @app.post("/api/admin/reject-withdrawal/{withdrawal_id}")
 async def reject_withdrawal(withdrawal_id: int, admin: str = Depends(get_current_admin), db: Session = Depends(get_db)):
@@ -1134,12 +890,11 @@ async def reject_withdrawal(withdrawal_id: int, admin: str = Depends(get_current
     if not w: raise HTTPException(status_code=404, detail="Withdrawal not found.")
     w.status = "Rejected"
     bal = db.query(UserBalance).filter(UserBalance.telegram_id == w.telegram_id).first()
-    if bal: 
+    if bal:
         bal.total_balance += w.amount
         bal.available_balance += w.amount
     db.commit()
-    notification = {"type": "withdrawal_rejected", "amount": w.amount}
-    await manager.send_personal_message(json.dumps(notification), str(w.telegram_id))
+    await manager.send_personal_message(json.dumps({"type": "withdrawal_rejected", "amount": w.amount}), str(w.telegram_id))
     return {"message": "Withdrawal rejected and user refunded."}
 
 @app.get("/api/admin/settings")

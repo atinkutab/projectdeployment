@@ -372,8 +372,8 @@
         <div id="signup-form">
             <div class="form-group">
                 <div class="input-prefix-group" id="su-phone-group">
-                    <span class="input-prefix">+251 9</span>
-                    <input type="tel" id="su-phone" class="input-field" placeholder="Enter remaining 8 digits" maxlength="8" oninput="validatePhoneLive(this.value, 'su-phone', 'su-phone-group')">
+                    <span class="input-prefix">+251</span>
+                    <input type="tel" id="su-phone" class="input-field" placeholder="9XXXXXXXX" maxlength="9" oninput="validatePhoneLive(this.value, 'su-phone', 'su-phone-group')">
                 </div>
             </div>
             <div class="form-group"><input type="password" id="su-pass" class="input-field" placeholder="Please enter the login password" oninput="checkPasswordLive()"></div>
@@ -386,8 +386,8 @@
         <div id="signin-form" class="hidden">
             <div class="form-group">
                 <div class="input-prefix-group" id="si-phone-group">
-                    <span class="input-prefix">+251 9</span>
-                    <input type="tel" id="si-phone" class="input-field" placeholder="Enter remaining 8 digits" maxlength="8" oninput="validatePhoneLive(this.value, 'si-phone', 'si-phone-group')">
+                    <span class="input-prefix">+251</span>
+                    <input type="tel" id="si-phone" class="input-field" placeholder="9XXXXXXXX" maxlength="9" oninput="validatePhoneLive(this.value, 'si-phone', 'si-phone-group')">
                 </div>
             </div>
             <div class="form-group"><input type="password" id="si-pass" class="input-field" placeholder="Please enter the password" oninput="this.classList.remove('input-error')"></div>
@@ -411,8 +411,8 @@
             <div class="bot-start-notice">⚠️ Your account must be linked to Telegram. If you haven't linked it yet, go to <strong>Profile → Link Now</strong> after logging in.</div>
             <div class="form-group">
                 <div class="input-prefix-group" id="rp-phone-group">
-                    <span class="input-prefix">+251 9</span>
-                    <input type="tel" id="rp-phone" class="input-field" placeholder="Enter remaining 8 digits" maxlength="8" oninput="validatePhoneLive(this.value, 'rp-phone', 'rp-phone-group')">
+                    <span class="input-prefix">+251</span>
+                    <input type="tel" id="rp-phone" class="input-field" placeholder="9XXXXXXXX" maxlength="9" oninput="validatePhoneLive(this.value, 'rp-phone', 'rp-phone-group')">
                 </div>
             </div>
             <button class="btn-primary" onclick="requestResetOTP()">Send OTP via Telegram</button>
@@ -696,7 +696,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         function showResetStep(n){for(let i=1;i<=3;i++){const s=document.getElementById('reset-step-'+i);if(s)s.classList.toggle('hidden',i!==n);}window.scrollTo(0,0);}
         function moveOTPFocus(curr,nextId){if(curr.value.length===1){const next=document.getElementById(nextId);if(next)next.focus();}}
         function checkResetPasswordLive(){const p1=document.getElementById('rp-new-pass'),p2=document.getElementById('rp-new-pass2');if(p1.value.length>0&&p2.value.length>0&&p1.value!==p2.value){p1.classList.add('input-error');p2.classList.add('input-error');}else{p1.classList.remove('input-error');p2.classList.remove('input-error');}}
-        async function requestResetOTP(isResend){const pr=document.getElementById('rp-phone').value,pd=pr.replace(/\D/g,'');if(!validatePhoneLive(pr,'rp-phone','rp-phone-group')){return showResetMessage(1,'Invalid phone number.','error');}const phone='+2519'+pd;__resetPhoneNumber=phone;hideResetMessage(1);showLoader(isResend?'Resending OTP...':'Sending OTP...');try{const r=await apiFetch('/api/request-reset-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_number:phone})});if(r.ok){hideLoader();showResetMessage(1,'OTP sent to your Telegram! Check your messages.','success');showResetStep(2);setTimeout(()=>{const d=document.getElementById('otp-1');if(d)d.focus();},100);}else{const e=await r.json().catch(()=>({}));hideLoader();const m=extractErrorMessage(e,'Failed to send OTP.');showResetMessage(1,m,'error');}}catch(err){hideLoader();showResetMessage(1,'Network error. Please try again.','error');}}
+        async function requestResetOTP(isResend){const pr=document.getElementById('rp-phone').value,pd=pr.replace(/\D/g,'');if(!validatePhoneLive(pr,'rp-phone','rp-phone-group')){return showResetMessage(1,'Invalid phone number.','error');}const phone='+251'+pd;__resetPhoneNumber=phone;hideResetMessage(1);showLoader(isResend?'Resending OTP...':'Sending OTP...');try{const r=await apiFetch('/api/request-reset-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_number:phone})});if(r.ok){hideLoader();showResetMessage(1,'OTP sent to your Telegram! Check your messages.','success');showResetStep(2);setTimeout(()=>{const d=document.getElementById('otp-1');if(d)d.focus();},100);}else{const e=await r.json().catch(()=>({}));hideLoader();const m=extractErrorMessage(e,'Failed to send OTP.');showResetMessage(1,m,'error');}}catch(err){hideLoader();showResetMessage(1,'Network error. Please try again.','error');}}
         async function verifyResetOTP(){let otp='';for(let i=1;i<=6;i++){const d=document.getElementById('otp-'+i);const v=(d.value||'').trim();if(!v){return showResetMessage(2,'Enter all 6 digits.','error');}otp+=v;}hideResetMessage(2);showLoader('Verifying code...');try{const r=await apiFetch('/api/verify-reset-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_number:__resetPhoneNumber,otp:otp})});if(r.ok){hideLoader();showResetMessage(2,'Code verified!','success');showResetStep(3);}else{const e=await r.json().catch(()=>({}));hideLoader();const m=extractErrorMessage(e,'Invalid code.');showResetMessage(2,m,'error');for(let i=1;i<=6;i++){const d=document.getElementById('otp-'+i);d.classList.add('input-error');}setTimeout(()=>{for(let i=1;i<=6;i++){const d=document.getElementById('otp-'+i);d.classList.remove('input-error');}},1500);}}catch(err){hideLoader();showResetMessage(2,'Network error. Please try again.','error');}}
         async function resetPassword(){const p1=document.getElementById('rp-new-pass').value,p2=document.getElementById('rp-new-pass2').value;if(p1.length<6){document.getElementById('rp-new-pass').classList.add('input-error');return showResetMessage(3,'Password must be at least 6 characters.','error');}if(p1!==p2){return showResetMessage(3,'Passwords do not match.','error');}hideResetMessage(3);showLoader('Resetting password...');try{const r=await apiFetch('/api/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone_number:__resetPhoneNumber,new_password:p1})});if(r.ok){hideLoader();showResetMessage(3,'Password reset successfully! Redirecting to login...','success');setTimeout(()=>{hideResetPassword();toggleAuth('signin');},2000);}else{const e=await r.json().catch(()=>({}));hideLoader();showResetMessage(3,extractErrorMessage(e,'Reset failed.'),'error');}}catch(err){hideLoader();showResetMessage(3,'Network error. Please try again.','error');}}
         // ===== END PASSWORD RESET FUNCTIONS =====
@@ -744,7 +744,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
             if (savedPhone && savedPass) {
                 const siPhone = document.getElementById("si-phone");
                 const siPass = document.getElementById("si-pass");
-                if (siPhone && savedPhone.startsWith("+2519")) siPhone.value = savedPhone.substring(5);
+                if (siPhone && savedPhone.startsWith("+251")) siPhone.value = savedPhone.substring(3);
                 if (siPass) siPass.value = savedPass;
                 const siRemember = document.getElementById("si-remember");
                 if (siRemember) siRemember.checked = true;
@@ -752,7 +752,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
         };
 
         function toggleAuth(v) { document.getElementById("signup-form").classList.toggle("hidden", v !== 'signup'); document.getElementById("signin-form").classList.toggle("hidden", v !== 'signin'); }
-        function validatePhoneLive(val, iid, gid) { const inp = document.getElementById(iid); const grp = document.getElementById(gid); const d = val.replace(/\D/g, ''); if (d.length === 0) { inp.classList.remove('input-error'); if(grp) grp.classList.remove('input-error'); return false; } if (d.length !== 8) { inp.classList.add('input-error'); if(grp) grp.classList.add('input-error'); return false; } inp.classList.remove('input-error'); if(grp) grp.classList.remove('input-error'); return true; }
+        function validatePhoneLive(val, iid, gid) { const inp = document.getElementById(iid); const grp = document.getElementById(gid); const d = val.replace(/\D/g, ''); if (d.length === 0) { inp.classList.remove('input-error'); if(grp) grp.classList.remove('input-error'); return false; } if (d.length !== 9 || d[0] !== '9') { inp.classList.add('input-error'); if(grp) grp.classList.add('input-error'); return false; } inp.classList.remove('input-error'); if(grp) grp.classList.remove('input-error'); return true; }
         function checkPasswordLive() { const p1 = document.getElementById("su-pass"); const p2 = document.getElementById("su-pass2"); if (p1.value.length > 0 && p2.value.length > 0 && p1.value !== p2.value) { p1.classList.add('input-error'); p2.classList.add('input-error'); } else { p1.classList.remove('input-error'); p2.classList.remove('input-error'); } }
 
         function initWebSocket(uid) {
@@ -778,7 +778,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
             if (!validatePhoneLive(pr, 'su-phone', 'su-phone-group')) { showCenterMessage("Invalid phone number.", 'error'); return; }
             if (p1.length < 6) { document.getElementById("su-pass").classList.add('input-error'); showCenterMessage("Password must be at least 6 characters.", 'error'); return; }
             if (p1 !== p2) { showCenterMessage("Passwords do not match.", 'error'); return; }
-            const phone = "+2519" + pd, btn = document.getElementById("signup-btn");
+            const phone = "+251" + pd, btn = document.getElementById("signup-btn");
             btn.disabled = true; btn.innerHTML = 'Please wait...'; showLoader('Creating your account...');
             // ARCHITECTURE CHANGE: No longer send fake telegram_id. Server returns link_token instead.
             const up = new URLSearchParams(window.location.search), ic = (up.get('start')||up.get('invite')||'').trim();
@@ -793,7 +793,7 @@ Note: Earnings auto-deposit daily. Withdraw anytime.</p><div style="display: fle
             const pr = document.getElementById("si-phone").value, pd = pr.replace(/\D/g,''), pass = document.getElementById("si-pass").value;
             if (!validatePhoneLive(pr, 'si-phone', 'si-phone-group')) { showCenterMessage("Invalid phone number.", 'error'); return; }
             if (!pass) { document.getElementById("si-pass").classList.add('input-error'); showCenterMessage("Enter password.", 'error'); return; }
-            const phone = "+2519"+pd, btn = document.getElementById("signin-btn"); btn.disabled=true; btn.innerHTML='Please wait...'; showLoader('Verifying your credentials...');
+            const phone = "+251"+pd, btn = document.getElementById("signin-btn"); btn.disabled=true; btn.innerHTML='Please wait...'; showLoader('Verifying your credentials...');
             const rememberMe = document.getElementById("si-remember").checked;
             try {
                 const res = await apiFetch('/api/login', { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ phone_number: phone, password: pass }) });
